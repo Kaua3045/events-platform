@@ -1,0 +1,31 @@
+version: 2
+updates:
+  - package-ecosystem: "gradle"
+    directory: "/infrastructure"
+    schedule:
+      interval: "daily" # trocar pra weakly ou monthly
+    allow:
+      - dependency-type: "direct"
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: "gradle"
+    directory: "/domain"
+    schedule:
+      interval: "daily" # trocar pra weakly ou monthly
+    allow:
+      - dependency-type: "direct"
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: "gradle"
+    directory: "/application"
+    schedule:
+      interval: "daily" # trocar pra weakly ou monthly
+    allow:
+      - dependency-type: "direct"
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 2
