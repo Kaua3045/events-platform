@@ -1,4 +1,4 @@
-# Java Template Modules
+# Plataform de Eventos
 
 ## Ferramentas utilizadas
 ![Java](https://img.shields.io/badge/java-%23ED8B00.svg?style=for-the-badge&logo=java&logoColor=white)
@@ -9,16 +9,16 @@
 
 ## Sobre
 
-Breve resumo sobre o projeto
+Uma plataforma muito parecida com a Sympla. Criar e gerenciar eventos e tickets.
 
 - Porquê decidiu fazer esse projeto?
-    - ....
+    - Decidi fazer esse projeto para aprender mais sobre clean architecture, DDD e SOLID. Além de aprender mais sobre o Spring e o Java. Deploys com k8s, docker e argoCD.
 
 - Quais foram os desafios de implementá-lo?
-    - ...
+    - Foi um desafio muito grande implementar toda a parte de CD, com k8s, docker e argoCD, além disso o projeto é muito complexo, são muitas regras de negócio e validações, o que torna o projeto muito interessante.
 
 - O que eu aprendi com ele?
-    - ...
+    - Aprendi como implementar CD com k8s, docker e argoCD. Além disso aprendi muito sobre tipos de deploy, como configurar um projeto, toda a parte de segurança e boas práticas.
 
 ## Tabela de conteúdos
 
@@ -52,7 +52,7 @@ Breve resumo sobre o projeto
 1. Baixe a aplicação e instale as dependências:
 ```bash
 # Baixando o projeto e acessando o diretorio
-git clone https://github.com/Kaua3045/CHANGE-HERE.git cd change-here
+git clone https://github.com/Kaua3045/events-platform.git cd events-platform
 
 # Baixando as dependências
 ./gradlew dependencies  
