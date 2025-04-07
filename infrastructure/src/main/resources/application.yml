@@ -1,6 +1,14 @@
 application:
   otel:
     memory-exporter: false
+  cors:
+    allowed-origins:
+      - "*"
+    allowed-headers:
+      - "Authorization"
+      - "Content-Type"
+    allow-credentials: true
+    max-age-preflight: 3600 # 1 hour
 
 idempotency-key:
   storage:
