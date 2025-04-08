@@ -1,6 +1,14 @@
 application:
   otel:
     memory-exporter: false
+  cors:
+    allowed-origins:
+      - "*"
+    allowed-headers:
+      - "Authorization"
+      - "Content-Type"
+    allow-credentials: true
+    max-age-preflight: 3600 # 1 hour
 
 idempotency-key:
   storage:
@@ -9,7 +17,7 @@ idempotency-key:
 logging:
   level:
     ROOT: WARN
-    com.kaua.template: DEBUG
+    com.kaua.events.platform: DEBUG
 
 server:
   port: 8081
@@ -19,7 +27,7 @@ server:
     enabled: true
     mime-types: text/html,text/xml,text/plain,text/css,text/javascript,application/javascript,application/json
     min-response-size: 1024
-  undertow:
+  tomcat:
     threads:
       worker: 64
       io: 4
@@ -103,4 +111,4 @@ otel: # https://medium.com/@yangli136/how-opentelemetry-is-integrated-with-sprin
   resource:
     attributes:
       service:
-        name: template
+        name: events-platform

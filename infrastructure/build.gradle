@@ -7,7 +7,7 @@ plugins {
     id 'org.flywaydb.flyway' version '10.13.0'
 }
 
-group = 'com.kaua.template.infrastructure'
+group = 'com.kaua.events.platform.infrastructure'
 
 bootJar {
     archiveFileName = 'application.jar'
@@ -17,7 +17,7 @@ bootJar {
 springBoot {
     buildInfo {
         properties {
-            name = 'java-template'
+            name = 'events-platform'
         }
     }
 }
@@ -30,10 +30,11 @@ dependencies {
     implementation(project(":application"))
     implementation(project(":domain"))
 
+    // On undertow fix virtual threads leaked memory, uncomment the line below
     implementation('org.springframework.boot:spring-boot-starter-web') {
-        exclude module: 'spring-boot-starter-tomcat'
+//        exclude module: 'spring-boot-starter-tomcat'
     }
-    implementation 'org.springframework.boot:spring-boot-starter-undertow'
+//    implementation 'org.springframework.boot:spring-boot-starter-undertow'
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
     implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
@@ -51,7 +52,7 @@ dependencies {
     implementation 'com.fasterxml.jackson.module:jackson-module-blackbird'
 
     implementation 'org.flywaydb:flyway-core'
-//    implementation 'org.postgresql:postgresql' change to match your database driver
+    implementation 'org.postgresql:postgresql'
 
     implementation 'org.owasp.encoder:encoder:1.2.3'
 
@@ -73,7 +74,7 @@ dependencyManagement {
 }
 
 flyway { // Flyway configuration change this to match your database
-    url = 'jdbc:postgresql://' + System.getenv('DATABASE_POSTGRESQL_URL') + '/template' ?: 'jdbc:postgresql://localhost:5432/template'
+    url = 'jdbc:postgresql://' + System.getenv('DATABASE_POSTGRESQL_URL') + '/events-platform' ?: 'jdbc:postgresql://localhost:5432/template'
     user = System.getenv('DATABASE_POSTGRESQL_USERNAME') ?: 'postgres'
     password = System.getenv('DATABASE_POSTGRESQL_PASSWORD') ?: '123456'
 }
@@ -83,8 +84,8 @@ jacocoTestReport {
         classDirectories.setFrom(
                 files(classDirectories.files.collect {
                     fileTree(dir: it, exclude: [
-                            'om/kaua/template/infrastructure/configurations/*',
-                            'om/kaua/template/infrastructure/Main.class'
+                            'om/kaua/events/platform/infrastructure/configurations/*',
+                            'om/kaua/events/platform/infrastructure/Main.class'
                     ])
                 })
         )
@@ -105,8 +106,8 @@ testCodeCoverageReport {
         classDirectories.setFrom(
                 files(classDirectories.files.collect {
                     fileTree(dir: it, exclude: [
-                            'com/kaua/template/infrastructure/configurations/*',
-                            'com/kaua/template/infrastructure/Main.class'
+                            'com/kaua/events/platform/infrastructure/configurations/*',
+                            'com/kaua/events/platform/infrastructure/Main.class'
                     ])
                 })
         )
@@ -118,8 +119,8 @@ jacocoTestCoverageVerification {
         classDirectories.setFrom(
                 files(classDirectories.files.collect {
                     fileTree(dir: it, exclude: [
-                            'com/kaua/template/infrastructure/configurations/*',
-                            'com/kaua/template/infrastructure/Main.class'
+                            'com/kaua/events/platform/infrastructure/configurations/*',
+                            'com/kaua/events/platform/infrastructure/Main.class'
                     ])
                 })
         )
