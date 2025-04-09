@@ -16,15 +16,23 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultHandlers;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerExceptionResolver;
 import org.springframework.web.servlet.HandlerExecutionChain;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 
+import java.lang.reflect.Method;
+
 import static com.kaua.events.platform.ApiTest.admin;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @IntegrationTest
 @AutoConfigureMockMvc
@@ -58,7 +66,7 @@ public class IdempotencyKeyFilterTest {
 
         this.mvc.perform(request)
                 .andDo(MockMvcResultHandlers.print())
-                .andExpect(MockMvcResultMatchers.status().isCreated())
+                .andExpect(status().isCreated())
                 .andExpect(MockMvcResultMatchers.header().string("Location", "/test/idempotency-key-helper/" + aId))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.id").value(aId));
     }
@@ -76,7 +84,7 @@ public class IdempotencyKeyFilterTest {
 
         this.mvc.perform(request)
                 .andDo(MockMvcResultHandlers.print())
-                .andExpect(MockMvcResultMatchers.status().isCreated())
+                .andExpect(status().isCreated())
                 .andExpect(MockMvcResultMatchers.header().string("Location", "/test/idempotency-key-helper/" + "&lt;script&gt;alert(&#39;xss&#39;)&lt;/script&gt;"))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.id").value("&lt;script&gt;alert(&#39;xss&#39;)&lt;/script&gt;"));
     }
@@ -97,7 +105,7 @@ public class IdempotencyKeyFilterTest {
 
         this.mvc.perform(aFirstRequest)
                 .andDo(MockMvcResultHandlers.print())
-                .andExpect(MockMvcResultMatchers.status().isCreated())
+                .andExpect(status().isCreated())
                 .andExpect(MockMvcResultMatchers.header().string("Location", "/test/idempotency-key-helper/" + aId))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.id").value(aId));
 
@@ -110,7 +118,7 @@ public class IdempotencyKeyFilterTest {
 
         this.mvc.perform(request)
                 .andDo(MockMvcResultHandlers.print())
-                .andExpect(MockMvcResultMatchers.status().isCreated())
+                .andExpect(status().isCreated())
                 .andExpect(MockMvcResultMatchers.header().string("Location", "/test/idempotency-key-helper/" + aId))
                 .andExpect(MockMvcResultMatchers.header().string("x-idempotency-response", "true"))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.id").value(aId));
@@ -127,7 +135,7 @@ public class IdempotencyKeyFilterTest {
 
         this.mvc.perform(request)
                 .andDo(MockMvcResultHandlers.print())
-                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.id").value(aId));
     }
 
@@ -146,7 +154,7 @@ public class IdempotencyKeyFilterTest {
 
         this.mvc.perform(request)
                 .andDo(MockMvcResultHandlers.print())
-                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.id").value(aId));
     }
 
@@ -165,7 +173,7 @@ public class IdempotencyKeyFilterTest {
 
         this.mvc.perform(request)
                 .andDo(MockMvcResultHandlers.print())
-                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.id").value(aId));
     }
 
@@ -183,7 +191,7 @@ public class IdempotencyKeyFilterTest {
 
         this.mvc.perform(request)
                 .andDo(MockMvcResultHandlers.print())
-                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.id").value(aId));
     }
 
@@ -201,7 +209,7 @@ public class IdempotencyKeyFilterTest {
 
         this.mvc.perform(request)
                 .andDo(MockMvcResultHandlers.print())
-                .andExpect(MockMvcResultMatchers.status().isUnprocessableEntity())
+                .andExpect(status().isUnprocessableEntity())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.message").value("Idempotency key required and the required header is 'x-idempotency-key'"));
     }
 
@@ -216,18 +224,18 @@ public class IdempotencyKeyFilterTest {
 
         this.mvc.perform(request)
                 .andDo(MockMvcResultHandlers.print())
-                .andExpect(MockMvcResultMatchers.status().isMethodNotAllowed())
+                .andExpect(status().isMethodNotAllowed())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.message").value("Idempotency key is not supported for this method: GET"));
     }
 
     @Test
     void testOnHandlerMethodThrows() throws Exception {
-        final var aRequest = Mockito.mock(HttpServletRequest.class);
-        final var aResponse = Mockito.mock(HttpServletResponse.class);
-        final var aFilterChain = Mockito.mock(FilterChain.class);
+        final var aRequest = mock(HttpServletRequest.class);
+        final var aResponse = mock(HttpServletResponse.class);
+        final var aFilterChain = mock(FilterChain.class);
 
         final var aHandlerExceptionResolver = Mockito.spy(HandlerExceptionResolver.class);
-        final var aRequestMappingHandlerMapping = Mockito.mock(RequestMappingHandlerMapping.class);
+        final var aRequestMappingHandlerMapping = mock(RequestMappingHandlerMapping.class);
 
         final var aIdempotencyKeyFilter = new IdempotencyKeyFilter(
                 idempotencyKeyGateway,
@@ -236,7 +244,7 @@ public class IdempotencyKeyFilterTest {
                 observationHelper
         );
 
-        Mockito.when(aRequestMappingHandlerMapping.getHandler(Mockito.any()))
+        when(aRequestMappingHandlerMapping.getHandler(Mockito.any()))
                 .thenThrow(new RuntimeException("test"));
 
         aIdempotencyKeyFilter.doFilterInternal(aRequest, aResponse, aFilterChain);
@@ -247,12 +255,12 @@ public class IdempotencyKeyFilterTest {
 
     @Test
     void testOnHandlerMethodReturnsNull() throws Exception {
-        final var aRequest = Mockito.mock(HttpServletRequest.class);
-        final var aResponse = Mockito.mock(HttpServletResponse.class);
-        final var aFilterChain = Mockito.mock(FilterChain.class);
+        final var aRequest = mock(HttpServletRequest.class);
+        final var aResponse = mock(HttpServletResponse.class);
+        final var aFilterChain = mock(FilterChain.class);
 
         final var aHandlerExceptionResolver = Mockito.spy(HandlerExceptionResolver.class);
-        final var aRequestMappingHandlerMapping = Mockito.mock(RequestMappingHandlerMapping.class);
+        final var aRequestMappingHandlerMapping = mock(RequestMappingHandlerMapping.class);
 
         final var aIdempotencyKeyFilter = new IdempotencyKeyFilter(
                 idempotencyKeyGateway,
@@ -261,7 +269,7 @@ public class IdempotencyKeyFilterTest {
                 observationHelper
         );
 
-        Mockito.when(aRequestMappingHandlerMapping.getHandler(aRequest))
+        when(aRequestMappingHandlerMapping.getHandler(aRequest))
                 .thenReturn(null);
 
         Assertions.assertDoesNotThrow(() -> aIdempotencyKeyFilter.doFilterInternal(aRequest, aResponse, aFilterChain));
@@ -269,12 +277,12 @@ public class IdempotencyKeyFilterTest {
 
     @Test
     void testOnHandlerMethodIsNotHandlerMethod() throws Exception {
-        final var aRequest = Mockito.mock(HttpServletRequest.class);
-        final var aResponse = Mockito.mock(HttpServletResponse.class);
-        final var aFilterChain = Mockito.mock(FilterChain.class);
+        final var aRequest = mock(HttpServletRequest.class);
+        final var aResponse = mock(HttpServletResponse.class);
+        final var aFilterChain = mock(FilterChain.class);
 
         final var aHandlerExceptionResolver = Mockito.spy(HandlerExceptionResolver.class);
-        final var aRequestMappingHandlerMapping = Mockito.mock(RequestMappingHandlerMapping.class);
+        final var aRequestMappingHandlerMapping = mock(RequestMappingHandlerMapping.class);
 
         final var aIdempotencyKeyFilter = new IdempotencyKeyFilter(
                 idempotencyKeyGateway,
@@ -283,11 +291,133 @@ public class IdempotencyKeyFilterTest {
                 observationHelper
         );
 
-        final var aHandlerExecutionChain = Mockito.mock(HandlerExecutionChain.class);
+        final var aHandlerExecutionChain = mock(HandlerExecutionChain.class);
 
-        Mockito.when(aRequestMappingHandlerMapping.getHandler(aRequest))
+        when(aRequestMappingHandlerMapping.getHandler(aRequest))
                 .thenReturn(aHandlerExecutionChain);
 
         Assertions.assertDoesNotThrow(() -> aIdempotencyKeyFilter.doFilterInternal(aRequest, aResponse, aFilterChain));
+    }
+
+    @Test
+    void testOnHandlerMethodReturnsValidHandlerMethod() throws Exception {
+        final var aRequest = mock(HttpServletRequest.class);
+        final var aHandlerExceptionResolver = mock(HandlerExceptionResolver.class);
+        final var aRequestMappingHandlerMapping = mock(RequestMappingHandlerMapping.class);
+        final var aHandlerMethod = mock(HandlerMethod.class);
+
+        final var aHandlerChain = new HandlerExecutionChain(aHandlerMethod);
+
+        when(aRequestMappingHandlerMapping.getHandler(Mockito.any()))
+                .thenReturn(aHandlerChain);
+
+        final var aIdempotencyKeyFilter = new IdempotencyKeyFilter(
+                idempotencyKeyGateway,
+                aRequestMappingHandlerMapping,
+                aHandlerExceptionResolver,
+                observationHelper
+        );
+
+        var method = IdempotencyKeyFilter.class.getDeclaredMethod("getHandlerMethod", HttpServletRequest.class);
+        method.setAccessible(true);
+        var result = method.invoke(aIdempotencyKeyFilter, aRequest);
+
+        Assertions.assertEquals(aHandlerMethod, result);
+    }
+
+    @Test
+    void testOnHandlerMethodReturnsHandlerChainButNotHandlerMethod() throws Exception {
+        final var aRequest = mock(HttpServletRequest.class);
+        final var aHandlerExceptionResolver = mock(HandlerExceptionResolver.class);
+        final var aRequestMappingHandlerMapping = mock(RequestMappingHandlerMapping.class);
+
+        final var someOtherHandler = new Object();
+        final var aHandlerChain = new HandlerExecutionChain(someOtherHandler);
+
+        when(aRequestMappingHandlerMapping.getHandler(Mockito.any()))
+                .thenReturn(aHandlerChain);
+
+        final var aIdempotencyKeyFilter = new IdempotencyKeyFilter(
+                idempotencyKeyGateway,
+                aRequestMappingHandlerMapping,
+                aHandlerExceptionResolver,
+                observationHelper
+        );
+
+        var method = IdempotencyKeyFilter.class.getDeclaredMethod("getHandlerMethod", HttpServletRequest.class);
+        method.setAccessible(true);
+        var result = method.invoke(aIdempotencyKeyFilter, aRequest);
+
+        Assertions.assertNull(result);
+    }
+
+    @Test
+    void shouldReturnTrueWhenMethodAndClassAreAnnotated() throws NoSuchMethodException {
+        @RestController
+        class TestController {
+            @IdempotencyKey
+            public void testMethod() {
+            }
+        }
+
+        Method method = TestController.class.getMethod("testMethod");
+        HandlerMethod handlerMethod = new HandlerMethod(new TestController(), method);
+
+        boolean result = invokeIsIdempotencyKeyAnnotated(handlerMethod);
+        Assertions.assertTrue(result);
+    }
+
+    @Test
+    void shouldReturnFalseWhenMethodIsAnnotatedButClassIsNot() throws NoSuchMethodException {
+        class TestController {
+            @IdempotencyKey
+            public void testMethod() {
+            }
+        }
+
+        Method method = TestController.class.getMethod("testMethod");
+        HandlerMethod handlerMethod = new HandlerMethod(new TestController(), method);
+
+        boolean result = invokeIsIdempotencyKeyAnnotated(handlerMethod);
+        Assertions.assertFalse(result);
+    }
+
+    @Test
+    void shouldReturnFalseWhenMethodIsNotAnnotatedButClassIs() throws NoSuchMethodException {
+        @RestController
+        class TestController {
+            public void testMethod() {
+            }
+        }
+
+        Method method = TestController.class.getMethod("testMethod");
+        HandlerMethod handlerMethod = new HandlerMethod(new TestController(), method);
+
+        boolean result = invokeIsIdempotencyKeyAnnotated(handlerMethod);
+        Assertions.assertFalse(result);
+    }
+
+    @Test
+    void shouldReturnFalseWhenNeitherMethodNorClassAreAnnotated() throws NoSuchMethodException {
+        class TestController {
+            public void testMethod() {
+            }
+        }
+
+        Method method = TestController.class.getMethod("testMethod");
+        HandlerMethod handlerMethod = new HandlerMethod(new TestController(), method);
+
+        boolean result = invokeIsIdempotencyKeyAnnotated(handlerMethod);
+        Assertions.assertFalse(result);
+    }
+
+    private boolean invokeIsIdempotencyKeyAnnotated(HandlerMethod handlerMethod) {
+        final var filter = new IdempotencyKeyFilter(
+                idempotencyKeyGateway,
+                mock(RequestMappingHandlerMapping.class),
+                mock(HandlerExceptionResolver.class),
+                observationHelper
+        );
+        return Boolean.TRUE.equals(ReflectionTestUtils.invokeMethod(filter, "isIdempotencyKeyAnnotated", handlerMethod));
     }
 }
