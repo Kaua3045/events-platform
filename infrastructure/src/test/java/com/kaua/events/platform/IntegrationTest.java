@@ -12,7 +12,8 @@ import java.lang.annotation.*;
 @Inherited
 @ActiveProfiles("test-integration")
 @SpringBootTest(classes = {
-        WebServerConfig.class
+        WebServerConfig.class,
+        IntegrationTestConfig.class
 })
 @Tag("integrationTest")
 public @interface IntegrationTest {
