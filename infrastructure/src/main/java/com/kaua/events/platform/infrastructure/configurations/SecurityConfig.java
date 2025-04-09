@@ -2,10 +2,10 @@ package com.kaua.events.platform.infrastructure.configurations;
 
 import com.kaua.events.platform.infrastructure.configurations.authentication.JwtConverter;
 import com.kaua.events.platform.infrastructure.configurations.properties.CorsProperties;
-import com.nimbusds.jose.JOSEException;
+import com.kaua.events.platform.infrastructure.constants.Constants;
+import com.kaua.events.platform.infrastructure.services.rsakey.RsaKeyProvider;
 import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.RSAKey;
-import com.nimbusds.jose.jwk.gen.RSAKeyGenerator;
 import com.nimbusds.jose.jwk.source.ImmutableJWKSet;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -26,7 +26,6 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import java.time.Duration;
 import java.util.Arrays;
 import java.util.Objects;
 
@@ -55,31 +54,20 @@ public class SecurityConfig {
     }
 
     @Bean
-    public JwtDecoder jwtDecoder() {
-        // TODO: Change this to a real public key
-        RSAKeyGenerator rsaKeyGenerator = new RSAKeyGenerator(2048);
-        try {
-            RSAKey rsaKey = rsaKeyGenerator.generate();
-            return NimbusJwtDecoder.withPublicKey(rsaKey.toRSAPublicKey()).build();
-        } catch (JOSEException e) {
-            throw new RuntimeException(e);
-        }
+    public JwtDecoder jwtDecoder(RsaKeyProvider rsaKeyProvider) {
+        return NimbusJwtDecoder
+                .withPublicKey(rsaKeyProvider.getPublicKey(Constants.JWT_RSA_KEY_NAME))
+                .build();
     }
 
     @Bean
-    public JwtEncoder jwtEncoder() {
-        // TODO: Change this to get real public and private keys
-        RSAKeyGenerator rsaKeyGenerator = new RSAKeyGenerator(2048);
-        RSAKey jwk = null;
-        try {
-            RSAKey rsaKey = rsaKeyGenerator.generate();
-            jwk = new RSAKey.Builder(rsaKey.toRSAPublicKey())
-                    .privateKey(rsaKey.toPrivateKey()).build();
-        } catch (JOSEException e) {
-            throw new RuntimeException(e);
-        }
+    public JwtEncoder jwtEncoder(RsaKeyProvider rsaKeyProvider) {
+        RSAKey jwk = new RSAKey.Builder(
+                rsaKeyProvider.getPublicKey(Constants.JWT_RSA_KEY_NAME))
+                .privateKey(rsaKeyProvider.getPrivateKey(Constants.JWT_RSA_KEY_NAME))
+                .build();
 
-        var jkws = new ImmutableJWKSet<>(new JWKSet(jwk));
+        final var jkws = new ImmutableJWKSet<>(new JWKSet(jwk));
 
         return new NimbusJwtEncoder(jkws);
     }
