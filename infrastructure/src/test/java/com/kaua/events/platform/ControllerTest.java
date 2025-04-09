@@ -14,7 +14,7 @@ import java.lang.annotation.*;
 @Inherited
 @ActiveProfiles("test-integration")
 @WebMvcTest
-@Import(SecurityConfig.class)
+@Import({ SecurityConfig.class, IntegrationTestConfig.class })
 @Tag("integrationTest")
 public @interface ControllerTest {
 
