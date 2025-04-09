@@ -9,6 +9,9 @@ application:
       - "Content-Type"
     allow-credentials: true
     max-age-preflight: 3600 # 1 hour
+  rsa:
+    key:
+      path: ./keys/
 
 idempotency-key:
   storage:
