@@ -1,9 +1,8 @@
 package com.kaua.events.platform.infrastructure.idempotency;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.kaua.events.platform.IntegrationTest;
+import com.kaua.events.platform.ControllerTest;
 import com.kaua.events.platform.domain.utils.IdentifierUtils;
-import com.kaua.events.platform.infrastructure.configurations.SecurityConfig;
 import com.kaua.events.platform.infrastructure.idempotency.gateways.IdempotencyKeyGateway;
 import com.kaua.events.platform.infrastructure.utils.ObservationHelper;
 import jakarta.servlet.FilterChain;
@@ -13,8 +12,6 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
@@ -34,9 +31,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@IntegrationTest
-@AutoConfigureMockMvc
-@Import(SecurityConfig.class)
+@ControllerTest(controllers = IdempotencyKeyHelperControllerTest.class)
 public class IdempotencyKeyFilterTest {
 
     @Autowired

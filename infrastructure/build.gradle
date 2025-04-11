@@ -37,7 +37,10 @@ dependencies {
 //    implementation 'org.springframework.boot:spring-boot-starter-undertow'
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jdbc'
     implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
+
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.2.0'
 
     implementation 'io.opentelemetry.instrumentation:opentelemetry-spring-boot-starter'
 
@@ -85,6 +88,7 @@ jacocoTestReport {
                 files(classDirectories.files.collect {
                     fileTree(dir: it, exclude: [
                             'om/kaua/events/platform/infrastructure/configurations/*',
+                            'om/kaua/events/platform/infrastructure/jdbc/*',
                             'om/kaua/events/platform/infrastructure/Main.class'
                     ])
                 })
@@ -107,6 +111,7 @@ testCodeCoverageReport {
                 files(classDirectories.files.collect {
                     fileTree(dir: it, exclude: [
                             'com/kaua/events/platform/infrastructure/configurations/*',
+                            'com/kaua/events/platform/infrastructure/jdbc/*',
                             'com/kaua/events/platform/infrastructure/Main.class'
                     ])
                 })
@@ -120,6 +125,7 @@ jacocoTestCoverageVerification {
                 files(classDirectories.files.collect {
                     fileTree(dir: it, exclude: [
                             'com/kaua/events/platform/infrastructure/configurations/*',
+                            'com/kaua/events/platform/infrastructure/jdbc/*',
                             'com/kaua/events/platform/infrastructure/Main.class'
                     ])
                 })

@@ -1,0 +1,16 @@
+services:
+  postgres:
+    container_name: events-platform-postgres
+    image: postgres:latest
+    restart: on-failure
+    environment:
+      - POSTGRES_DB=events-platform
+      - POSTGRES_PASSWORD=123456
+      - POSTGRES_ROOT_HOST=%
+    ports:
+      - "5434:5432"
+    networks:
+      - events-platform-network
+
+networks:
+  events-platform-network:
