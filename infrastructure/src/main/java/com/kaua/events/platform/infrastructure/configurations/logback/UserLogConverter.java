@@ -16,7 +16,10 @@ public class UserLogConverter extends ClassicConverter {
             return "anonymous"; // anonymous user
         }
 
-        final var aUser = (UserAuthentication) authentication.getPrincipal();
+        if (!(authentication instanceof UserAuthentication aUser)) {
+            return "anonymous"; // not authenticated
+        }
+
         final var aAuthenticatedUser = (AuthenticatedUser) aUser.getPrincipal();
         return aAuthenticatedUser.id();
     }
