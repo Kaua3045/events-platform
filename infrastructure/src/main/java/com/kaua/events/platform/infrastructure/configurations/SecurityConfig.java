@@ -1,8 +1,12 @@
 package com.kaua.events.platform.infrastructure.configurations;
 
+import com.kaua.events.platform.infrastructure.configurations.authentication.CustomAccessDeniedHandler;
+import com.kaua.events.platform.infrastructure.configurations.authentication.CustomAuthenticationEntryPoint;
 import com.kaua.events.platform.infrastructure.configurations.authentication.JwtConverter;
 import com.kaua.events.platform.infrastructure.configurations.properties.CorsProperties;
+import com.kaua.events.platform.infrastructure.configurations.properties.OAuthClients;
 import com.kaua.events.platform.infrastructure.constants.Constants;
+import com.kaua.events.platform.infrastructure.oauth.OAuthAuthenticateFilter;
 import com.kaua.events.platform.infrastructure.services.rsakey.RsaKeyProvider;
 import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.RSAKey;
@@ -21,6 +25,7 @@ import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
+import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -41,15 +46,19 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(final HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(final HttpSecurity http, final OAuthClients oAuthClients) throws Exception {
         return http
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(authorize ->
-                        authorize.requestMatchers("/v1/users").permitAll()
+                        authorize.requestMatchers("/v1/users", "/v1/authorize/refresh").permitAll()
+                                .requestMatchers("/v1/users/me/user").hasAnyAuthority("USER")
                                 .anyRequest().authenticated())
-                .oauth2ResourceServer(oauth -> oauth.jwt(j -> j.jwtAuthenticationConverter(jwtConverter)))
+                .oauth2ResourceServer(oauth -> oauth.jwt(j -> j.jwtAuthenticationConverter(jwtConverter))
+                        .authenticationEntryPoint(new CustomAuthenticationEntryPoint()))
                 .sessionManagement(sessions -> sessions.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .addFilterBefore(new OAuthAuthenticateFilter(oAuthClients), BearerTokenAuthenticationFilter.class)
+                .exceptionHandling(ex -> ex.accessDeniedHandler(new CustomAccessDeniedHandler()).authenticationEntryPoint(new CustomAuthenticationEntryPoint()))
                 .build();
     }
 

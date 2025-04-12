@@ -12,6 +12,21 @@ application:
   rsa:
     key:
       path: ./keys/
+  oauth:
+    clients:
+      default: # In future move this to DB
+        client-id: default
+        client-secret: default
+        redirect-uri: http://localhost:8081/api/oauth2/callback/default
+        public-client: false
+        access-token-ttl: 1
+        access-token-ttl-time-unit: MINUTES
+        refresh-token-ttl: 1
+        refresh-token-ttl-time-unit: DAYS
+        issuer: http://localhost:8081/
+        authorities:
+          - "read"
+          - "write"
 
 idempotency-key:
   storage:
@@ -54,7 +69,7 @@ spring:
       pool-name: master
   jpa:
     open-in-view: false
-    show-sql: false
+    show-sql: true
     hibernate:
       ddl-auto: none
     properties:

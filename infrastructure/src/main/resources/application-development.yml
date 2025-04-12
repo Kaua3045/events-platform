@@ -1,4 +1,6 @@
 application:
+  otel:
+    memory-exporter: true
   name: events-platform
   instance: events-platform-01
 
@@ -13,10 +15,22 @@ server:
       io: 2
 
 spring:
-  datasource: # change this configurations to your database
-    url: jdbc:postgresql://localhost:5434/events-platform
-    username: postgres
+  datasource:
+    driver-class-name: org.h2.Driver
+    username: root
     password: 123456
+    url: jdbc:h2:mem:template;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE # change this to your database type, postgresql, mysql or other
+  test:
+    database:
+      replace: none
+  h2:
+    console:
+      enabled: true
+      path: /h2
+#  datasource: # change this configurations to your database
+#    url: jdbc:postgresql://localhost:5434/events-platform
+#    username: postgres
+#    password: 123456
   jpa:
     show-sql: true
   flyway:

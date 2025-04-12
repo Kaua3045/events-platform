@@ -6,19 +6,19 @@ import org.springframework.security.oauth2.jwt.Jwt;
 
 import java.util.Collection;
 
-public class UserAuthentication extends AbstractAuthenticationToken {
+public class ServiceAuthentication extends AbstractAuthenticationToken {
 
     private final Jwt jwt;
-    private final AuthenticatedUser user;
+    private final AuthenticatedService service;
 
-    public UserAuthentication(
+    public ServiceAuthentication(
             final Jwt jwt,
-            final AuthenticatedUser user,
+            final AuthenticatedService service,
             final Collection<? extends GrantedAuthority> authorities
     ) {
         super(authorities);
         this.jwt = jwt;
-        this.user = user;
+        this.service = service;
         setAuthenticated(true);
     }
 
@@ -29,7 +29,7 @@ public class UserAuthentication extends AbstractAuthenticationToken {
 
     @Override
     public Object getPrincipal() {
-        return user;
+        return service;
     }
 
     @Override
