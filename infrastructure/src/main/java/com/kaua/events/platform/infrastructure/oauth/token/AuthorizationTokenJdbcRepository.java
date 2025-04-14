@@ -30,14 +30,8 @@ public class AuthorizationTokenJdbcRepository implements AuthorizationTokenRepos
     }
 
     @Override
-    public List<AuthorizationToken> tokenOfClientId(final String clientId) {
-        final var aSql = "SELECT * FROM authorization_tokens WHERE client_id = :client_id";
-        return this.databaseClient.query(aSql, Map.of("client_id", clientId), tokenMapper());
-    }
-
-    @Override
     public List<AuthorizationToken> tokensOfSub(final String sub) {
-        final var aSql = "SELECT * FROM authorization_tokens WHERE user_id = :user_id";
+        final var aSql = "SELECT * FROM authorization_tokens WHERE user_id = :user_id AND revoked = false AND expires_in > now()";
         return this.databaseClient.query(aSql, Map.of("user_id", sub), tokenMapper());
     }
 
@@ -72,7 +66,6 @@ public class AuthorizationTokenJdbcRepository implements AuthorizationTokenRepos
         executeUpdate(aSql, authorizationToken);
     }
 
-    // TODO update nao vai funcionar pois vai procurar pelo novo jti
     private void update(AuthorizationToken authorizationToken) {
         final var aSql = """
                 UPDATE authorization_tokens
@@ -112,7 +105,7 @@ public class AuthorizationTokenJdbcRepository implements AuthorizationTokenRepos
                         new AuthorizationTokenID(ULID.fromString(rs.getString("id"))),
                         rs.getLong("version"),
                         rs.getString("jti"),
-                        AuthorizationTokenType.from(rs.getString("type")).orElseThrow(() -> NotFoundException.with("token type was not found")),
+                        AuthorizationTokenType.from(rs.getString("type")).orElseThrow(() -> NotFoundException.with("Token type was not found")),
                         JdbcUtils.getInstant(rs, "expires_in"),
                         JdbcUtils.getInstant(rs, "issued_at"),
                         rs.getBoolean("revoked"),
