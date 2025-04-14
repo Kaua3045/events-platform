@@ -1,4 +1,4 @@
-package com.kaua.events.platform.infrastructure.oauth;
+package com.kaua.events.platform.domain.auth;
 
 import java.util.List;
 
