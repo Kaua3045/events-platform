@@ -3,8 +3,11 @@ package com.kaua.events.platform.infrastructure.rest.controllers;
 import com.kaua.events.platform.application.usecases.auth.code.create.CreateAuthorizationCodeInput;
 import com.kaua.events.platform.application.usecases.auth.code.create.CreateAuthorizationCodeUseCase;
 import com.kaua.events.platform.application.usecases.auth.token.create.AuthorizationCodeGrantInput;
+import com.kaua.events.platform.application.usecases.auth.token.create.ClientSecretGrantInput;
 import com.kaua.events.platform.application.usecases.auth.token.create.CreateAuthorizationTokenUseCase;
 import com.kaua.events.platform.application.usecases.auth.token.create.RefreshTokenGrantInput;
+import com.kaua.events.platform.domain.exceptions.DomainException;
+import com.kaua.events.platform.domain.exceptions.NotFoundException;
 import com.kaua.events.platform.infrastructure.configurations.properties.OAuthClients;
 import com.kaua.events.platform.infrastructure.oauth.code.req.CreateAuthorizationCodeRequest;
 import com.kaua.events.platform.infrastructure.oauth.code.res.CreateAuthorizationCodeResponse;
@@ -37,7 +40,8 @@ public class AuthorizeRestController implements AuthorizeAPI {
     public ResponseEntity<CreateAuthorizationCodeResponse> createAuthorizationCode(
             final CreateAuthorizationCodeRequest request
     ) {
-        final var aOAuthClient = this.oAuthClients.getClients().get(request.clientId());
+        final var aOAuthClient = this.oAuthClients.getClient(request.clientId())
+                .orElseThrow(() -> NotFoundException.with("Client not found")); // TODO trocar a exception
 
         final var aInput = new CreateAuthorizationCodeInput(
                 aOAuthClient.clientId(),
@@ -59,22 +63,28 @@ public class AuthorizeRestController implements AuthorizeAPI {
 
     @Override
     public ResponseEntity<?> createToken(
-            final String code,
+            final String grantType,
             final String clientId,
             final String clientSecret,
+            final String code,
             final String codeVerifier
     ) {
-        final var aOAuthClient = this.oAuthClients.getClients().get(clientId);
+        final var aOAuthClient = this.oAuthClients.getClient(clientId)
+                .orElseThrow(() -> NotFoundException.with("Client not found")); // TODO trocar a exception
 
-        if (aOAuthClient == null) { // TODO verify this code
-            return ResponseEntity
-                    .status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", "invalid_client"));
-        }
-
-        final var aOutput = this.createAuthorizationTokenUseCase.execute(
-                new AuthorizationCodeGrantInput(aOAuthClient.clientId(), code, codeVerifier)
-        );
+        // TODO e no futuro passar o refresh aqui tambem
+        final var aOutput = switch (grantType) {
+            case AuthorizationCodeGrantInput.GRANT_TYPE -> this.createAuthorizationTokenUseCase.execute(new AuthorizationCodeGrantInput(
+                    aOAuthClient.clientId(),
+                    code,
+                    codeVerifier
+            ));
+            case ClientSecretGrantInput.GRANT_TYPE ->  this.createAuthorizationTokenUseCase.execute(new ClientSecretGrantInput(
+                    aOAuthClient.clientId(),
+                    clientSecret
+            ));
+            default -> throw DomainException.with("Invalid grant type");
+        };
 
         return ResponseEntity
                 .status(HttpStatus.OK)
@@ -91,13 +101,8 @@ public class AuthorizeRestController implements AuthorizeAPI {
             final String refreshToken,
             final String clientId
     ) {
-        final var aOAuthClient = this.oAuthClients.getClients().get(clientId);
-
-        if (aOAuthClient == null) { // TODO verify this code
-            return ResponseEntity
-                    .status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", "invalid_client"));
-        }
+        final var aOAuthClient = this.oAuthClients.getClient(clientId)
+                .orElseThrow(() -> NotFoundException.with("Client not found")); // TODO trocar a exception
 
         final var aOutput = this.createAuthorizationTokenUseCase.execute(
                 new RefreshTokenGrantInput(aOAuthClient.clientId(), refreshToken)
