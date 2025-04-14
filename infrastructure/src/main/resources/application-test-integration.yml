@@ -1,3 +1,20 @@
+application:
+  oauth:
+    issuer: http://localhost:8081/api
+    clients:
+      default: # In future move this to DB
+        client-id: default
+        client-secret: default
+        redirect-uri: http://localhost:8081/api/oauth2/callback/default
+        public-client: false
+        access-token-ttl: 1
+        access-token-ttl-time-unit: MINUTES
+        refresh-token-ttl: 1
+        refresh-token-ttl-time-unit: DAYS
+        authorities:
+          - "read"
+          - "write"
+
 redis:
   host: ${redis.hosts:localhost}
   port: ${redis.ports:6390}
