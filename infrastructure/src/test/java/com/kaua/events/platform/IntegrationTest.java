@@ -1,6 +1,7 @@
 package com.kaua.events.platform;
 
 import com.kaua.events.platform.infrastructure.configurations.WebServerConfig;
+import com.kaua.events.platform.infrastructure.configurations.properties.OAuthClients;
 import org.junit.jupiter.api.Tag;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
@@ -13,7 +14,8 @@ import java.lang.annotation.*;
 @ActiveProfiles("test-integration")
 @SpringBootTest(classes = {
         WebServerConfig.class,
-        IntegrationTestConfig.class
+        IntegrationTestConfig.class,
+        OAuthClients.class
 })
 @Tag("integrationTest")
 public @interface IntegrationTest {
