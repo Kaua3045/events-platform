@@ -3,6 +3,7 @@ package com.kaua.events.platform.infrastructure.oauth.code;
 import com.kaua.events.platform.application.repositories.AuthorizationCodeRepository;
 import com.kaua.events.platform.domain.auth.code.AuthorizationCode;
 import com.kaua.events.platform.domain.auth.code.AuthorizationCodeID;
+import com.kaua.events.platform.domain.exceptions.InternalErrorException;
 import com.kaua.events.platform.domain.users.UserID;
 import com.kaua.events.platform.domain.utils.ULID;
 import com.kaua.events.platform.infrastructure.jdbc.DatabaseClient;
@@ -43,6 +44,10 @@ public class AuthorizationCodeJdbcRepository implements AuthorizationCodeReposit
             log.debug("Creating new authorization code: {}", authorizationCode);
             create(authorizationCode);
             log.info("Created authorization code {}", authorizationCode);
+        } else {
+            log.debug("Updating authorization code: {}", authorizationCode);
+            update(authorizationCode);
+            log.info("Updated authorization code {}", authorizationCode);
         }
 
         authorizationCode.incrementVersion();
@@ -55,6 +60,29 @@ public class AuthorizationCodeJdbcRepository implements AuthorizationCodeReposit
                 VALUES (:id, (:version + 1), :code, :client_id, :user_id, :redirect_uri, :code_challenge, :code_challenge_method, :is_used, :expiration_date, :created_at, :updated_at)
                 """;
         executeUpdate(aSql, authorizationCode);
+    }
+
+    private void update(final AuthorizationCode authorizationCode) {
+        final var aSql = """
+                UPDATE authorization_codes
+                SET
+                    version = :version + 1,
+                    code = :code,
+                    client_id = :client_id,
+                    user_id = :user_id,
+                    redirect_uri = :redirect_uri,
+                    code_challenge = :code_challenge,
+                    code_challenge_method = :code_challenge_method,
+                    is_used = :is_used,
+                    expiration_date = :expiration_date,
+                    created_at = :created_at,
+                    updated_at = :updated_at
+                WHERE id = :id AND version = :version
+                """;
+
+        if (executeUpdate(aSql, authorizationCode) == 0) {
+            throw InternalErrorException.with("Conflict on update of authorization code");
+        }
     }
 
     private int executeUpdate(final String aSql, final AuthorizationCode authorizationCode) {
