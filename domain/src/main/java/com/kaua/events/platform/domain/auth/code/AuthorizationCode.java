@@ -202,9 +202,11 @@ public class AuthorizationCode extends AggregateRoot<AuthorizationCodeID> {
     @Override
     public String toString() {
         return "AuthorizationCode(" +
-                "code='" + code + '\'' +
+                "id='" + getId().value().toString() + '\'' +
+                ", code='" + code + '\'' +
+                ", version=" + getVersion() + '\'' +
                 ", clientId='" + clientId + '\'' +
-                ", userId=" + userId.value().toString() +
+                ", userId='" + userId.value().toString() +
                 ", redirectUri='" + redirectUri + '\'' +
                 ", codeChallenge='" + codeChallenge + '\'' +
                 ", codeChallengeMethod='" + codeChallengeMethod + '\'' +
