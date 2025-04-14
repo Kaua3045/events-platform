@@ -4,6 +4,7 @@ import com.kaua.events.platform.application.exceptions.UseCaseInputCannotBeNullE
 import com.kaua.events.platform.application.gateways.TokenGeneratorGateway;
 import com.kaua.events.platform.application.repositories.AuthorizationCodeRepository;
 import com.kaua.events.platform.application.repositories.AuthorizationTokenRepository;
+import com.kaua.events.platform.application.repositories.OAuthClientRepository;
 import com.kaua.events.platform.domain.auth.code.AuthorizationCode;
 import com.kaua.events.platform.domain.auth.token.AuthorizationToken;
 import com.kaua.events.platform.domain.auth.token.AuthorizationTokenType;
@@ -17,15 +18,18 @@ public class DefaultCreateAuthorizationTokenUseCase extends CreateAuthorizationT
 
     private final AuthorizationTokenRepository authorizationTokenRepository;
     private final AuthorizationCodeRepository authorizationCodeRepository;
+    private final OAuthClientRepository oAuthClientRepository;
     private final TokenGeneratorGateway tokenGeneratorGateway;
 
     public DefaultCreateAuthorizationTokenUseCase(
             final AuthorizationTokenRepository authorizationTokenRepository,
             final AuthorizationCodeRepository authorizationCodeRepository,
+            final OAuthClientRepository oAuthClientRepository,
             final TokenGeneratorGateway tokenGeneratorGateway
     ) {
         this.authorizationTokenRepository = Objects.requireNonNull(authorizationTokenRepository);
         this.authorizationCodeRepository = Objects.requireNonNull(authorizationCodeRepository);
+        this.oAuthClientRepository = Objects.requireNonNull(oAuthClientRepository);
         this.tokenGeneratorGateway = Objects.requireNonNull(tokenGeneratorGateway);
     }
 
@@ -33,182 +37,155 @@ public class DefaultCreateAuthorizationTokenUseCase extends CreateAuthorizationT
     public CreateAuthorizationTokenOutput execute(final CreateAuthorizationTokenInput input) {
         if (input == null) throw new UseCaseInputCannotBeNullException(CreateAuthorizationTokenUseCase.class);
 
-        if (input.grantType().equals(AuthorizationCodeGrantInput.GRANT_TYPE) && input instanceof AuthorizationCodeGrantInput codeGrantInput) {
-            final var aAuthorizationCode = this.authorizationCodeRepository
-                    .authorizationCodeOfCode(codeGrantInput.code())
-                    .orElseThrow(NotFoundException.with(AuthorizationCode.class, "code", codeGrantInput.code()));
+        return switch (input) {
+            case AuthorizationCodeGrantInput codeGrantInput -> handleAuthorizationCodeGrantType(codeGrantInput);
+            case RefreshTokenGrantInput refreshTokenGrantInput -> handleRefreshTokenGrantType(refreshTokenGrantInput);
+            case ClientSecretGrantInput clientSecretGrantInput -> handleClientSecretGrantType(clientSecretGrantInput);
+            default -> throw DomainException.with("The grant type is not supported in this endpoint");
+        };
+    }
 
-            if (aAuthorizationCode.isUsed()) {
-                throw DomainException.with("The authorization code has already been used");
-            }
+    private CreateAuthorizationTokenOutput handleAuthorizationCodeGrantType(final AuthorizationCodeGrantInput codeGrantInput) {
+        final var aAuthorizationCode = this.authorizationCodeRepository
+                .authorizationCodeOfCode(codeGrantInput.code())
+                .orElseThrow(NotFoundException.with(AuthorizationCode.class, "code", codeGrantInput.code()));
 
-            if (aAuthorizationCode.isExpired()) {
-                throw DomainException.with("The authorization code has expired");
-            }
+        validateAuthorizationCodeGrantType(codeGrantInput, aAuthorizationCode);
 
-            if (!aAuthorizationCode.getClientId().equalsIgnoreCase(codeGrantInput.clientId())) {
-                throw DomainException.with("The authorization code does not belong to the client");
-            }
+        final var aReceivedCodeChallenge = PKCEUtils.generateCodeChallenge(codeGrantInput.codeVerifier());
 
-            final var aReceivedCodeVerifier = PKCEUtils.generateCodeChallenge(codeGrantInput.codeVerifier());
-
-            if (!aAuthorizationCode.getCodeChallenge().equals(aReceivedCodeVerifier)) {
-                throw DomainException.with("The code verifier is invalid");
-            }
-
-            final var aAccessToken = this.tokenGeneratorGateway.generateToken(new TokenGeneratorGateway.TokenInput(
-                    codeGrantInput.clientId(),
-                    aAuthorizationCode.getUserId().value().toString(),
-                    AuthorizationTokenType.ACCESS_TOKEN
-            ));
-
-            final var aRefreshToken = this.tokenGeneratorGateway.generateToken(new TokenGeneratorGateway.TokenInput(
-                    codeGrantInput.clientId(),
-                    aAuthorizationCode.getUserId().value().toString(),
-                    AuthorizationTokenType.REFRESH_TOKEN
-            ));
-
-            final var aTokensStoredForSub = this.authorizationTokenRepository.tokensOfSub(aAuthorizationCode.getUserId().value().toString());
-
-            if (aTokensStoredForSub.isEmpty()) {
-                this.authorizationTokenRepository.save(AuthorizationToken.newAuthToken(
-                        aAccessToken.tokenJTI(),
-                        aAccessToken.type(),
-                        aAccessToken.expiresIn(),
-                        aAccessToken.issuedAt(),
-                        aAccessToken.clientId(),
-                        aAccessToken.sub()
-                ));
-                this.authorizationTokenRepository.save(AuthorizationToken.newAuthToken(
-                        aRefreshToken.tokenJTI(),
-                        aRefreshToken.type(),
-                        aRefreshToken.expiresIn(),
-                        aRefreshToken.issuedAt(),
-                        aRefreshToken.clientId(),
-                        aRefreshToken.sub()
-                ));
-            } else {
-                aTokensStoredForSub.forEach(token -> {
-                    if (token.getType().equals(AuthorizationTokenType.ACCESS_TOKEN)) {
-                        this.authorizationTokenRepository.save(AuthorizationToken.with(
-                                token.getId(),
-                                token.getVersion(),
-                                aAccessToken.tokenJTI(),
-                                aAccessToken.type(),
-                                aAccessToken.expiresIn(),
-                                aAccessToken.issuedAt(),
-                                token.isRevoked(),
-                                token.getClientId(),
-                                token.getUserId().orElse(token.getClientId()) // TODO verify if this is correct
-                        ));
-                    } else {
-                        this.authorizationTokenRepository.save(AuthorizationToken.with(
-                                token.getId(),
-                                token.getVersion(),
-                                aRefreshToken.tokenJTI(),
-                                aRefreshToken.type(),
-                                aRefreshToken.expiresIn(),
-                                aRefreshToken.issuedAt(),
-                                token.isRevoked(),
-                                token.getClientId(),
-                                token.getUserId().orElse(token.getClientId()) // TODO verify if this is correct
-                        ));
-                    }
-                });
-            }
-
-            aAuthorizationCode.markAsUsed();
-            this.authorizationCodeRepository.save(aAuthorizationCode);
-
-            return CreateAuthorizationTokenOutput.with(
-                    aAccessToken,
-                    aRefreshToken
-            );
-        } else if (input.grantType().equals(RefreshTokenGrantInput.GRANT_TYPE) && input instanceof RefreshTokenGrantInput refreshTokenGrantInput) {
-            final var aRefreshHashed = PKCEUtils.sha256Base64(refreshTokenGrantInput.refreshToken());
-            final var aRefreshTokenStored = this.authorizationTokenRepository.tokenOfJti(aRefreshHashed)
-                    .orElseThrow(NotFoundException.with(AuthorizationToken.class, "jti", aRefreshHashed));
-
-            if (aRefreshTokenStored.isExpired()) {
-                throw DomainException.with("The refresh token has expired");
-            }
-
-            if (aRefreshTokenStored.isRevoked()) {
-                throw DomainException.with("The refresh token has been revoked");
-            }
-
-            if (!aRefreshTokenStored.getClientId().equalsIgnoreCase(refreshTokenGrantInput.clientId())) {
-                throw DomainException.with("The refresh token does not belong to the client");
-            }
-
-            final var aAccessToken = this.tokenGeneratorGateway.generateToken(new TokenGeneratorGateway.TokenInput(
-                    refreshTokenGrantInput.clientId(),
-                    aRefreshTokenStored.getUserId().orElse(refreshTokenGrantInput.clientId()), // TODO ver se isso faz sentido
-                    AuthorizationTokenType.ACCESS_TOKEN
-            ));
-
-            final var aRefreshToken = this.tokenGeneratorGateway.generateToken(new TokenGeneratorGateway.TokenInput(
-                    refreshTokenGrantInput.clientId(),
-                    aRefreshTokenStored.getUserId().orElse(refreshTokenGrantInput.clientId()), // TODO ver se isso faz sentido
-                    AuthorizationTokenType.REFRESH_TOKEN
-            ));
-
-            // TODO verify this
-            final var aTokensStoredForSub = this.authorizationTokenRepository.tokensOfSub(aRefreshTokenStored.getUserId().orElse(aRefreshTokenStored.getClientId()));
-
-            if (aTokensStoredForSub.isEmpty()) {
-                this.authorizationTokenRepository.save(AuthorizationToken.newAuthToken(
-                        aAccessToken.tokenJTI(),
-                        aAccessToken.type(),
-                        aAccessToken.expiresIn(),
-                        aAccessToken.issuedAt(),
-                        aAccessToken.clientId(),
-                        aAccessToken.sub()
-                ));
-                this.authorizationTokenRepository.save(AuthorizationToken.newAuthToken(
-                        aRefreshToken.tokenJTI(),
-                        aRefreshToken.type(),
-                        aRefreshToken.expiresIn(),
-                        aRefreshToken.issuedAt(),
-                        aRefreshToken.clientId(),
-                        aRefreshToken.sub()
-                ));
-            } else {
-                aTokensStoredForSub.forEach(token -> {
-                    if (token.getType().equals(AuthorizationTokenType.ACCESS_TOKEN)) {
-                        this.authorizationTokenRepository.save(AuthorizationToken.with(
-                                token.getId(),
-                                token.getVersion(),
-                                aAccessToken.tokenJTI(),
-                                aAccessToken.type(),
-                                aAccessToken.expiresIn(),
-                                aAccessToken.issuedAt(),
-                                token.isRevoked(),
-                                token.getClientId(),
-                                token.getUserId().orElse(token.getClientId()) // TODO verify if this is correct
-                        ));
-                    } else {
-                        this.authorizationTokenRepository.save(AuthorizationToken.with(
-                                token.getId(),
-                                token.getVersion(),
-                                aRefreshToken.tokenJTI(),
-                                aRefreshToken.type(),
-                                aRefreshToken.expiresIn(),
-                                aRefreshToken.issuedAt(),
-                                token.isRevoked(),
-                                token.getClientId(),
-                                token.getUserId().orElse(token.getClientId()) // TODO verify if this is correct
-                        ));
-                    }
-                });
-            }
-
-            return CreateAuthorizationTokenOutput.with(
-                    aAccessToken,
-                    aRefreshToken
-            );
+        if (!aAuthorizationCode.getCodeChallenge().equals(aReceivedCodeChallenge)) {
+            throw DomainException.with("The code verifier is invalid");
         }
 
-        throw DomainException.with("The grant type is not supported in this endpoint");
+        // TODO o access token jti devia ser hashed
+
+        final var aAccessToken = generateToken(codeGrantInput.clientId(),
+                aAuthorizationCode.getUserId().value().toString(), AuthorizationTokenType.ACCESS_TOKEN);
+        final var aRefreshToken = generateToken(codeGrantInput.clientId(),
+                aAuthorizationCode.getUserId().value().toString(), AuthorizationTokenType.REFRESH_TOKEN);
+
+        saveTokens(aAccessToken, aRefreshToken);
+
+        aAuthorizationCode.markAsUsed();
+        this.authorizationCodeRepository.save(aAuthorizationCode);
+
+        return CreateAuthorizationTokenOutput.with(
+                aAccessToken,
+                aRefreshToken
+        );
+    }
+
+    private CreateAuthorizationTokenOutput handleRefreshTokenGrantType(final RefreshTokenGrantInput refreshTokenGrantInput) {
+        final var aRefreshHashed = PKCEUtils.generateSha256Base64(refreshTokenGrantInput.refreshToken());
+        final var aRefreshTokenStored = this.authorizationTokenRepository.tokenOfJti(aRefreshHashed)
+                .orElseThrow(NotFoundException.with(AuthorizationToken.class, "jti", aRefreshHashed));
+
+        validateRefreshTokenGrantType(refreshTokenGrantInput, aRefreshTokenStored);
+
+        final var aAccessToken = generateToken(refreshTokenGrantInput.clientId(),
+                aRefreshTokenStored.getUserId().orElse(refreshTokenGrantInput.clientId()), AuthorizationTokenType.ACCESS_TOKEN);
+
+        final var aRefreshToken = generateToken(refreshTokenGrantInput.clientId(),
+                aRefreshTokenStored.getUserId().orElse(refreshTokenGrantInput.clientId()), AuthorizationTokenType.REFRESH_TOKEN);
+
+        saveTokens(aAccessToken, aRefreshToken);
+
+        return CreateAuthorizationTokenOutput.with(
+                aAccessToken,
+                aRefreshToken
+        );
+    }
+
+    private CreateAuthorizationTokenOutput handleClientSecretGrantType(final ClientSecretGrantInput clientSecretGrantInput) {
+        final var aClientId = clientSecretGrantInput.clientId();
+        final var aClientSecret = clientSecretGrantInput.clientSecret();
+
+        // TODO in future call the client repository to get client by clientId and check if clientId and secret match
+        final var aOAuthClient = this.oAuthClientRepository
+                .clientOfClientId(aClientId)
+                .orElseThrow(() -> NotFoundException.with("Client not found"));
+
+        if (!aOAuthClient.clientSecret().equalsIgnoreCase(aClientSecret)) {
+            throw DomainException.with("The client secret does not belong to the client");
+        }
+
+        final var aAccessToken = generateToken(aClientId, aClientId, AuthorizationTokenType.ACCESS_TOKEN);
+        final var aRefreshToken = generateToken(aClientId, aClientId, AuthorizationTokenType.REFRESH_TOKEN);
+
+        saveTokens(aAccessToken, aRefreshToken);
+
+        return new CreateAuthorizationTokenOutput(
+                aAccessToken,
+                aRefreshToken
+        );
+    }
+
+    private void validateAuthorizationCodeGrantType(
+            final AuthorizationCodeGrantInput codeGrantInput,
+            final AuthorizationCode aAuthorizationCode
+    ) {
+        if (aAuthorizationCode.isUsed()) {
+            throw DomainException.with("The authorization code has already been used");
+        }
+
+        if (aAuthorizationCode.isExpired()) {
+            throw DomainException.with("The authorization code has expired");
+        }
+
+        if (!aAuthorizationCode.getClientId().equalsIgnoreCase(codeGrantInput.clientId())) {
+            throw DomainException.with("The authorization code does not belong to the client");
+        }
+    }
+
+    private void validateRefreshTokenGrantType(
+            final RefreshTokenGrantInput refreshTokenGrantInput,
+            final AuthorizationToken aRefreshTokenStored
+    ) {
+        if (aRefreshTokenStored.isExpired()) {
+            throw DomainException.with("The refresh token has expired");
+        }
+
+        if (aRefreshTokenStored.isRevoked()) {
+            throw DomainException.with("The refresh token has been revoked");
+        }
+
+        if (!aRefreshTokenStored.getClientId().equalsIgnoreCase(refreshTokenGrantInput.clientId())) {
+            throw DomainException.with("The refresh token does not belong to the client");
+        }
+    }
+
+    private TokenGeneratorGateway.Token generateToken(
+            final String clientId,
+            final String sub,
+            final AuthorizationTokenType type
+    ) {
+        return this.tokenGeneratorGateway.generateToken(new TokenGeneratorGateway.TokenInput(
+                clientId,
+                sub,
+                type
+        ));
+    }
+
+    private void saveTokens(
+            final TokenGeneratorGateway.Token aAccessToken,
+            final TokenGeneratorGateway.Token aRefreshToken
+    ) {
+        this.authorizationTokenRepository.save(AuthorizationToken.newAuthToken(
+                aAccessToken.tokenJTI(),
+                aAccessToken.type(),
+                aAccessToken.expiresIn(),
+                aAccessToken.issuedAt(),
+                aAccessToken.clientId(),
+                aAccessToken.sub()
+        ));
+        this.authorizationTokenRepository.save(AuthorizationToken.newAuthToken(
+                aRefreshToken.tokenJTI(),
+                aRefreshToken.type(),
+                aRefreshToken.expiresIn(),
+                aRefreshToken.issuedAt(),
+                aRefreshToken.clientId(),
+                aRefreshToken.sub()
+        ));
     }
 }
