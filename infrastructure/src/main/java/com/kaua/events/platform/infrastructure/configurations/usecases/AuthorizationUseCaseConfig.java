@@ -3,6 +3,7 @@ package com.kaua.events.platform.infrastructure.configurations.usecases;
 import com.kaua.events.platform.application.gateways.TokenGeneratorGateway;
 import com.kaua.events.platform.application.repositories.AuthorizationCodeRepository;
 import com.kaua.events.platform.application.repositories.AuthorizationTokenRepository;
+import com.kaua.events.platform.application.repositories.OAuthClientRepository;
 import com.kaua.events.platform.application.repositories.UserRepository;
 import com.kaua.events.platform.application.usecases.auth.code.create.CreateAuthorizationCodeUseCase;
 import com.kaua.events.platform.application.usecases.auth.code.create.DefaultCreateAuthorizationCodeUseCase;
@@ -32,11 +33,13 @@ public class AuthorizationUseCaseConfig {
     public CreateAuthorizationTokenUseCase createAuthorizationTokenUseCase(
             AuthorizationTokenRepository authorizationTokenRepository,
             AuthorizationCodeRepository authorizationCodeRepository,
+            OAuthClientRepository oAuthClientRepository,
             TokenGeneratorGateway tokenGeneratorGateway
     ) {
         return new DefaultCreateAuthorizationTokenUseCase(
                 authorizationTokenRepository,
                 authorizationCodeRepository,
+                oAuthClientRepository,
                 tokenGeneratorGateway
         );
     }
