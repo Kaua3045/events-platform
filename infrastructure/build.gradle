@@ -89,6 +89,7 @@ jacocoTestReport {
                     fileTree(dir: it, exclude: [
                             'om/kaua/events/platform/infrastructure/configurations/*',
                             'om/kaua/events/platform/infrastructure/jdbc/*',
+                            'com/kaua/events/platform/infrastructure/rest/controllers/JwksRestController.class',
                             'om/kaua/events/platform/infrastructure/Main.class'
                     ])
                 })
@@ -112,6 +113,7 @@ testCodeCoverageReport {
                     fileTree(dir: it, exclude: [
                             'com/kaua/events/platform/infrastructure/configurations/*',
                             'com/kaua/events/platform/infrastructure/jdbc/*',
+                            'com/kaua/events/platform/infrastructure/rest/controllers/JwksRestController.class',
                             'com/kaua/events/platform/infrastructure/Main.class'
                     ])
                 })
@@ -126,6 +128,7 @@ jacocoTestCoverageVerification {
                     fileTree(dir: it, exclude: [
                             'com/kaua/events/platform/infrastructure/configurations/*',
                             'com/kaua/events/platform/infrastructure/jdbc/*',
+                            'com/kaua/events/platform/infrastructure/rest/controllers/JwksRestController.class',
                             'com/kaua/events/platform/infrastructure/Main.class'
                     ])
                 })
