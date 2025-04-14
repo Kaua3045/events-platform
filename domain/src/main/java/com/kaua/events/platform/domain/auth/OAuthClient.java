@@ -11,7 +11,6 @@ public record OAuthClient(
         String accessTokenTTLTimeUnit,
         int refreshTokenTTL,
         String refreshTokenTTLTimeUnit,
-        String issuer,
         List<String> authorities
 ) {
 }

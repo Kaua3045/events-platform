@@ -85,6 +85,17 @@ public class AuthorizationToken extends AggregateRoot<AuthorizationTokenID> {
         );
     }
 
+    public AuthorizationToken update(
+            final String aTokenJTI,
+            final Instant aExpiresIn,
+            final Instant aIssuedAt
+    ) {
+        setTokenJTI(aTokenJTI);
+        setExpiresIn(aExpiresIn);
+        setIssuedAt(aIssuedAt);
+        return this;
+    }
+
     public boolean isExpired() {
         return this.expiresIn.isBefore(Instant.now());
     }
@@ -152,7 +163,9 @@ public class AuthorizationToken extends AggregateRoot<AuthorizationTokenID> {
     @Override
     public String toString() {
         return "AuthorizationToken(" +
-                "tokenJTI='" + tokenJTI + '\'' +
+                "id='" + getId().value().toString() + '\'' +
+                ", version=" + getVersion() +
+                ", tokenJTI=" + tokenJTI +
                 ", type=" + type.name() +
                 ", expiresIn=" + expiresIn +
                 ", issuedAt=" + issuedAt +
