@@ -27,10 +27,11 @@ public interface AuthorizeAPI {
             produces = MediaType.APPLICATION_JSON_VALUE
     )
     ResponseEntity<?> createToken(
-            @RequestParam("code") String code,
+            @RequestParam("grant_type") String grantType,
             @RequestParam("client_id") String clientId,
             @RequestParam("client_secret") String clientSecret,
-            @RequestParam("code_verifier") String codeVerifier
+            @RequestParam(value = "code", required = false) String code,
+            @RequestParam(value = "code_verifier", required = false) String codeVerifier
     );
 
     @PostMapping(
