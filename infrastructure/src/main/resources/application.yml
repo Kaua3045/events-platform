@@ -13,6 +13,7 @@ application:
     key:
       path: ./keys/
   oauth:
+    issuer: http://localhost:8081/api
     clients:
       default: # In future move this to DB
         client-id: default
@@ -23,7 +24,6 @@ application:
         access-token-ttl-time-unit: MINUTES
         refresh-token-ttl: 1
         refresh-token-ttl-time-unit: DAYS
-        issuer: http://localhost:8081/
         authorities:
           - "read"
           - "write"
@@ -86,6 +86,12 @@ spring:
       database: 0
       host: ${redis.host}
       port: ${redis.port}
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${oauth.issuer}
+          jwk-set-uri: ${oauth.issuer}/.well-known/jwks.json
 
 # expondo rotas: /actuator/<health, info, metrics>
 management:
