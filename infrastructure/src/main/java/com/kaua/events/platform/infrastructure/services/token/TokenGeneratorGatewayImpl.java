@@ -46,7 +46,8 @@ public class TokenGeneratorGatewayImpl implements TokenGeneratorGateway {
     public Token generateToken(final TokenInput input) {
         if (input == null) throw InternalErrorException.with("input token generator cannot be null");
 
-        final var aOAuthClient = this.oAuthClients.getClients().get(input.clientId());
+        final var aOAuthClient = this.oAuthClients.getClient(input.clientId())
+                .orElseThrow(() -> NotFoundException.with("Client not found")); // TODO trocar a exception
 
         if (input.type().equals(AuthorizationTokenType.ACCESS_TOKEN)) {
             log.debug("Generating access token for [clientId:{}] [sub:{}]", input.clientId(), input.sub());
@@ -58,7 +59,7 @@ public class TokenGeneratorGatewayImpl implements TokenGeneratorGateway {
             boolean isService = input.sub().equals(input.clientId());
 
             final var aClaims = JwtClaimsSet.builder()
-                    .issuer(aOAuthClient.issuer())
+                    .issuer(oAuthClients.getIssuer())
                     .id(UUID.randomUUID().toString())
                     .issuedAt(aNow)
                     .expiresAt(aExpiresAt)
