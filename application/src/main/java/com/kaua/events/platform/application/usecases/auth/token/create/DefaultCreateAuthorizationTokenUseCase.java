@@ -83,6 +83,8 @@ public class DefaultCreateAuthorizationTokenUseCase extends CreateAuthorizationT
 
         validateRefreshTokenGrantType(refreshTokenGrantInput, aRefreshTokenStored);
 
+        this.authorizationTokenRepository.save(aRefreshTokenStored.revoke()); // TODO check this
+
         final var aAccessToken = generateToken(refreshTokenGrantInput.clientId(),
                 aRefreshTokenStored.getUserId().orElse(refreshTokenGrantInput.clientId()), AuthorizationTokenType.ACCESS_TOKEN);
 
