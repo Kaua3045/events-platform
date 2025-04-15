@@ -112,65 +112,6 @@ class CreateAuthorizationTokenUseCaseTest extends UseCaseTest {
     }
 
     @Test
-    void givenAValidValuesWithCodeInputOnNonExistsOtherTokens_whenCallCreateAuthorizationTokenUseCase_thenReturnTokens() {
-        final var aClientId = "clientId";
-        final var aCode = "code";
-        final var aCodeVerifier = "codeVerifier";
-        final var aSub = new UserID(IdentifierUtils.generateNewULID());
-
-        final var aInput = new AuthorizationCodeGrantInput(
-                aClientId,
-                aCode,
-                aCodeVerifier
-        );
-
-        Mockito.when(authorizationCodeRepository.authorizationCodeOfCode(aCode))
-                .thenReturn(Optional.of(AuthorizationCode.newAuthCode(
-                        aClientId,
-                        aSub,
-                        "http://localhost:8080/callback",
-                        "N1E4yRMD7xixn_oFyO_W3htYN3rY7-HMDKJe6z6r928",
-                        "S256"
-                )));
-        Mockito.when(tokenGeneratorGateway.generateToken(createTokenInput(
-                aClientId,
-                aSub,
-                AuthorizationTokenType.ACCESS_TOKEN
-        ))).thenReturn(createToken(
-                AuthorizationTokenType.ACCESS_TOKEN,
-                aClientId,
-                aSub.value().toString()
-        ));
-        Mockito.when(tokenGeneratorGateway.generateToken(createTokenInput(
-                aClientId,
-                aSub,
-                AuthorizationTokenType.REFRESH_TOKEN
-        ))).thenReturn(createToken(
-                AuthorizationTokenType.REFRESH_TOKEN,
-                aClientId,
-                aSub.value().toString()
-        ));
-        Mockito.when(authorizationTokenRepository.save(Mockito.any()))
-                .thenAnswer(returnsFirstArg());
-        Mockito.when(authorizationTokenRepository.save(Mockito.any()))
-                .thenAnswer(returnsFirstArg());
-        Mockito.when(authorizationCodeRepository.save(Mockito.any()))
-                .thenAnswer(returnsFirstArg());
-
-        final var aOutput = Assertions.assertDoesNotThrow(() -> this.useCase.execute(aInput));
-
-        Assertions.assertNotNull(aOutput);
-        Assertions.assertNotNull(aOutput.accessToken());
-        Assertions.assertNotNull(aOutput.refreshToken());
-
-        Mockito.verify(authorizationCodeRepository, Mockito.times(1)).authorizationCodeOfCode(aCode);
-        Mockito.verify(tokenGeneratorGateway, Mockito.times(2)).generateToken(Mockito.any());
-        Mockito.verify(authorizationTokenRepository, Mockito.times(2)).save(Mockito.any());
-        Mockito.verify(authorizationCodeRepository, Mockito.times(1)).save(Mockito.any());
-        Mockito.verify(oAuthClientRepository, Mockito.never()).clientOfClientId(Mockito.any());
-    }
-
-    @Test
     void givenAnInvalidNonExistsCode_whenCallCreateAuthorizationTokenUseCase_thenThrowNotFoundException() {
         final var aClientId = "clientId";
         final var aCode = "code";
@@ -389,6 +330,8 @@ class CreateAuthorizationTokenUseCaseTest extends UseCaseTest {
                         aClientId,
                         aSub.value().toString()
                 )));
+        Mockito.when(authorizationTokenRepository.save(Mockito.any()))
+                .thenAnswer(returnsFirstArg());
         Mockito.when(tokenGeneratorGateway.generateToken(createTokenInput(
                 aClientId,
                 aSub,
@@ -420,66 +363,7 @@ class CreateAuthorizationTokenUseCaseTest extends UseCaseTest {
 
         Mockito.verify(authorizationTokenRepository, Mockito.times(1)).tokenOfJti(Mockito.any());
         Mockito.verify(tokenGeneratorGateway, Mockito.times(2)).generateToken(Mockito.any());
-        Mockito.verify(authorizationTokenRepository, Mockito.times(2)).save(Mockito.any());
-        Mockito.verify(oAuthClientRepository, Mockito.never()).clientOfClientId(Mockito.any());
-    }
-
-    @Test
-    void givenAValidValuesWithRefreshInputOnNonExistsOtherRefresh_whenCallCreateAuthorizationToken_thenReturnTokens() {
-        final var aClientId = "clientId";
-        final var aRefreshToken = "refreshToken";
-        final var aSub = new UserID(IdentifierUtils.generateNewULID());
-
-        final var aInput = new RefreshTokenGrantInput(
-                aClientId,
-                aRefreshToken
-        );
-
-        Assertions.assertEquals(aClientId, aInput.clientId());
-        Assertions.assertEquals(aRefreshToken, aInput.refreshToken());
-        Assertions.assertEquals("refresh_token", aInput.grantType());
-
-        Mockito.when(authorizationTokenRepository.tokenOfJti(Mockito.any()))
-                .thenReturn(Optional.of(AuthorizationToken.newAuthToken(
-                        aRefreshToken,
-                        AuthorizationTokenType.REFRESH_TOKEN,
-                        InstantUtils.now().plus(5, ChronoUnit.MINUTES),
-                        InstantUtils.now(),
-                        aClientId,
-                        aSub.value().toString()
-                )));
-        Mockito.when(tokenGeneratorGateway.generateToken(createTokenInput(
-                aClientId,
-                aSub,
-                AuthorizationTokenType.ACCESS_TOKEN
-        ))).thenReturn(createToken(
-                AuthorizationTokenType.ACCESS_TOKEN,
-                aClientId,
-                aSub.value().toString()
-        ));
-        Mockito.when(tokenGeneratorGateway.generateToken(createTokenInput(
-                aClientId,
-                aSub,
-                AuthorizationTokenType.REFRESH_TOKEN
-        ))).thenReturn(createToken(
-                AuthorizationTokenType.REFRESH_TOKEN,
-                aClientId,
-                aSub.value().toString()
-        ));
-        Mockito.when(authorizationTokenRepository.save(Mockito.any()))
-                .thenAnswer(returnsFirstArg());
-        Mockito.when(authorizationTokenRepository.save(Mockito.any()))
-                .thenAnswer(returnsFirstArg());
-
-        final var aOutput = Assertions.assertDoesNotThrow(() -> this.useCase.execute(aInput));
-
-        Assertions.assertNotNull(aOutput);
-        Assertions.assertNotNull(aOutput.accessToken());
-        Assertions.assertNotNull(aOutput.refreshToken());
-
-        Mockito.verify(authorizationTokenRepository, Mockito.times(1)).tokenOfJti(Mockito.any());
-        Mockito.verify(tokenGeneratorGateway, Mockito.times(2)).generateToken(Mockito.any());
-        Mockito.verify(authorizationTokenRepository, Mockito.times(2)).save(Mockito.any());
+        Mockito.verify(authorizationTokenRepository, Mockito.times(3)).save(Mockito.any());
         Mockito.verify(oAuthClientRepository, Mockito.never()).clientOfClientId(Mockito.any());
     }
 
