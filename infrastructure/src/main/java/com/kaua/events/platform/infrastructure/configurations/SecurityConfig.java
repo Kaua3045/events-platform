@@ -80,15 +80,8 @@ public class SecurityConfig {
     }
 
     @Bean
-    public JwtEncoder jwtEncoder(RsaKeyProvider rsaKeyProvider) {
-        RSAKey jwk = new RSAKey.Builder(
-                rsaKeyProvider.getPublicKey(Constants.JWT_RSA_KEY_NAME))
-                .privateKey(rsaKeyProvider.getPrivateKey(Constants.JWT_RSA_KEY_NAME))
-                .build();
-
-        final var jkws = new ImmutableJWKSet<>(new JWKSet(jwk));
-
-        return new NimbusJwtEncoder(jkws);
+    public JwtEncoder jwtEncoder(JWKSource<SecurityContext> jwkSource) {
+        return new NimbusJwtEncoder(jwkSource);
     }
 
     @Bean
@@ -98,7 +91,7 @@ public class SecurityConfig {
 
         final var aRsaKey = new RSAKey.Builder(aKeyPublic)
                 .privateKey(aKeyPrivate)
-                .keyID(aKeyPublic.getPublicExponent().toString())
+                .keyID(aKeyPublic.getPublicExponent().toString()) // TODO aqui deveriamos pegar do rsa key provider
                 .build();
 
         JWKSet jwkSet = new JWKSet(aRsaKey);
