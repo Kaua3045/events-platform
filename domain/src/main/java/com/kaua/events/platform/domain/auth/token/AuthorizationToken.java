@@ -96,6 +96,11 @@ public class AuthorizationToken extends AggregateRoot<AuthorizationTokenID> {
         return this;
     }
 
+    public AuthorizationToken revoke() {
+        setRevoked(true);
+        return this;
+    }
+
     public boolean isExpired() {
         return this.expiresIn.isBefore(Instant.now());
     }
