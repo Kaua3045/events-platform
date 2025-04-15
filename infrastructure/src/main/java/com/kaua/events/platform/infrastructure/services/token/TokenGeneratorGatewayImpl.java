@@ -11,11 +11,13 @@ import com.kaua.events.platform.domain.utils.InstantUtils;
 import com.kaua.events.platform.domain.utils.PKCEUtils;
 import com.kaua.events.platform.infrastructure.configurations.properties.OAuthClients;
 import com.kaua.events.platform.infrastructure.constants.Constants;
+import com.nimbusds.jose.JWSAlgorithm;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.security.oauth2.jwt.JwtClaimsSet;
-import org.springframework.security.oauth2.jwt.JwtEncoder;
-import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
+import org.springframework.security.oauth2.jose.jws.JwsAlgorithm;
+import org.springframework.security.oauth2.jose.jws.JwsAlgorithms;
+import org.springframework.security.oauth2.jose.jws.SignatureAlgorithm;
+import org.springframework.security.oauth2.jwt.*;
 import org.springframework.stereotype.Component;
 
 import java.time.temporal.ChronoUnit;
@@ -59,6 +61,7 @@ public class TokenGeneratorGatewayImpl implements TokenGeneratorGateway {
             boolean isService = input.sub().equals(input.clientId());
 
             final var aClaims = JwtClaimsSet.builder()
+//                    .audience(aOAuthClient.audiences()) // TODO verificar se é necessário
                     .issuer(oAuthClients.getIssuer())
                     .id(UUID.randomUUID().toString())
                     .issuedAt(aNow)
@@ -73,7 +76,12 @@ public class TokenGeneratorGatewayImpl implements TokenGeneratorGateway {
                     ).getRole()))
                     .build();
 
-            final var aJwt = this.jwtEncoder.encode(JwtEncoderParameters.from(aClaims));
+            // TODO verify se é signature ou mac (MacAlgorithm)
+            final var aHeaders = JwsHeader.with(SignatureAlgorithm.RS256)
+                    .type("JWT")
+                    .build();
+
+            final var aJwt = this.jwtEncoder.encode(JwtEncoderParameters.from(aHeaders, aClaims));
 
             log.debug("Generated access token [tokenHash:{}] [expiresIn:{}]", aJwt.getId(), aExpiresAt); // TODO aqui deveria salvar o hash
 
