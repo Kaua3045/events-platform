@@ -151,4 +151,40 @@ class AuthorizationTokenTest extends UnitTest {
         Assertions.assertFalse(aUpdatedToken.isExpired());
         Assertions.assertDoesNotThrow(() -> aUpdatedToken.validate(NotificationHandler.create()));
     }
+
+    @Test
+    void givenAValidAuthorizationToken_whenCallRevoke_thenReturnRevokedAuthorizationToken() {
+        final var aTokenJTI = "aTokenJti";
+        final var aType = AuthorizationTokenType.from("ACCESS_TOKEN").get();
+        final var aExpiresIn = Instant.now().plusSeconds(3600);
+        final var aIssuedAt = Instant.now();
+        final var aClientId = "aClientId";
+        final var aUserId = "aUserId";
+
+        final var aToken = AuthorizationToken.newAuthToken(
+                aTokenJTI,
+                aType,
+                aExpiresIn,
+                aIssuedAt,
+                aClientId,
+                aUserId
+        );
+
+        Assertions.assertNotNull(aToken);
+        Assertions.assertFalse(aToken.isRevoked());
+
+        final var aRevokedToken = aToken.revoke();
+
+        Assertions.assertNotNull(aRevokedToken);
+        Assertions.assertEquals(aToken.getId(), aRevokedToken.getId());
+        Assertions.assertEquals(aToken.getVersion(), aRevokedToken.getVersion());
+        Assertions.assertEquals(aToken.getTokenJTI(), aRevokedToken.getTokenJTI());
+        Assertions.assertEquals(aToken.getType(), aRevokedToken.getType());
+        Assertions.assertEquals(aToken.getExpiresIn(), aRevokedToken.getExpiresIn());
+        Assertions.assertEquals(aToken.getIssuedAt(), aRevokedToken.getIssuedAt());
+        Assertions.assertTrue(aRevokedToken.isRevoked());
+        Assertions.assertEquals(aToken.getClientId(), aRevokedToken.getClientId());
+        Assertions.assertEquals(aToken.getUserId().get(), aRevokedToken.getUserId().get());
+        Assertions.assertFalse(aRevokedToken.isExpired());
+    }
 }
