@@ -29,18 +29,9 @@ public interface AuthorizeAPI {
     ResponseEntity<?> createToken(
             @RequestParam("grant_type") String grantType,
             @RequestParam("client_id") String clientId,
-            @RequestParam("client_secret") String clientSecret,
+            @RequestParam(value = "client_secret", required = false) String clientSecret,
             @RequestParam(value = "code", required = false) String code,
-            @RequestParam(value = "code_verifier", required = false) String codeVerifier
-    );
-
-    @PostMapping(
-            path = "/refresh",
-            consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE,
-            produces = MediaType.APPLICATION_JSON_VALUE
-    )
-    ResponseEntity<?> refreshToken(
-            @RequestParam("refresh_token") String refreshToken,
-            @RequestParam("client_id") String clientId
+            @RequestParam(value = "code_verifier", required = false) String codeVerifier,
+            @RequestParam(value = "refresh_token", required = false) String refreshToken
     );
 }

@@ -67,46 +67,32 @@ public class AuthorizeRestController implements AuthorizeAPI {
             final String clientId,
             final String clientSecret,
             final String code,
-            final String codeVerifier
+            final String codeVerifier,
+            final String refreshToken
     ) {
         final var aOAuthClient = this.oAuthClients.getClient(clientId)
                 .orElseThrow(() -> NotFoundException.with("Client not found")); // TODO trocar a exception
 
         // TODO e no futuro passar o refresh aqui tambem
         final var aOutput = switch (grantType) {
-            case AuthorizationCodeGrantInput.GRANT_TYPE -> this.createAuthorizationTokenUseCase.execute(new AuthorizationCodeGrantInput(
-                    aOAuthClient.clientId(),
-                    code,
-                    codeVerifier
-            ));
-            case ClientSecretGrantInput.GRANT_TYPE ->  this.createAuthorizationTokenUseCase.execute(new ClientSecretGrantInput(
-                    aOAuthClient.clientId(),
-                    clientSecret
-            ));
+            case AuthorizationCodeGrantInput.GRANT_TYPE ->
+                    this.createAuthorizationTokenUseCase.execute(new AuthorizationCodeGrantInput(
+                            aOAuthClient.clientId(),
+                            code,
+                            codeVerifier
+                    ));
+            case ClientSecretGrantInput.GRANT_TYPE ->
+                    this.createAuthorizationTokenUseCase.execute(new ClientSecretGrantInput(
+                            aOAuthClient.clientId(),
+                            clientSecret
+                    ));
+            case RefreshTokenGrantInput.GRANT_TYPE ->
+                    this.createAuthorizationTokenUseCase.execute(new RefreshTokenGrantInput(
+                            aOAuthClient.clientId(),
+                            refreshToken
+                    ));
             default -> throw DomainException.with("Invalid grant type");
         };
-
-        return ResponseEntity
-                .status(HttpStatus.OK)
-                .body(Map.of(
-                        "access_token", aOutput.accessToken().tokenValue(),
-                        "token_type", "Bearer",
-                        "expires_in", aOutput.accessToken().expiresIn(),
-                        "refresh_token", aOutput.refreshToken().tokenValue()
-                ));
-    }
-
-    @Override
-    public ResponseEntity<?> refreshToken(
-            final String refreshToken,
-            final String clientId
-    ) {
-        final var aOAuthClient = this.oAuthClients.getClient(clientId)
-                .orElseThrow(() -> NotFoundException.with("Client not found")); // TODO trocar a exception
-
-        final var aOutput = this.createAuthorizationTokenUseCase.execute(
-                new RefreshTokenGrantInput(aOAuthClient.clientId(), refreshToken)
-        );
 
         return ResponseEntity
                 .status(HttpStatus.OK)

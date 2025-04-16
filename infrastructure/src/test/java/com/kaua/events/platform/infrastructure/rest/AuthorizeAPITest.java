@@ -5,10 +5,7 @@ import com.kaua.events.platform.ControllerTest;
 import com.kaua.events.platform.application.gateways.TokenGeneratorGateway;
 import com.kaua.events.platform.application.usecases.auth.code.create.CreateAuthorizationCodeOutput;
 import com.kaua.events.platform.application.usecases.auth.code.create.CreateAuthorizationCodeUseCase;
-import com.kaua.events.platform.application.usecases.auth.token.create.AuthorizationCodeGrantInput;
-import com.kaua.events.platform.application.usecases.auth.token.create.ClientSecretGrantInput;
-import com.kaua.events.platform.application.usecases.auth.token.create.CreateAuthorizationTokenOutput;
-import com.kaua.events.platform.application.usecases.auth.token.create.CreateAuthorizationTokenUseCase;
+import com.kaua.events.platform.application.usecases.auth.token.create.*;
 import com.kaua.events.platform.domain.auth.token.AuthorizationTokenType;
 import com.kaua.events.platform.domain.utils.InstantUtils;
 import com.kaua.events.platform.infrastructure.configurations.properties.OAuthClients;
@@ -248,13 +245,10 @@ class AuthorizeAPITest {
     }
 
     @Test
-    void givenAValidRequestRefreshToken_whenCallRefreshToken_thenReturnToken() throws Exception {
+    void givenAValidRequestTokenWithGrantTypeIsRefreshToken_whenCallRefreshToken_thenReturnToken() throws Exception {
         final var aClientId = oAuthClients.getClients().values().stream().findFirst().orElseThrow().clientId();
         final var aClientSecret = oAuthClients.getClients().values().stream().findFirst().orElseThrow().clientSecret();
         final var aRefreshToken = "refreshToken";
-
-        final var aAuthBasic = Base64.getEncoder()
-                .encodeToString("%s:%s".formatted(aClientId, aClientSecret).getBytes());
 
         final var aExpectedAccessToken = new TokenGeneratorGateway.Token(
                 "accessToken",
@@ -281,14 +275,15 @@ class AuthorizeAPITest {
                         aExpectedRefreshToken
                 ));
 
-        final var aRequest = MockMvcRequestBuilders.post("/v1/authorize/refresh")
+        final var aRequest = MockMvcRequestBuilders.post("/v1/authorize/token")
                 .with(post -> {
-                    post.addHeader("Authorization", "Basic %s".formatted(aAuthBasic));
+                    post.addHeader("Authorization", "Basic %s".formatted(createAuth()));
                     return post;
                 })
                 .with(csrf())
                 .accept(MediaType.APPLICATION_JSON_VALUE)
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+                .param("grant_type", RefreshTokenGrantInput.GRANT_TYPE)
                 .param("refresh_token", aRefreshToken)
                 .param("client_id", aClientId);
 
@@ -369,35 +364,6 @@ class AuthorizeAPITest {
                 .param("client_secret", aClientSecret)
                 .param("grant_type", AuthorizationCodeGrantInput.GRANT_TYPE)
                 .param("code_verifier", aCodeVerifier);
-
-        final var aResponse = this.mvc.perform(aRequest);
-
-        aResponse
-                .andDo(MockMvcResultHandlers.print())
-                .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.message").value(expectedErrorMessage));
-
-        Mockito.verify(createAuthorizationTokenUseCase, Mockito.never())
-                .execute(any());
-    }
-
-    @Test
-    void givenAnInvalidClientIdInRequestRefreshToken_whenCallRefreshToken_thenThrowsException() throws Exception {
-        final var aClientId = "invalidClientId";
-        final var aRefreshToken = "refreshToken";
-
-        final var expectedErrorMessage = "Client not found";
-
-        final var aRequest = MockMvcRequestBuilders.post("/v1/authorize/refresh")
-                .with(post -> {
-                    post.addHeader("Authorization", "Basic %s".formatted(createAuth()));
-                    return post;
-                })
-                .with(csrf())
-                .accept(MediaType.APPLICATION_JSON_VALUE)
-                .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
-                .param("refresh_token", aRefreshToken)
-                .param("client_id", aClientId);
 
         final var aResponse = this.mvc.perform(aRequest);
 
