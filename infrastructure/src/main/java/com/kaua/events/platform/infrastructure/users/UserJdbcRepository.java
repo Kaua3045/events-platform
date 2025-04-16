@@ -1,8 +1,12 @@
 package com.kaua.events.platform.infrastructure.users;
 
 import com.kaua.events.platform.application.repositories.UserRepository;
-import com.kaua.events.platform.domain.users.User;
+import com.kaua.events.platform.domain.exceptions.NotFoundException;
+import com.kaua.events.platform.domain.users.*;
+import com.kaua.events.platform.domain.utils.ULID;
 import com.kaua.events.platform.infrastructure.jdbc.DatabaseClient;
+import com.kaua.events.platform.infrastructure.jdbc.JdbcUtils;
+import com.kaua.events.platform.infrastructure.jdbc.RowMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -12,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 @Component
 public class UserJdbcRepository implements UserRepository {
@@ -22,6 +27,18 @@ public class UserJdbcRepository implements UserRepository {
 
     public UserJdbcRepository(final DatabaseClient databaseClient) {
         this.databaseClient = Objects.requireNonNull(databaseClient);
+    }
+
+    @Override
+    public Optional<User> userOfEmail(final String email) {
+        final var aSql = "SELECT * FROM users where email = :email";
+        return this.databaseClient.queryOne(aSql, Map.of("email", email), userMapper());
+    }
+
+    @Override
+    public Optional<User> userOfId(final String id) {
+        final var aSql = "SELECT * FROM users where id = :id";
+        return this.databaseClient.queryOne(aSql, Map.of("id", id), userMapper());
     }
 
     @Override
@@ -63,5 +80,19 @@ public class UserJdbcRepository implements UserRepository {
         aParams.put("created_at", aUser.getCreatedAt());
         aParams.put("updated_at", aUser.getUpdatedAt());
         return this.databaseClient.update(aSql, aParams);
+    }
+
+    private RowMap<User> userMapper() {
+        return rs ->
+                User.with(
+                        new UserID(ULID.fromString(rs.getString("id"))),
+                        rs.getLong("version"),
+                        new Name(rs.getString("first_name"), rs.getString("last_name")),
+                        new Email(rs.getString("email")),
+                        Password.of(rs.getString("password")),
+                        UserRole.from(rs.getString("role")).orElseThrow(() -> NotFoundException.with("UserRole not found")),
+                        JdbcUtils.getInstant(rs, "created_at"),
+                        JdbcUtils.getInstant(rs, "updated_at")
+                );
     }
 }

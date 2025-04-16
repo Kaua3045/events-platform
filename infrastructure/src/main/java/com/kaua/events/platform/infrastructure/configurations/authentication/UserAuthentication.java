@@ -19,6 +19,7 @@ public class UserAuthentication extends AbstractAuthenticationToken {
         super(authorities);
         this.jwt = jwt;
         this.user = user;
+        setAuthenticated(true);
     }
 
     @Override

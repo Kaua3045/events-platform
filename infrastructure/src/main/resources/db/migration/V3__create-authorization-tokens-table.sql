@@ -1,0 +1,11 @@
+CREATE TABLE authorization_tokens (
+    id VARCHAR(26) NOT NULL PRIMARY KEY,
+    jti VARCHAR(255) NOT NULL UNIQUE,
+    client_id VARCHAR(255) NOT NULL,
+    user_id VARCHAR(26),
+    type VARCHAR(50) NOT NULL,
+    revoked BOOLEAN NOT NULL DEFAULT FALSE,
+    expires_in TIMESTAMP WITH TIME ZONE NOT NULL,
+    issued_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    version BIGINT NOT NULL
+);
