@@ -320,6 +320,9 @@ class CreateAuthorizationTokenUseCaseTest extends UseCaseTest {
                 aClientId,
                 aRefreshToken
         );
+        Assertions.assertEquals(aClientId, aInput.clientId());
+        Assertions.assertEquals(aRefreshToken, aInput.refreshToken());
+        Assertions.assertEquals("refresh_token", aInput.grantType());
 
         Mockito.when(authorizationTokenRepository.tokenOfJti(Mockito.any()))
                 .thenReturn(Optional.of(AuthorizationToken.newAuthToken(
