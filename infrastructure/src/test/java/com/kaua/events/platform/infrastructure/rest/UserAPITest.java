@@ -6,6 +6,9 @@ import com.kaua.events.platform.ControllerTest;
 import com.kaua.events.platform.application.usecases.users.create.CreateUserInput;
 import com.kaua.events.platform.application.usecases.users.create.CreateUserOutput;
 import com.kaua.events.platform.application.usecases.users.create.CreateUserUseCase;
+import com.kaua.events.platform.application.usecases.users.retrive.get.GetUserByIdOutput;
+import com.kaua.events.platform.application.usecases.users.retrive.get.GetUserByIdUseCase;
+import com.kaua.events.platform.domain.Fixture;
 import com.kaua.events.platform.domain.utils.ULID;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -34,6 +37,9 @@ class UserAPITest {
 
     @MockitoBean
     private CreateUserUseCase createUserUseCase;
+
+    @MockitoBean
+    private GetUserByIdUseCase getUserByIdUseCase;
 
     @Captor
     private ArgumentCaptor<CreateUserInput> createUserInputCaptor;
@@ -83,5 +89,34 @@ class UserAPITest {
         Assertions.assertEquals(aLastName, aCreateUserInput.lastName());
         Assertions.assertEquals(aEmail, aCreateUserInput.email());
         Assertions.assertEquals(aPassword, aCreateUserInput.password());
+    }
+
+    @Test
+    void givenAValidAuthenticatedUser_whenCallGetMe_thenReturnAuthenticatedUser() throws Exception {
+        final var aUser = Fixture.UserFixture.newUser();
+        final var aUserId = aUser.getId().value().toString();
+
+        Mockito.when(getUserByIdUseCase.execute(any()))
+                .thenAnswer(call -> GetUserByIdOutput.from(aUser));
+
+        final var aRequest = MockMvcRequestBuilders.get("/v1/users/me")
+                .with(ApiTest.admin(aUserId))
+                .with(csrf())
+                .accept(MediaType.APPLICATION_JSON_VALUE)
+                .contentType(MediaType.APPLICATION_JSON_VALUE);
+
+        final var aResponse = this.mvc.perform(aRequest);
+
+        aResponse
+                .andDo(MockMvcResultHandlers.print())
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Type", MediaType.APPLICATION_JSON_VALUE))
+                .andExpect(jsonPath("$.id").value(aUserId))
+                .andExpect(jsonPath("$.first_name").value(aUser.getName().firstName()))
+                .andExpect(jsonPath("$.last_name").value(aUser.getName().lastName()))
+                .andExpect(jsonPath("$.email").value(aUser.getEmail().value()))
+                .andExpect(jsonPath("$.role").value(aUser.getRole().name()))
+                .andExpect(jsonPath("$.created_at").value(aUser.getCreatedAt().toString()))
+                .andExpect(jsonPath("$.updated_at").value(aUser.getUpdatedAt().toString()));
     }
 }
