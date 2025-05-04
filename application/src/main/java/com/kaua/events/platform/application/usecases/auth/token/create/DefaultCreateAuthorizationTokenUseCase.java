@@ -77,7 +77,7 @@ public class DefaultCreateAuthorizationTokenUseCase extends CreateAuthorizationT
     }
 
     private CreateAuthorizationTokenOutput handleRefreshTokenGrantType(final RefreshTokenGrantInput refreshTokenGrantInput) {
-        final var aRefreshHashed = PKCEUtils.generateSha256Base64(refreshTokenGrantInput.refreshToken());
+        final var aRefreshHashed = PKCEUtils.generateCodeChallenge(refreshTokenGrantInput.refreshToken());
         final var aRefreshTokenStored = this.authorizationTokenRepository.tokenOfJti(aRefreshHashed)
                 .orElseThrow(NotFoundException.with(AuthorizationToken.class, "jti", aRefreshHashed));
 

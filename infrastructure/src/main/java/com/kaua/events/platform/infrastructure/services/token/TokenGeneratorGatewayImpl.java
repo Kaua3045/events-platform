@@ -104,7 +104,7 @@ public class TokenGeneratorGatewayImpl implements TokenGeneratorGateway {
         final var aExpiresAt = InstantUtils.now().plus(aRefreshTokenTTL, aRefreshTokenTTLUnit);
 
         final var aToken = IdentifierUtils.generateNewIdWithoutHyphen();
-        final var aTokenHash = PKCEUtils.generateCodeChallenge(aToken);
+        final var aTokenHash = PKCEUtils.generateCodeChallenge(aToken); // TODO verify this in this method and in usecase
 
         log.debug("Generated refresh token [tokenHash:{}] [expiresIn:{}]", aTokenHash, aExpiresAt);
 
