@@ -31,6 +31,12 @@ public class OrganizationJdbcRepository implements OrganizationRepository {
     }
 
     @Override
+    public boolean existsById(final String id) {
+        final var aSql = "SELECT COUNT(*) FROM organizations WHERE id = :id";
+        return this.databaseClient.count(aSql, Map.of("id", id)) > 0;
+    }
+
+    @Override
     @Transactional(propagation = Propagation.REQUIRED)
     public Organization save(final Organization organization) {
         if (organization.getVersion() == 0) {

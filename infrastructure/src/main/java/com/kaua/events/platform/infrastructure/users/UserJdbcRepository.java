@@ -48,6 +48,12 @@ public class UserJdbcRepository implements UserRepository {
     }
 
     @Override
+    public boolean existsById(final String id) {
+        final var aSql = "SELECT COUNT(*) FROM users WHERE id = :id";
+        return this.databaseClient.count(aSql, Map.of("id", id)) > 0;
+    }
+
+    @Override
     @Transactional(propagation = Propagation.REQUIRED)
     public User save(final User aUser) {
         if (aUser.getVersion() == 0) {

@@ -172,4 +172,35 @@ class UserJdbcRepositoryTest extends AbstractRepositoryTest {
 
         Assertions.assertEquals(aExpectedErrorMessage, aException.getMessage());
     }
+
+    @Test
+    void givenAValidUserId_whenCallExistsById_thenReturnTrue() {
+        Assertions.assertEquals(0, countUsers());
+
+        final var aUser = User.newUser(
+                new Name("John", "Doe"),
+                new Email("john.doe@test.com"),
+                Password.of("123456Amq@"),
+                UserRole.USER
+        );
+
+        this.userRepository().save(aUser);
+
+        Assertions.assertEquals(1, countUsers());
+
+        final var aActualResponse = this.userRepository().existsById(aUser.getId().value().toString());
+
+        Assertions.assertTrue(aActualResponse);
+    }
+
+    @Test
+    void givenAnNonExistsUserId_whenCallExistsById_thenReturnFalse() {
+        Assertions.assertEquals(0, countUsers());
+
+        final var aId = "id";
+
+        final var aActualResponse = this.userRepository().existsById(aId);
+
+        Assertions.assertFalse(aActualResponse);
+    }
 }

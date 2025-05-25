@@ -2,6 +2,9 @@ package com.kaua.events.platform.infrastructure.configurations.usecases;
 
 import com.kaua.events.platform.application.repositories.OrganizationMemberRepository;
 import com.kaua.events.platform.application.repositories.OrganizationRepository;
+import com.kaua.events.platform.application.repositories.UserRepository;
+import com.kaua.events.platform.application.usecases.organizations.addMember.AddMemberToOrganizationUseCase;
+import com.kaua.events.platform.application.usecases.organizations.addMember.DefaultAddMemberToOrganizationUseCase;
 import com.kaua.events.platform.application.usecases.organizations.create.CreateOrganizationUseCase;
 import com.kaua.events.platform.application.usecases.organizations.create.DefaultCreateOrganizationUseCase;
 import com.kaua.events.platform.application.usecases.users.create.CreateUserUseCase;
@@ -21,6 +24,19 @@ public class OrganizationUseCaseConfig {
                 organizationRepository,
                 organizationMemberRepository,
                 createUserUseCase
+        );
+    }
+
+    @Bean
+    public AddMemberToOrganizationUseCase addMemberToOrganizationUseCase(
+            final OrganizationMemberRepository organizationMemberRepository,
+            final OrganizationRepository organizationRepository,
+            final UserRepository userRepository
+    ) {
+        return new DefaultAddMemberToOrganizationUseCase(
+                organizationMemberRepository,
+                organizationRepository,
+                userRepository
         );
     }
 }

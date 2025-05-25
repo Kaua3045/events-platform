@@ -3,6 +3,9 @@ package com.kaua.events.platform.infrastructure.rest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kaua.events.platform.ApiTest;
 import com.kaua.events.platform.ControllerTest;
+import com.kaua.events.platform.application.usecases.organizations.addMember.AddMemberToOrganizationInput;
+import com.kaua.events.platform.application.usecases.organizations.addMember.AddMemberToOrganizationOutput;
+import com.kaua.events.platform.application.usecases.organizations.addMember.AddMemberToOrganizationUseCase;
 import com.kaua.events.platform.application.usecases.organizations.create.CreateOrganizationInput;
 import com.kaua.events.platform.application.usecases.organizations.create.CreateOrganizationOutput;
 import com.kaua.events.platform.application.usecases.organizations.create.CreateOrganizationUseCase;
@@ -35,8 +38,14 @@ class OrganizationAPITest {
     @MockitoBean
     private CreateOrganizationUseCase createOrganizationUseCase;
 
+    @MockitoBean
+    private AddMemberToOrganizationUseCase addMemberToOrganizationUseCase;
+
     @Captor
     private ArgumentCaptor<CreateOrganizationInput> createOrganizationInputCaptor;
+
+    @Captor
+    private ArgumentCaptor<AddMemberToOrganizationInput> addMemberInputCaptor;
 
     @Test
     void givenAValidRequest_whenCallCreateOrganization_thenReturnOrganizationId() throws Exception {
@@ -90,5 +99,50 @@ class OrganizationAPITest {
         Assertions.assertEquals(aPassword, aCreateOrganizationInput.password());
         Assertions.assertEquals(aOrganizationName, aCreateOrganizationInput.organizationName());
         Assertions.assertEquals(aOrganizationDescription, aCreateOrganizationInput.description());
+    }
+
+    @Test
+    void givenAValidRequest_whenCallAddMemberToOrganization_thenReturnOrganizationIdAndUserId() throws Exception {
+        final var aOrganizationId = ULID.random().toString();
+        final var aAuthenticatedUserId = ULID.random().toString();
+        final var aAddUserId = ULID.random().toString();
+        final var aRole = "MEMBER";
+
+        Mockito.when(addMemberToOrganizationUseCase.execute(any()))
+                .thenAnswer(call -> new AddMemberToOrganizationOutput(aOrganizationId, aAddUserId));
+
+        var json = """
+                {
+                    "organization_id": "%s",
+                    "authenticated_user_id": "%s",
+                    "add_user_id": "%s",
+                    "role": "%s"
+                }
+                """.formatted(aOrganizationId, aAuthenticatedUserId, aAddUserId, aRole);
+
+        final var aRequest = MockMvcRequestBuilders.post("/v1/organizations/add-member")
+                .with(ApiTest.admin(aAuthenticatedUserId))
+                .with(csrf())
+                .accept(MediaType.APPLICATION_JSON_VALUE)
+                .contentType(MediaType.APPLICATION_JSON_VALUE)
+                .content(json);
+
+        final var aResponse = this.mvc.perform(aRequest);
+
+        aResponse
+                .andDo(MockMvcResultHandlers.print())
+                .andExpect(status().isCreated())
+                .andExpect(header().string("Content-Type", MediaType.APPLICATION_JSON_VALUE))
+                .andExpect(jsonPath("$.added_user_id").value(aAddUserId))
+                .andExpect(jsonPath("$.organization_id").value(aOrganizationId));
+
+        Mockito.verify(addMemberToOrganizationUseCase, Mockito.times(1)).execute(addMemberInputCaptor.capture());
+
+        final var aAddMemberToOrganization = addMemberInputCaptor.getValue();
+
+        Assertions.assertEquals(aOrganizationId, aAddMemberToOrganization.organizationId());
+        Assertions.assertEquals(aAuthenticatedUserId, aAddMemberToOrganization.authenticatedUserId());
+        Assertions.assertEquals(aAddUserId, aAddMemberToOrganization.userId());
+        Assertions.assertEquals(aRole, aAddMemberToOrganization.role());
     }
 }

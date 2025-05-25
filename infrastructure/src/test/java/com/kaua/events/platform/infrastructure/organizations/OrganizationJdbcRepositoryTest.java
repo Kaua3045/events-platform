@@ -64,4 +64,35 @@ class OrganizationJdbcRepositoryTest extends AbstractRepositoryTest {
 
         Assertions.assertTrue(aActualResponse);
     }
+
+    @Test
+    void givenAnNonExistsId_whenCallExistsById_thenReturnFalse() {
+        Assertions.assertEquals(0, countOrganizations());
+        final var aId = "organization-id";
+
+        final var aActualResponse = this.organizationRepository().existsById(aId);
+
+        Assertions.assertFalse(aActualResponse);
+    }
+
+    @Test
+    void givenAnExistsId_whenCallExistsById_thenReturnTrue() {
+        Assertions.assertEquals(0, countOrganizations());
+
+        final var aName = "organization-test";
+        final var aDescription = "teste";
+
+        final var aOrganization = Organization.newOrganization(
+                aName,
+                aDescription
+        );
+
+        this.organizationRepository().save(aOrganization);
+
+        Assertions.assertEquals(1, countOrganizations());
+
+        final var aActualResponse = this.organizationRepository().existsById(aOrganization.getId().value().toString());
+
+        Assertions.assertTrue(aActualResponse);
+    }
 }

@@ -6,5 +6,7 @@ public interface OrganizationRepository {
 
     boolean existsByName(String name);
 
+    boolean existsById(String id);
+
     Organization save(Organization organization);
 }
