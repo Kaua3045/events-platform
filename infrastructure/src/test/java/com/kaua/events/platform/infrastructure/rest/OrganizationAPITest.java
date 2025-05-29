@@ -9,6 +9,9 @@ import com.kaua.events.platform.application.usecases.organizations.addMember.Add
 import com.kaua.events.platform.application.usecases.organizations.create.CreateOrganizationInput;
 import com.kaua.events.platform.application.usecases.organizations.create.CreateOrganizationOutput;
 import com.kaua.events.platform.application.usecases.organizations.create.CreateOrganizationUseCase;
+import com.kaua.events.platform.application.usecases.organizations.retrieve.get.GetOrganizationByIdOutput;
+import com.kaua.events.platform.application.usecases.organizations.retrieve.get.GetOrganizationByIdUseCase;
+import com.kaua.events.platform.domain.Fixture;
 import com.kaua.events.platform.domain.utils.ULID;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -40,6 +43,9 @@ class OrganizationAPITest {
 
     @MockitoBean
     private AddMemberToOrganizationUseCase addMemberToOrganizationUseCase;
+
+    @MockitoBean
+    private GetOrganizationByIdUseCase getOrganizationByIdUseCase;
 
     @Captor
     private ArgumentCaptor<CreateOrganizationInput> createOrganizationInputCaptor;
@@ -144,5 +150,37 @@ class OrganizationAPITest {
         Assertions.assertEquals(aAuthenticatedUserId, aAddMemberToOrganization.authenticatedUserId());
         Assertions.assertEquals(aAddUserId, aAddMemberToOrganization.userId());
         Assertions.assertEquals(aRole, aAddMemberToOrganization.role());
+    }
+
+    @Test
+    void givenAValidRequest_whenCallGetOrganizationBy_thenReturnOrganization() throws Exception {
+        final var aOrganization = Fixture.OrganizationFixture.newOrganization();
+        final var aId = aOrganization.getId().value().toString();
+
+        Mockito.when(getOrganizationByIdUseCase.execute(any()))
+                .thenAnswer(call -> GetOrganizationByIdOutput.from(aOrganization));
+
+        final var aRequest = MockMvcRequestBuilders.get("/v1/organizations/" + aId)
+                .with(ApiTest.admin())
+                .with(csrf())
+                .accept(MediaType.APPLICATION_JSON_VALUE)
+                .contentType(MediaType.APPLICATION_JSON_VALUE);
+
+        final var aResponse = this.mvc.perform(aRequest);
+
+        aResponse
+                .andDo(MockMvcResultHandlers.print())
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Type", MediaType.APPLICATION_JSON_VALUE))
+                .andExpect(jsonPath("$.id").value(aId))
+                .andExpect(jsonPath("$.version").value(aOrganization.getVersion()))
+                .andExpect(jsonPath("$.name").value(aOrganization.getName()))
+                .andExpect(jsonPath("$.description").value(aOrganization.getDescription().get()))
+                .andExpect(jsonPath("$.is_deleted").value(aOrganization.isDeleted()))
+                .andExpect(jsonPath("$.created_at").value(aOrganization.getCreatedAt().toString()))
+                .andExpect(jsonPath("$.updated_at").value(aOrganization.getUpdatedAt().toString()))
+                .andExpect(jsonPath("$.deleted_at").value(aOrganization.getDeletedAt().orElse(null)));
+
+        Mockito.verify(getOrganizationByIdUseCase, Mockito.times(1)).execute(Mockito.any());
     }
 }

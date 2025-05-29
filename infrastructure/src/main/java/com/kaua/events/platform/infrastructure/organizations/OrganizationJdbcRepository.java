@@ -2,7 +2,11 @@ package com.kaua.events.platform.infrastructure.organizations;
 
 import com.kaua.events.platform.application.repositories.OrganizationRepository;
 import com.kaua.events.platform.domain.organizations.Organization;
+import com.kaua.events.platform.domain.organizations.OrganizationID;
+import com.kaua.events.platform.domain.utils.ULID;
 import com.kaua.events.platform.infrastructure.jdbc.DatabaseClient;
+import com.kaua.events.platform.infrastructure.jdbc.JdbcUtils;
+import com.kaua.events.platform.infrastructure.jdbc.RowMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -12,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 @Component
 public class OrganizationJdbcRepository implements OrganizationRepository {
@@ -34,6 +39,12 @@ public class OrganizationJdbcRepository implements OrganizationRepository {
     public boolean existsById(final String id) {
         final var aSql = "SELECT COUNT(*) FROM organizations WHERE id = :id";
         return this.databaseClient.count(aSql, Map.of("id", id)) > 0;
+    }
+
+    @Override
+    public Optional<Organization> organizationOfId(final String id) {
+        final var aSql = "SELECT * FROM organizations WHERE id = :id";
+        return this.databaseClient.queryOne(aSql, Map.of("id", id), organizationMapper());
     }
 
     @Override
@@ -70,5 +81,19 @@ public class OrganizationJdbcRepository implements OrganizationRepository {
         aParams.put("deleted_at", aOrganization.getDeletedAt().orElse(null));
 
         return this.databaseClient.update(aSql, aParams);
+    }
+
+    private RowMap<Organization> organizationMapper() {
+        return rs ->
+                Organization.with(
+                        new OrganizationID(ULID.fromString(rs.getString("id"))),
+                        rs.getLong("version"),
+                        rs.getString("name"),
+                        rs.getString("description"),
+                        rs.getBoolean("is_deleted"),
+                        JdbcUtils.getInstant(rs, "created_at"),
+                        JdbcUtils.getInstant(rs, "updated_at"),
+                        JdbcUtils.getInstant(rs, "deleted_at")
+                );
     }
 }
