@@ -9,6 +9,8 @@ import com.kaua.events.platform.application.usecases.organizations.create.Create
 import com.kaua.events.platform.application.usecases.organizations.create.DefaultCreateOrganizationUseCase;
 import com.kaua.events.platform.application.usecases.organizations.retrieve.get.DefaultGetOrganizationByIdUseCase;
 import com.kaua.events.platform.application.usecases.organizations.retrieve.get.GetOrganizationByIdUseCase;
+import com.kaua.events.platform.application.usecases.organizations.update.member.DefaultUpdateMemberUseCase;
+import com.kaua.events.platform.application.usecases.organizations.update.member.UpdateMemberUseCase;
 import com.kaua.events.platform.application.usecases.users.create.CreateUserUseCase;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -47,5 +49,12 @@ public class OrganizationUseCaseConfig {
             final OrganizationRepository organizationRepository
     ) {
         return new DefaultGetOrganizationByIdUseCase(organizationRepository);
+    }
+
+    @Bean
+    public UpdateMemberUseCase updateMemberUseCase(
+            final OrganizationMemberRepository organizationMemberRepository
+    ) {
+        return new DefaultUpdateMemberUseCase(organizationMemberRepository);
     }
 }
