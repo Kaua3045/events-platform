@@ -7,6 +7,7 @@ import java.time.Instant;
 
 public record ListOrganizationMembersResponse(
         @JsonProperty("member_id") String memberId,
+        @JsonProperty("user_id") String userId,
         @JsonProperty("role") String role,
         @JsonProperty("created_at") Instant createdAt,
         @JsonProperty("version") long version
@@ -15,6 +16,7 @@ public record ListOrganizationMembersResponse(
     public static ListOrganizationMembersResponse from(final ListOrganizationMembersOutput aMember) {
         return new ListOrganizationMembersResponse(
                 aMember.memberId(),
+                aMember.userId(),
                 aMember.role(),
                 aMember.createdAt(),
                 aMember.version()

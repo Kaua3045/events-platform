@@ -293,6 +293,7 @@ class OrganizationAPITest {
                 .andExpect(jsonPath("$.items").isArray())
                 .andExpect(jsonPath("$.items").isNotEmpty())
                 .andExpect(jsonPath("$.items[0].member_id").value(aMemberOne.getId().value().toString()))
+                .andExpect(jsonPath("$.items[0].user_id").value(aMemberOne.getUserId().value().toString()))
                 .andExpect(jsonPath("$.items[0].role").value(aMemberOne.getMemberRole().name()))
                 .andExpect(jsonPath("$.items[0].created_at").value(aMemberOne.getCreatedAt().toString()))
                 .andExpect(jsonPath("$.items[1].member_id").value(aMemberTwo.getId().value().toString()));
