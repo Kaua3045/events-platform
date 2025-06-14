@@ -3,6 +3,6 @@
 - [ ] Adicionar a Listagem dos membros da Organization (dado search query e organizationId)
 - [ ] Adicionar o GetById do Member
 - [ ] Adicionar o Delete do Member (Remover o membro da Organization)
-- [ ] Adicionar o Update do Member (Alterar o cargo do membro)
+- [X] Adicionar o Update do Member (Alterar o cargo do membro)
 - [ ] Adicionar o Update do User
 - [ ] Adicionar o Delete do User
