@@ -3,9 +3,11 @@ package com.kaua.events.platform.infrastructure.rest;
 import com.kaua.events.platform.infrastructure.idempotency.IdempotencyKey;
 import com.kaua.events.platform.infrastructure.organizations.req.AddMemberToOrganizationRequest;
 import com.kaua.events.platform.infrastructure.organizations.req.CreateOrganizationRequest;
+import com.kaua.events.platform.infrastructure.organizations.req.UpdateMemberRequest;
 import com.kaua.events.platform.infrastructure.organizations.res.AddMemberToOrganizationResponse;
 import com.kaua.events.platform.infrastructure.organizations.res.CreateOrganizationResponse;
 import com.kaua.events.platform.infrastructure.organizations.res.GetOrganizationByIdResponse;
+import com.kaua.events.platform.infrastructure.organizations.res.UpdateMemberResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -46,6 +48,22 @@ public interface OrganizationAPI {
             @ApiResponse(responseCode = "500", description = "Internal server error")
     })
     ResponseEntity<AddMemberToOrganizationResponse> addMemberToOrganization(@RequestBody AddMemberToOrganizationRequest request);
+
+    @PatchMapping(
+            path = "/update",
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    @IdempotencyKey
+    @Operation(summary = "Update a organization member")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Updated member successfully"),
+            @ApiResponse(responseCode = "400", description = "A validation error was observed"),
+            @ApiResponse(responseCode = "422", description = "A business rule was violated"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    ResponseEntity<UpdateMemberResponse> updateMember(@RequestBody UpdateMemberRequest request);
+
 
     @GetMapping(
             path = "/{organizationId}",
