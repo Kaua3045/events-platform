@@ -1,13 +1,11 @@
 package com.kaua.events.platform.infrastructure.rest;
 
+import com.kaua.events.platform.domain.pagination.Pagination;
 import com.kaua.events.platform.infrastructure.idempotency.IdempotencyKey;
 import com.kaua.events.platform.infrastructure.organizations.req.AddMemberToOrganizationRequest;
 import com.kaua.events.platform.infrastructure.organizations.req.CreateOrganizationRequest;
 import com.kaua.events.platform.infrastructure.organizations.req.UpdateMemberRequest;
-import com.kaua.events.platform.infrastructure.organizations.res.AddMemberToOrganizationResponse;
-import com.kaua.events.platform.infrastructure.organizations.res.CreateOrganizationResponse;
-import com.kaua.events.platform.infrastructure.organizations.res.GetOrganizationByIdResponse;
-import com.kaua.events.platform.infrastructure.organizations.res.UpdateMemberResponse;
+import com.kaua.events.platform.infrastructure.organizations.res.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -64,7 +62,6 @@ public interface OrganizationAPI {
     })
     ResponseEntity<UpdateMemberResponse> updateMember(@RequestBody UpdateMemberRequest request);
 
-
     @GetMapping(
             path = "/{organizationId}",
             produces = MediaType.APPLICATION_JSON_VALUE
@@ -77,4 +74,21 @@ public interface OrganizationAPI {
     })
     ResponseEntity<GetOrganizationByIdResponse> getOrganizationById(@PathVariable String organizationId);
 
+    @GetMapping(
+            produces = MediaType.APPLICATION_JSON_VALUE,
+            path = "/members"
+    )
+    @Operation(summary = "Get all organization members by organization identifier")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Members successfully found"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    Pagination<ListOrganizationMembersResponse> listOrganizationMembers(
+            @RequestParam(name = "organizationId", defaultValue = "") String organizationId,
+            @RequestParam(name = "search", required = false, defaultValue = "") String search,
+            @RequestParam(name = "page", required = false, defaultValue = "0") int page,
+            @RequestParam(name = "perPage", required = false, defaultValue = "10") int perPage,
+            @RequestParam(name = "sort", required = false, defaultValue = "role") String sort,
+            @RequestParam(name = "direction", required = false, defaultValue = "asc") String direction
+    );
 }
