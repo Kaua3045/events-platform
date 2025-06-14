@@ -6,6 +6,7 @@ import com.kaua.events.platform.domain.exceptions.ValidationException;
 import com.kaua.events.platform.domain.organizations.OrganizationID;
 import com.kaua.events.platform.domain.organizations.OrganizationMember;
 import com.kaua.events.platform.domain.organizations.OrganizationMemberRole;
+import com.kaua.events.platform.domain.pagination.SearchQuery;
 import com.kaua.events.platform.domain.users.UserID;
 import com.kaua.events.platform.domain.utils.IdentifierUtils;
 import com.kaua.events.platform.domain.utils.ULID;
@@ -163,5 +164,127 @@ class OrganizationMemberJdbcRepositoryTest extends AbstractRepositoryTest {
                 () -> aOrganizationMemberVariable.save(aUpdatedMember));
 
         Assertions.assertEquals(expectedErrorMessage, aException.getMessage());
+    }
+
+    @Test
+    void givenAValidValues_whenCallMembersOfOrganizationId_thenReturnPaginatedMembers() {
+        Assertions.assertEquals(0, countOrganizationMembers());
+
+        final var aOrganizationId = new OrganizationID(ULID.random());
+
+        final var aMemberOne = Fixture.OrganizationMemberFixture.newOwnerMember(aOrganizationId, new UserID(ULID.random()));
+        final var aMemberTwo = Fixture.OrganizationMemberFixture.newMember(
+                aOrganizationId, new UserID(ULID.random()), OrganizationMemberRole.MEMBER
+        );
+
+        this.organizationMemberRepository().save(aMemberOne);
+        this.organizationMemberRepository().save(aMemberTwo);
+        this.organizationMemberRepository().save(Fixture.OrganizationMemberFixture.newMember(
+                aOrganizationId, new UserID(ULID.random()), OrganizationMemberRole.ADMIN
+        ));
+
+        final var aPage = 0;
+        final var aPerPage = 10;
+        final var aTerms = "";
+        final var aDirection = "asc";
+        final var aSort = "created_at";
+        final var aTotalPages = 1;
+        final var aTotalItems = 3;
+
+        final var aSearchQuery = new SearchQuery(
+                aPage,
+                aPerPage,
+                aTerms,
+                aSort,
+                aDirection
+        );
+
+        Assertions.assertEquals(3, countOrganizationMembers());
+
+        final var aActualResponse = this.organizationMemberRepository().membersOfOrganizationId(aOrganizationId.value().toString(), aSearchQuery);
+
+        Assertions.assertEquals(aTotalPages, aActualResponse.metadata().totalPages());
+        Assertions.assertEquals(aTotalItems, aActualResponse.metadata().totalItems());
+        Assertions.assertEquals(aPage, aActualResponse.metadata().currentPage());
+        Assertions.assertEquals(aPerPage, aActualResponse.metadata().perPage());
+        Assertions.assertEquals(aMemberOne.getId().value(), aActualResponse.items().get(0).getId().value());
+        Assertions.assertEquals(aMemberTwo.getId().value(), aActualResponse.items().get(1).getId().value());
+    }
+
+    @Test
+    void givenAValidValuesButNoHasData_whenCallMembersOfOrganizationId_thenReturnEmptyPaginated() {
+        Assertions.assertEquals(0, countOrganizationMembers());
+
+        final var aOrganizationId = new OrganizationID(ULID.random());
+
+        final var aPage = 0;
+        final var aPerPage = 10;
+        final var aTerms = "";
+        final var aDirection = "asc";
+        final var aSort = "created_at";
+        final var aTotalPages = 0;
+        final var aTotalItems = 0;
+
+        final var aSearchQuery = new SearchQuery(
+                aPage,
+                aPerPage,
+                aTerms,
+                aSort,
+                aDirection
+        );
+
+        Assertions.assertEquals(0, countOrganizationMembers());
+
+        final var aActualResponse = this.organizationMemberRepository().membersOfOrganizationId(aOrganizationId.value().toString(), aSearchQuery);
+
+        Assertions.assertEquals(aTotalPages, aActualResponse.metadata().totalPages());
+        Assertions.assertEquals(aTotalItems, aActualResponse.metadata().totalItems());
+        Assertions.assertEquals(aPage, aActualResponse.metadata().currentPage());
+        Assertions.assertEquals(aPerPage, aActualResponse.metadata().perPage());
+        Assertions.assertTrue(aActualResponse.items().isEmpty());
+    }
+
+    @Test
+    void givenAValidValuesWithTerm_whenCallMembersOfOrganizationId_thenReturnPaginatedMembers() {
+        Assertions.assertEquals(0, countOrganizationMembers());
+
+        final var aOrganizationId = new OrganizationID(ULID.random());
+
+        final var aMemberOne = Fixture.OrganizationMemberFixture.newOwnerMember(aOrganizationId, new UserID(ULID.random()));
+        final var aMemberTwo = Fixture.OrganizationMemberFixture.newMember(
+                aOrganizationId, new UserID(ULID.random()), OrganizationMemberRole.ADMIN
+        );
+
+        this.organizationMemberRepository().save(aMemberOne);
+        this.organizationMemberRepository().save(aMemberTwo);
+        this.organizationMemberRepository().save(Fixture.OrganizationMemberFixture.newMember(
+                aOrganizationId, new UserID(ULID.random()), OrganizationMemberRole.MEMBER
+        ));
+
+        final var aPage = 0;
+        final var aPerPage = 10;
+        final var aTerms = "a";
+        final var aDirection = "asc";
+        final var aSort = "created_at";
+        final var aTotalPages = 1;
+        final var aTotalItems = 1;
+
+        final var aSearchQuery = new SearchQuery(
+                aPage,
+                aPerPage,
+                aTerms,
+                aSort,
+                aDirection
+        );
+
+        Assertions.assertEquals(3, countOrganizationMembers());
+
+        final var aActualResponse = this.organizationMemberRepository().membersOfOrganizationId(aOrganizationId.value().toString(), aSearchQuery);
+
+        Assertions.assertEquals(aTotalPages, aActualResponse.metadata().totalPages());
+        Assertions.assertEquals(aTotalItems, aActualResponse.metadata().totalItems());
+        Assertions.assertEquals(aPage, aActualResponse.metadata().currentPage());
+        Assertions.assertEquals(aPerPage, aActualResponse.metadata().perPage());
+        Assertions.assertEquals(aMemberTwo.getId().value(), aActualResponse.items().get(0).getId().value());
     }
 }
