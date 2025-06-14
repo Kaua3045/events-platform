@@ -1,6 +1,6 @@
 - [X] Adicionar o GetById da Organization
 - [ ] Adicionar o Delete da Organization (excluir os membros tambem?)
-- [ ] Adicionar a Listagem dos membros da Organization (dado search query e organizationId)
+- [X] Adicionar a Listagem dos membros da Organization (dado search query e organizationId)
 - [ ] Adicionar o GetById do Member
 - [ ] Adicionar o Delete do Member (Remover o membro da Organization)
 - [X] Adicionar o Update do Member (Alterar o cargo do membro)
