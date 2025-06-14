@@ -118,4 +118,41 @@ class OrganizationMemberTest extends UnitTest {
         Assertions.assertNotNull(aMemberRole);
         Assertions.assertEquals(OrganizationMemberRole.ADMIN, aMemberRole.get());
     }
+
+    @Test
+    void givenAValidMemberRole_whenCallChangeRole_thenReturnUpdatedOrganizationMember() {
+        final var aOrganizationId = new OrganizationID(IdentifierUtils.generateNewMonotonicULID());
+        final var aUserId = new UserID(IdentifierUtils.generateNewMonotonicULID());
+        final var aMemberRole = OrganizationMemberRole.ADMIN;
+
+        final var aMember = OrganizationMember.newMember(aOrganizationId, aUserId, aMemberRole);
+        final var newRole = OrganizationMemberRole.MEMBER;
+
+        final var aUpdatedAt = aMember.getUpdatedAt();
+
+        final var updatedMember = aMember.changeRole(newRole);
+
+        Assertions.assertNotNull(updatedMember);
+        Assertions.assertEquals(newRole, updatedMember.getMemberRole());
+        Assertions.assertTrue(aUpdatedAt.isBefore(updatedMember.getUpdatedAt()));
+    }
+
+    @Test
+    void givenAnInvalidMemberRole_whenCallChangeRole_thenThrowsDomainException() {
+        final var aOrganizationId = new OrganizationID(IdentifierUtils.generateNewMonotonicULID());
+        final var aUserId = new UserID(IdentifierUtils.generateNewMonotonicULID());
+        final var aMemberRole = OrganizationMemberRole.ADMIN;
+
+        final var aMember = OrganizationMember.newMember(aOrganizationId, aUserId, aMemberRole);
+        final OrganizationMemberRole invalidRole = null; // Simulating an invalid role
+
+        final var expectedErrorMessage = "should not be null";
+        final var expectedErrorProperty = "memberRole";
+
+        final var aException = Assertions.assertThrows(DomainException.class,
+                () -> aMember.changeRole(invalidRole));
+
+        Assertions.assertEquals(expectedErrorMessage, aException.getErrors().getFirst().message());
+        Assertions.assertEquals(expectedErrorProperty, aException.getErrors().getFirst().property());
+    }
 }
