@@ -11,6 +11,9 @@ import com.kaua.events.platform.application.usecases.organizations.create.Create
 import com.kaua.events.platform.application.usecases.organizations.create.CreateOrganizationUseCase;
 import com.kaua.events.platform.application.usecases.organizations.retrieve.get.GetOrganizationByIdOutput;
 import com.kaua.events.platform.application.usecases.organizations.retrieve.get.GetOrganizationByIdUseCase;
+import com.kaua.events.platform.application.usecases.organizations.update.member.UpdateMemberInput;
+import com.kaua.events.platform.application.usecases.organizations.update.member.UpdateMemberOutput;
+import com.kaua.events.platform.application.usecases.organizations.update.member.UpdateMemberUseCase;
 import com.kaua.events.platform.domain.Fixture;
 import com.kaua.events.platform.domain.utils.ULID;
 import org.junit.jupiter.api.Assertions;
@@ -47,11 +50,17 @@ class OrganizationAPITest {
     @MockitoBean
     private GetOrganizationByIdUseCase getOrganizationByIdUseCase;
 
+    @MockitoBean
+    private UpdateMemberUseCase updateMemberUseCase;
+
     @Captor
     private ArgumentCaptor<CreateOrganizationInput> createOrganizationInputCaptor;
 
     @Captor
     private ArgumentCaptor<AddMemberToOrganizationInput> addMemberInputCaptor;
+
+    @Captor
+    private ArgumentCaptor<UpdateMemberInput> updateMemberInputCaptor;
 
     @Test
     void givenAValidRequest_whenCallCreateOrganization_thenReturnOrganizationId() throws Exception {
@@ -182,5 +191,46 @@ class OrganizationAPITest {
                 .andExpect(jsonPath("$.deleted_at").value(aOrganization.getDeletedAt().orElse(null)));
 
         Mockito.verify(getOrganizationByIdUseCase, Mockito.times(1)).execute(Mockito.any());
+    }
+
+    @Test
+    void givenAValidRequest_whenCallUpdateMember_thenReturnUserId() throws Exception {
+        final var aAuthenticatedUserId = ULID.random().toString();
+        final var aAddUserId = ULID.random().toString();
+        final var aRole = "MEMBER";
+
+        Mockito.when(updateMemberUseCase.execute(any()))
+                .thenAnswer(call -> new UpdateMemberOutput(aAddUserId));
+
+        var json = """
+                {
+                    "authenticated_user_id": "%s",
+                    "update_user_id": "%s",
+                    "role": "%s"
+                }
+                """.formatted(aAuthenticatedUserId, aAddUserId, aRole);
+
+        final var aRequest = MockMvcRequestBuilders.patch("/v1/organizations/update")
+                .with(ApiTest.admin(aAuthenticatedUserId))
+                .with(csrf())
+                .accept(MediaType.APPLICATION_JSON_VALUE)
+                .contentType(MediaType.APPLICATION_JSON_VALUE)
+                .content(json);
+
+        final var aResponse = this.mvc.perform(aRequest);
+
+        aResponse
+                .andDo(MockMvcResultHandlers.print())
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Type", MediaType.APPLICATION_JSON_VALUE))
+                .andExpect(jsonPath("$.updated_user_id").value(aAddUserId));
+
+        Mockito.verify(updateMemberUseCase, Mockito.times(1)).execute(updateMemberInputCaptor.capture());
+
+        final var aInputUpdate = updateMemberInputCaptor.getValue();
+
+        Assertions.assertEquals(aAuthenticatedUserId, aInputUpdate.authenticatedUserId());
+        Assertions.assertEquals(aAddUserId, aInputUpdate.userId());
+        Assertions.assertEquals(aRole, aInputUpdate.roleName());
     }
 }
