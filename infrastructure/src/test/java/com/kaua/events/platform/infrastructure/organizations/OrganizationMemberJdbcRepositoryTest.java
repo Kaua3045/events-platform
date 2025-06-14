@@ -9,6 +9,7 @@ import com.kaua.events.platform.domain.organizations.OrganizationMemberRole;
 import com.kaua.events.platform.domain.users.UserID;
 import com.kaua.events.platform.domain.utils.IdentifierUtils;
 import com.kaua.events.platform.domain.utils.ULID;
+import com.kaua.events.platform.infrastructure.exceptions.ConflictException;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.context.jdbc.Sql;
@@ -98,5 +99,69 @@ class OrganizationMemberJdbcRepositoryTest extends AbstractRepositoryTest {
 
         Assertions.assertEquals(aExpectedErrorMessage, aException.getErrors().getFirst().message());
         Assertions.assertEquals(aExpectedErrorProperty, aException.getErrors().getFirst().property());
+    }
+
+    @Test
+    void givenAValidExistsMember_whenCallSave_thenReturnUpdatedMember() {
+        Assertions.assertEquals(0, countOrganizationMembers());
+
+        final var aMember = Fixture.OrganizationMemberFixture.newMember(
+                new OrganizationID(ULID.random()),
+                new UserID(ULID.random()),
+                OrganizationMemberRole.MEMBER
+        );
+
+        this.organizationMemberRepository().save(aMember);
+
+        Assertions.assertEquals(1, countOrganizationMembers());
+
+        final var aUpdatedAt = aMember.getUpdatedAt();
+
+        final var aUpdatedMember = aMember.changeRole(OrganizationMemberRole.ADMIN);
+
+        final var aActualMember = this.organizationMemberRepository().save(aUpdatedMember);
+
+        Assertions.assertEquals(1, countOrganizationMembers());
+
+        Assertions.assertEquals(aMember.getId(), aActualMember.getId());
+        Assertions.assertEquals(aMember.getVersion(), aActualMember.getVersion());
+        Assertions.assertEquals(aMember.getOrganizationId(), aActualMember.getOrganizationId());
+        Assertions.assertEquals(aMember.getUserId(), aActualMember.getUserId());
+        Assertions.assertEquals(OrganizationMemberRole.ADMIN, aActualMember.getMemberRole());
+        Assertions.assertEquals(aMember.getCreatedAt(), aActualMember.getCreatedAt());
+        Assertions.assertNotEquals(aUpdatedAt, aActualMember.getUpdatedAt());
+        Assertions.assertTrue(aActualMember.getUpdatedAt().isAfter(aUpdatedAt));
+    }
+
+    @Test
+    void givenAValidExistsMember_whenCallSaveButVersionIsNotMatch_thenThrowsConflictException() {
+        Assertions.assertEquals(0, countOrganizationMembers());
+
+        final var aMember = Fixture.OrganizationMemberFixture.newMember(
+                new OrganizationID(ULID.random()),
+                new UserID(ULID.random()),
+                OrganizationMemberRole.MEMBER
+        );
+
+        final var aMemberSaved = this.organizationMemberRepository().save(aMember);
+
+        final var expectedErrorMessage = "Organization member with identifier %s and version 2 does not match, organization member was updated by another transaction"
+                .formatted(aMember.getId().value());
+
+        Assertions.assertEquals(1, countOrganizationMembers());
+
+        final var aSavedMemberSearched = this.organizationMemberRepository()
+                .memberOfUserId(aMemberSaved.getUserId().value().toString())
+                .orElseThrow();
+
+        final var aUpdatedMember = aSavedMemberSearched.changeRole(OrganizationMemberRole.ADMIN);
+        aUpdatedMember.incrementVersion(); // Simulate version mismatch
+
+        final var aOrganizationMemberVariable = this.organizationMemberRepository(); // Variable to use in lambda, because this.customerRepository() is not allowed in lambda
+        // this is a way to test if the exception is thrown, THIS IS A SCAM, in future disable this rule in sonar
+        final var aException = Assertions.assertThrows(ConflictException.class,
+                () -> aOrganizationMemberVariable.save(aUpdatedMember));
+
+        Assertions.assertEquals(expectedErrorMessage, aException.getMessage());
     }
 }

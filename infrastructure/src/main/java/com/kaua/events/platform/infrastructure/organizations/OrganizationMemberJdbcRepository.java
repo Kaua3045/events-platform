@@ -7,6 +7,7 @@ import com.kaua.events.platform.domain.organizations.OrganizationMemberID;
 import com.kaua.events.platform.domain.organizations.OrganizationMemberRole;
 import com.kaua.events.platform.domain.users.UserID;
 import com.kaua.events.platform.domain.utils.ULID;
+import com.kaua.events.platform.infrastructure.exceptions.ConflictException;
 import com.kaua.events.platform.infrastructure.jdbc.DatabaseClient;
 import com.kaua.events.platform.infrastructure.jdbc.JdbcUtils;
 import com.kaua.events.platform.infrastructure.jdbc.RowMap;
@@ -45,6 +46,10 @@ public class OrganizationMemberJdbcRepository implements OrganizationMemberRepos
             log.debug("Creating new organization member: {}", organizationMember);
             create(organizationMember);
             log.info("Created new organization member: {}", organizationMember);
+        } else {
+            log.debug("Updating organization member: {}", organizationMember);
+            update(organizationMember);
+            log.info("Updated organization member: {}", organizationMember);
         }
 
         organizationMember.incrementVersion();
@@ -58,6 +63,19 @@ public class OrganizationMemberJdbcRepository implements OrganizationMemberRepos
                 """;
 
         executeUpdate(aSql, aOrganizationMember);
+    }
+
+    private void update(final OrganizationMember aOrganizationMember) {
+        final var aSql = """
+                UPDATE organization_members
+                SET version = :version + 1, organization_id = :organizationId, user_id = :userId, member_role = :memberRole, updated_at = :updatedAt
+                WHERE id = :id AND version = :version
+                """;
+
+        if (executeUpdate(aSql, aOrganizationMember) == 0) {
+            throw ConflictException.with("Organization member with identifier %s and version %d does not match, organization member was updated by another transaction"
+                    .formatted(aOrganizationMember.getId().value(), aOrganizationMember.getVersion()));
+        }
     }
 
     private int executeUpdate(final String aSql, final OrganizationMember aOrganizationMember) {

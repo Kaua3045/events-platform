@@ -95,6 +95,12 @@ public class OrganizationMember extends AggregateRoot<OrganizationMemberID> {
         );
     }
 
+    public OrganizationMember changeRole(final OrganizationMemberRole aRole) {
+        this.setMemberRole(this.assertArgumentNotNull(aRole, "memberRole", "should not be null"));
+        this.setUpdatedAt(InstantUtils.now());
+        return this;
+    }
+
     public OrganizationID getOrganizationId() {
         return organizationId;
     }

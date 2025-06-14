@@ -57,7 +57,7 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(authorize ->
-                        authorize.requestMatchers("/v1/users").permitAll()
+                        authorize.requestMatchers("/v1/users", "/actuator/**").permitAll()
                                 .requestMatchers(HttpMethod.GET, "/.well-known/**").permitAll()
                                 .requestMatchers("/v1/users/me/user").hasAnyAuthority("USER")
                                 .anyRequest().authenticated())
