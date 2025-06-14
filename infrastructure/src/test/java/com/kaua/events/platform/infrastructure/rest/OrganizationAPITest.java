@@ -11,10 +11,17 @@ import com.kaua.events.platform.application.usecases.organizations.create.Create
 import com.kaua.events.platform.application.usecases.organizations.create.CreateOrganizationUseCase;
 import com.kaua.events.platform.application.usecases.organizations.retrieve.get.GetOrganizationByIdOutput;
 import com.kaua.events.platform.application.usecases.organizations.retrieve.get.GetOrganizationByIdUseCase;
+import com.kaua.events.platform.application.usecases.organizations.retrieve.list.ListOrganizationMembersOutput;
+import com.kaua.events.platform.application.usecases.organizations.retrieve.list.ListOrganizationMembersUseCase;
 import com.kaua.events.platform.application.usecases.organizations.update.member.UpdateMemberInput;
 import com.kaua.events.platform.application.usecases.organizations.update.member.UpdateMemberOutput;
 import com.kaua.events.platform.application.usecases.organizations.update.member.UpdateMemberUseCase;
 import com.kaua.events.platform.domain.Fixture;
+import com.kaua.events.platform.domain.organizations.OrganizationID;
+import com.kaua.events.platform.domain.organizations.OrganizationMemberRole;
+import com.kaua.events.platform.domain.pagination.Pagination;
+import com.kaua.events.platform.domain.pagination.PaginationMetadata;
+import com.kaua.events.platform.domain.users.UserID;
 import com.kaua.events.platform.domain.utils.ULID;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -27,6 +34,8 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultHandlers;
+
+import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -52,6 +61,9 @@ class OrganizationAPITest {
 
     @MockitoBean
     private UpdateMemberUseCase updateMemberUseCase;
+
+    @MockitoBean
+    private ListOrganizationMembersUseCase listOrganizationMembersUseCase;
 
     @Captor
     private ArgumentCaptor<CreateOrganizationInput> createOrganizationInputCaptor;
@@ -232,5 +244,59 @@ class OrganizationAPITest {
         Assertions.assertEquals(aAuthenticatedUserId, aInputUpdate.authenticatedUserId());
         Assertions.assertEquals(aAddUserId, aInputUpdate.userId());
         Assertions.assertEquals(aRole, aInputUpdate.roleName());
+    }
+
+    @Test
+    void givenAValidValues_whenCallListOrganizationMembers_thenReturnMembersPaginated() throws Exception {
+        final var aOrganizationId = new OrganizationID(ULID.random());
+
+        final var aMemberOne = Fixture.OrganizationMemberFixture.newOwnerMember(aOrganizationId, new UserID(ULID.random()));
+        final var aMemberTwo = Fixture.OrganizationMemberFixture.newMember(
+                aOrganizationId, new UserID(ULID.random()), OrganizationMemberRole.MEMBER
+        );
+
+        final var aPage = 0;
+        final var aPerPage = 2;
+        final var aTerms = "";
+        final var aSort = "created_at";
+        final var aDirection = "asc";
+        final var aItemsCount = 2;
+        final var aPagesCount = 1;
+
+        final var aItems = List.of(ListOrganizationMembersOutput.from(aMemberOne), ListOrganizationMembersOutput.from(aMemberTwo));
+        final var aMetadata = new PaginationMetadata(aPage, aPerPage, aPagesCount, aItemsCount);
+
+        Mockito.when(listOrganizationMembersUseCase.execute(any()))
+                .thenReturn(new Pagination<>(aMetadata, aItems));
+
+        final var aRequest = MockMvcRequestBuilders.get("/v1/organizations/members")
+                .with(ApiTest.admin(ULID.random().toString()))
+                .queryParam("organizationId", aOrganizationId.value().toString())
+                .queryParam("page", String.valueOf(aPage))
+                .queryParam("perPage", String.valueOf(aPerPage))
+                .queryParam("search", aTerms)
+                .queryParam("sort", aSort)
+                .queryParam("direction", aDirection)
+                .accept(MediaType.APPLICATION_JSON_VALUE)
+                .contentType(MediaType.APPLICATION_JSON_VALUE);
+
+        final var aResponse = this.mvc.perform(aRequest);
+
+        aResponse
+                .andDo(MockMvcResultHandlers.print())
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Type", MediaType.APPLICATION_JSON_VALUE))
+                .andExpect(jsonPath("$.metadata.current_page").value(aPage))
+                .andExpect(jsonPath("$.metadata.per_page").value(aPerPage))
+                .andExpect(jsonPath("$.metadata.total_pages").value(aPagesCount))
+                .andExpect(jsonPath("$.metadata.total_items").value(aItemsCount))
+                .andExpect(jsonPath("$.items").isArray())
+                .andExpect(jsonPath("$.items").isNotEmpty())
+                .andExpect(jsonPath("$.items[0].member_id").value(aMemberOne.getId().value().toString()))
+                .andExpect(jsonPath("$.items[0].role").value(aMemberOne.getMemberRole().name()))
+                .andExpect(jsonPath("$.items[0].created_at").value(aMemberOne.getCreatedAt().toString()))
+                .andExpect(jsonPath("$.items[1].member_id").value(aMemberTwo.getId().value().toString()));
+
+        Mockito.verify(listOrganizationMembersUseCase, Mockito.times(1)).execute(any());
     }
 }
