@@ -5,14 +5,19 @@ import com.kaua.events.platform.domain.organizations.OrganizationID;
 import com.kaua.events.platform.domain.organizations.OrganizationMember;
 import com.kaua.events.platform.domain.organizations.OrganizationMemberID;
 import com.kaua.events.platform.domain.organizations.OrganizationMemberRole;
+import com.kaua.events.platform.domain.pagination.Pagination;
+import com.kaua.events.platform.domain.pagination.PaginationMetadata;
+import com.kaua.events.platform.domain.pagination.SearchQuery;
 import com.kaua.events.platform.domain.users.UserID;
 import com.kaua.events.platform.domain.utils.ULID;
 import com.kaua.events.platform.infrastructure.exceptions.ConflictException;
 import com.kaua.events.platform.infrastructure.jdbc.DatabaseClient;
 import com.kaua.events.platform.infrastructure.jdbc.JdbcUtils;
 import com.kaua.events.platform.infrastructure.jdbc.RowMap;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,6 +42,48 @@ public class OrganizationMemberJdbcRepository implements OrganizationMemberRepos
     public Optional<OrganizationMember> memberOfUserId(final String userId) {
         final var aSql = "SELECT * FROM organization_members WHERE user_id = :userId";
         return this.databaseClient.queryOne(aSql, Map.of("userId", userId), memberMapper());
+    }
+
+    @Override
+    public Pagination<OrganizationMember> membersOfOrganizationId(
+            final String organizationId,
+            final SearchQuery query
+    ) {
+        final var aSqlRetrieve = """
+                SELECT * FROM organization_members
+                WHERE organization_id = :organizationId
+                AND (:terms IS NULL OR LOWER(member_role) LIKE LOWER(:terms))
+                ORDER BY
+                CASE WHEN :sort IN ('member_role', 'created_at', 'updated_at') THEN :sort ELSE member_role END
+                """ + Sort.Direction.fromString(query.direction()).name() + """
+                 LIMIT :limit OFFSET (:offset)
+                """;
+
+        // Example: page = 1, perPage = 10, offset = 0 or page = 2, perPage = 10, offset = 10, offset speak to db where to start
+        final var aOffset = Math.max(0, (query.page() - 1) * query.perPage());
+        final var aTerms = StringUtils.isNotEmpty(query.terms())
+                ? "%" + query.terms() + "%"
+                : null;
+
+        final Map<String, Object> aParams = new HashMap<>();
+        aParams.put("organizationId", organizationId);
+        aParams.put("terms", aTerms);
+        aParams.put("sort", query.sort());
+        aParams.put("limit", query.perPage());
+        aParams.put("offset", aOffset);
+
+        final var aItems = this.databaseClient.query(aSqlRetrieve, aParams, memberMapper());
+
+        final var aTotalPages = (int) Math.ceil((double) aItems.size() / query.perPage());
+
+        final var aMetadata = new PaginationMetadata(
+                query.page(),
+                query.perPage(),
+                aTotalPages,
+                aItems.size()
+        );
+
+        return new Pagination<>(aMetadata, aItems);
     }
 
     @Override

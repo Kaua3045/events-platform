@@ -4,14 +4,15 @@ import com.kaua.events.platform.application.usecases.organizations.addMember.Add
 import com.kaua.events.platform.application.usecases.organizations.create.CreateOrganizationUseCase;
 import com.kaua.events.platform.application.usecases.organizations.retrieve.get.GetOrganizationByIdInput;
 import com.kaua.events.platform.application.usecases.organizations.retrieve.get.GetOrganizationByIdUseCase;
+import com.kaua.events.platform.application.usecases.organizations.retrieve.list.ListOrganizationMembersInput;
+import com.kaua.events.platform.application.usecases.organizations.retrieve.list.ListOrganizationMembersUseCase;
 import com.kaua.events.platform.application.usecases.organizations.update.member.UpdateMemberUseCase;
+import com.kaua.events.platform.domain.pagination.Pagination;
+import com.kaua.events.platform.domain.pagination.SearchQuery;
 import com.kaua.events.platform.infrastructure.organizations.req.AddMemberToOrganizationRequest;
 import com.kaua.events.platform.infrastructure.organizations.req.CreateOrganizationRequest;
 import com.kaua.events.platform.infrastructure.organizations.req.UpdateMemberRequest;
-import com.kaua.events.platform.infrastructure.organizations.res.AddMemberToOrganizationResponse;
-import com.kaua.events.platform.infrastructure.organizations.res.CreateOrganizationResponse;
-import com.kaua.events.platform.infrastructure.organizations.res.GetOrganizationByIdResponse;
-import com.kaua.events.platform.infrastructure.organizations.res.UpdateMemberResponse;
+import com.kaua.events.platform.infrastructure.organizations.res.*;
 import com.kaua.events.platform.infrastructure.rest.OrganizationAPI;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -26,17 +27,20 @@ public class OrganizationRestController implements OrganizationAPI {
     private final AddMemberToOrganizationUseCase addMemberToOrganizationUseCase;
     private final GetOrganizationByIdUseCase getOrganizationByIdUseCase;
     private final UpdateMemberUseCase updateMemberUseCase;
+    private final ListOrganizationMembersUseCase listOrganizationMembersUseCase;
 
     public OrganizationRestController(
             final CreateOrganizationUseCase createOrganizationUseCase,
             final AddMemberToOrganizationUseCase addMemberToOrganizationUseCase,
             final GetOrganizationByIdUseCase getOrganizationByIdUseCase,
-            final UpdateMemberUseCase updateMemberUseCase
+            final UpdateMemberUseCase updateMemberUseCase,
+            final ListOrganizationMembersUseCase listOrganizationMembersUseCase
     ) {
         this.createOrganizationUseCase = Objects.requireNonNull(createOrganizationUseCase);
         this.addMemberToOrganizationUseCase = Objects.requireNonNull(addMemberToOrganizationUseCase);
         this.getOrganizationByIdUseCase = Objects.requireNonNull(getOrganizationByIdUseCase);
         this.updateMemberUseCase = Objects.requireNonNull(updateMemberUseCase);
+        this.listOrganizationMembersUseCase = Objects.requireNonNull(listOrganizationMembersUseCase);
     }
 
     @Override
@@ -78,5 +82,30 @@ public class OrganizationRestController implements OrganizationAPI {
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(GetOrganizationByIdResponse.from(aOutput));
+    }
+
+    @Override
+    public Pagination<ListOrganizationMembersResponse> listOrganizationMembers(
+            final String organizationId,
+            final String search,
+            final int page,
+            final int perPage,
+            final String sort,
+            final String direction
+    ) {
+        final var aInput = ListOrganizationMembersInput.with(
+                organizationId,
+                new SearchQuery(
+                        page,
+                        perPage,
+                        search,
+                        sort,
+                        direction
+                )
+        );
+
+        final var aOutput = this.listOrganizationMembersUseCase.execute(aInput);
+
+        return aOutput.map(ListOrganizationMembersResponse::from);
     }
 }
