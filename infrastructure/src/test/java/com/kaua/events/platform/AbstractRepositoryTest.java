@@ -1,9 +1,7 @@
 package com.kaua.events.platform;
 
-import com.kaua.events.platform.application.repositories.AuthorizationCodeRepository;
-import com.kaua.events.platform.application.repositories.AuthorizationTokenRepository;
-import com.kaua.events.platform.application.repositories.OrganizationMemberRepository;
-import com.kaua.events.platform.application.repositories.OrganizationRepository;
+import com.kaua.events.platform.application.repositories.*;
+import com.kaua.events.platform.infrastructure.eventmanagement.EventJdbcRepository;
 import com.kaua.events.platform.infrastructure.jdbc.JdbcClientAdapter;
 import com.kaua.events.platform.infrastructure.oauth.code.AuthorizationCodeJdbcRepository;
 import com.kaua.events.platform.infrastructure.oauth.token.AuthorizationTokenJdbcRepository;
@@ -28,6 +26,7 @@ public abstract class AbstractRepositoryTest {
     private static final String AUTHORIZATION_TOKEN_TABLE = "authorization_tokens";
     private static final String ORGANIZATIONS_TABLE = "organizations";
     private static final String ORGANIZATION_MEMBERS_TABLE = "organization_members";
+    private static final String EVENTS_TABLE = "events";
 
     @Autowired
     private JdbcClient jdbcClient;
@@ -37,6 +36,7 @@ public abstract class AbstractRepositoryTest {
     private AuthorizationTokenRepository authorizationTokenRepository;
     private OrganizationRepository organizationRepository;
     private OrganizationMemberRepository organizationMemberRepository;
+    private EventRepository eventRepository;
 
     @BeforeEach
     void setUp() {
@@ -45,6 +45,7 @@ public abstract class AbstractRepositoryTest {
         this.authorizationTokenRepository = new AuthorizationTokenJdbcRepository(new JdbcClientAdapter(jdbcClient));
         this.organizationRepository = new OrganizationJdbcRepository(new JdbcClientAdapter(jdbcClient));
         this.organizationMemberRepository = new OrganizationMemberJdbcRepository(new JdbcClientAdapter(jdbcClient));
+        this.eventRepository = new EventJdbcRepository(new JdbcClientAdapter(jdbcClient));
     }
 
     protected int countUsers() {
@@ -67,6 +68,10 @@ public abstract class AbstractRepositoryTest {
         return JdbcTestUtils.countRowsInTable(jdbcClient, ORGANIZATION_MEMBERS_TABLE);
     }
 
+    protected int countEvents() {
+        return JdbcTestUtils.countRowsInTable(jdbcClient, EVENTS_TABLE);
+    }
+
     public UserJdbcRepository userRepository() {
         return userJdbcRepository;
     }
@@ -85,5 +90,9 @@ public abstract class AbstractRepositoryTest {
 
     public OrganizationMemberRepository organizationMemberRepository() {
         return organizationMemberRepository;
+    }
+
+    public EventRepository eventRepository() {
+        return eventRepository;
     }
 }
