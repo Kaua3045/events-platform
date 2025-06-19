@@ -6,3 +6,7 @@
 - [X] Adicionar o Update do Member (Alterar o cargo do membro)
 - [ ] Adicionar o Update do User
 - [ ] Adicionar o Delete do User
+- [X] Criar um Evento (Organizacao)
+- [ ] Deletar um Evento
+- [ ] Listar eventos (Por org ou geral?)
+- [ ] Atualizar um Evento
