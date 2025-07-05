@@ -95,7 +95,7 @@ public class OrganizationRestController implements OrganizationAPI {
     ) {
         final var aInput = ListOrganizationMembersInput.with(
                 organizationId,
-                new SearchQuery(
+                SearchQuery.newSearchQuery(
                         page,
                         perPage,
                         search,

@@ -191,7 +191,7 @@ class OrganizationMemberJdbcRepositoryTest extends AbstractRepositoryTest {
         final var aTotalPages = 1;
         final var aTotalItems = 3;
 
-        final var aSearchQuery = new SearchQuery(
+        final var aSearchQuery = SearchQuery.newSearchQuery(
                 aPage,
                 aPerPage,
                 aTerms,
@@ -225,7 +225,7 @@ class OrganizationMemberJdbcRepositoryTest extends AbstractRepositoryTest {
         final var aTotalPages = 0;
         final var aTotalItems = 0;
 
-        final var aSearchQuery = new SearchQuery(
+        final var aSearchQuery = SearchQuery.newSearchQuery(
                 aPage,
                 aPerPage,
                 aTerms,
@@ -269,7 +269,7 @@ class OrganizationMemberJdbcRepositoryTest extends AbstractRepositoryTest {
         final var aTotalPages = 1;
         final var aTotalItems = 1;
 
-        final var aSearchQuery = new SearchQuery(
+        final var aSearchQuery = SearchQuery.newSearchQuery(
                 aPage,
                 aPerPage,
                 aTerms,
