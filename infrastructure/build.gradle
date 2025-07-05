@@ -87,10 +87,10 @@ jacocoTestReport {
         classDirectories.setFrom(
                 files(classDirectories.files.collect {
                     fileTree(dir: it, exclude: [
-                            'om/kaua/events/platform/infrastructure/configurations/*',
-                            'om/kaua/events/platform/infrastructure/jdbc/*',
+                            'com/kaua/events/platform/infrastructure/configurations/*',
+                            'com/kaua/events/platform/infrastructure/jdbc/*',
                             'com/kaua/events/platform/infrastructure/rest/controllers/JwksRestController.class',
-                            'om/kaua/events/platform/infrastructure/Main.class'
+                            'com/kaua/events/platform/infrastructure/Main.class'
                     ])
                 })
         )
