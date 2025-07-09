@@ -1,6 +1,7 @@
 package com.kaua.events.platform.domain.eventmanagement;
 
 import com.kaua.events.platform.domain.UnitTest;
+import com.kaua.events.platform.domain.exceptions.ValidationException;
 import com.kaua.events.platform.domain.organizations.OrganizationID;
 import com.kaua.events.platform.domain.utils.InstantUtils;
 import com.kaua.events.platform.domain.utils.ULID;
@@ -50,6 +51,7 @@ class EventTest extends UnitTest {
         Assertions.assertNotNull(aEvent.getUpdatedAt());
         Assertions.assertTrue(aEvent.getDeletedAt().isEmpty());
         Assertions.assertDoesNotThrow(() -> aEvent.validate(NotificationHandler.create()));
+        Assertions.assertDoesNotThrow(aEvent::toString);
     }
 
     @Test
@@ -90,7 +92,14 @@ class EventTest extends UnitTest {
         Assertions.assertEquals(aDescription, aEvent.getDescription().get());
         Assertions.assertEquals(EventStatus.SCHEDULED, aEvent.getStatus());
         Assertions.assertEquals(aType, aEvent.getType());
-        Assertions.assertEquals(aAddress, aEvent.getAddress().get());
+        Assertions.assertEquals(aAddress.getCity(), aEvent.getAddress().get().getCity());
+        Assertions.assertEquals(aAddress.getState(), aEvent.getAddress().get().getState());
+        Assertions.assertEquals(aAddress.getCountry(), aEvent.getAddress().get().getCountry());
+        Assertions.assertEquals(aAddress.getStreet(), aEvent.getAddress().get().getStreet());
+        Assertions.assertEquals(aAddress.getPostalCode(), aEvent.getAddress().get().getPostalCode());
+        Assertions.assertEquals(aAddress.getNeighborhood(), aEvent.getAddress().get().getNeighborhood());
+        Assertions.assertEquals(aAddress.getComplement(), aEvent.getAddress().get().getComplement());
+        Assertions.assertEquals(aAddress.getNumber(), aEvent.getAddress().get().getNumber());
         Assertions.assertTrue(aEvent.getImageUrl().isEmpty());
         Assertions.assertEquals(aCategoryId, aEvent.getCategoryId());
         Assertions.assertEquals(aStartAt, aEvent.getStartAt());
@@ -209,5 +218,36 @@ class EventTest extends UnitTest {
         final var aType = "REMOTE";
 
         Assertions.assertTrue(() -> EventType.from(aType).isPresent());
+    }
+
+    @Test
+    void givenAnInvalidFinishAt_whenCallNewEvent_thenThrowValidationException() {
+        final var aOrganizationId = new OrganizationID(ULID.random());
+        final var aTitle = "event-title";
+        final var aDescription = "event-description";
+        final var aType = EventType.REMOTE;
+        final var aCategoryId = UUID.randomUUID().toString();
+        final var aStartAt = InstantUtils.now().plus(10, ChronoUnit.HOURS);
+        final var aFinishAt = InstantUtils.now().minus(5, ChronoUnit.DAYS);
+
+        final var expectedProperty = "finishAt";
+        final var expectedErrorMessage = "must be after startAt";
+
+        final var aException = Assertions.assertThrows(
+                ValidationException.class,
+                () -> Event.newEvent(
+                        aOrganizationId,
+                        aTitle,
+                        aDescription,
+                        aType,
+                        null,
+                        aCategoryId,
+                        aStartAt,
+                        aFinishAt
+                )
+        );
+
+        Assertions.assertEquals(expectedProperty, aException.getErrors().getFirst().property());
+        Assertions.assertEquals(expectedErrorMessage, aException.getErrors().getFirst().message());
     }
 }
