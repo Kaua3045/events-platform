@@ -62,7 +62,7 @@ class ListOrganizationMembersUseCaseTest extends UseCaseTest {
         final var aSort = "role";
         final var aDirection = "desc";
 
-        final var aSearchQuery = new SearchQuery(aPage, aPerPage, aTerms, aSort, aDirection);
+        final var aSearchQuery = SearchQuery.newSearchQuery(aPage, aPerPage, aTerms, aSort, aDirection);
 
         final var aMetadata = new PaginationMetadata(aPage, aPerPage, aTotalPages, aMembers.size());
         final var aPagination = new Pagination<>(aMetadata, aMembers);
@@ -95,7 +95,7 @@ class ListOrganizationMembersUseCaseTest extends UseCaseTest {
         final var aSort = "role";
         final var aDirection = "asc";
 
-        final var aSearchQuery = new SearchQuery(aPage, aPerPage, aTerms, aSort, aDirection);
+        final var aSearchQuery = SearchQuery.newSearchQuery(aPage, aPerPage, aTerms, aSort, aDirection);
 
         final var aMetadata = new PaginationMetadata(aPage, aPerPage, aTotalPages, 0);
         final var aPagination = new Pagination<OrganizationMember>(aMetadata, List.of());

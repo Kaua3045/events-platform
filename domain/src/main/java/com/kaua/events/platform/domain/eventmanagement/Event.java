@@ -260,7 +260,7 @@ public class Event extends AggregateRoot<EventID> {
                 ", description='" + description + '\'' +
                 ", status=" + status.name() +
                 ", type=" + type.name() +
-                ", address=" + address.toString() +
+                ", address=" + getAddress().map(Address::toString).orElse(null) +
                 ", imageUrl='" + imageUrl + '\'' +
                 ", categoryId='" + categoryId + '\'' +
                 ", startAt=" + startAt +
