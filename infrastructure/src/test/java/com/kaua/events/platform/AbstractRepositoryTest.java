@@ -7,6 +7,7 @@ import com.kaua.events.platform.infrastructure.oauth.code.AuthorizationCodeJdbcR
 import com.kaua.events.platform.infrastructure.oauth.token.AuthorizationTokenJdbcRepository;
 import com.kaua.events.platform.infrastructure.organizations.OrganizationJdbcRepository;
 import com.kaua.events.platform.infrastructure.organizations.OrganizationMemberJdbcRepository;
+import com.kaua.events.platform.infrastructure.ticket.TicketJdbcRepository;
 import com.kaua.events.platform.infrastructure.users.UserJdbcRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -27,6 +28,7 @@ public abstract class AbstractRepositoryTest {
     private static final String ORGANIZATIONS_TABLE = "organizations";
     private static final String ORGANIZATION_MEMBERS_TABLE = "organization_members";
     private static final String EVENTS_TABLE = "events";
+    private static final String TICKETS_TABLE = "tickets";
 
     @Autowired
     private JdbcClient jdbcClient;
@@ -37,6 +39,7 @@ public abstract class AbstractRepositoryTest {
     private OrganizationRepository organizationRepository;
     private OrganizationMemberRepository organizationMemberRepository;
     private EventRepository eventRepository;
+    private TicketRepository ticketRepository;
 
     @BeforeEach
     void setUp() {
@@ -46,6 +49,7 @@ public abstract class AbstractRepositoryTest {
         this.organizationRepository = new OrganizationJdbcRepository(new JdbcClientAdapter(jdbcClient));
         this.organizationMemberRepository = new OrganizationMemberJdbcRepository(new JdbcClientAdapter(jdbcClient));
         this.eventRepository = new EventJdbcRepository(new JdbcClientAdapter(jdbcClient));
+        this.ticketRepository = new TicketJdbcRepository(new JdbcClientAdapter(jdbcClient));
     }
 
     protected int countUsers() {
@@ -72,6 +76,10 @@ public abstract class AbstractRepositoryTest {
         return JdbcTestUtils.countRowsInTable(jdbcClient, EVENTS_TABLE);
     }
 
+    protected int countTickets() {
+        return JdbcTestUtils.countRowsInTable(jdbcClient, TICKETS_TABLE);
+    }
+
     public UserJdbcRepository userRepository() {
         return userJdbcRepository;
     }
@@ -94,5 +102,9 @@ public abstract class AbstractRepositoryTest {
 
     public EventRepository eventRepository() {
         return eventRepository;
+    }
+
+    public TicketRepository ticketRepository() {
+        return ticketRepository;
     }
 }
