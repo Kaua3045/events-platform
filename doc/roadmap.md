@@ -7,6 +7,6 @@
 - [ ] Adicionar o Update do User
 - [ ] Adicionar o Delete do User
 - [X] Criar um Evento (Organizacao)
-- [ ] Deletar um Evento
+- [X] Deletar um Evento
 - [X] Listar eventos (Por org ou geral?)
 - [ ] Atualizar um Evento
