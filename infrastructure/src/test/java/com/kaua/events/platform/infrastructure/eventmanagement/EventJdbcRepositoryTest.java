@@ -12,6 +12,7 @@ import com.kaua.events.platform.domain.pagination.SearchQuery;
 import com.kaua.events.platform.domain.utils.InstantUtils;
 import com.kaua.events.platform.domain.utils.Period;
 import com.kaua.events.platform.domain.utils.ULID;
+import com.kaua.events.platform.infrastructure.exceptions.ConflictException;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.context.jdbc.Sql;
@@ -588,5 +589,85 @@ class EventJdbcRepositoryTest extends AbstractRepositoryTest {
         final var response = this.eventRepository().listAll(query);
 
         Assertions.assertEquals(2, response.metadata().totalItems());
+    }
+
+    @Test
+    void givenAValidEventId_whenCallEventOfId_thenReturnEvent() {
+        final var aOrganizationId = ULID.random();
+        final var aEvent = Fixture.EventFixture.newEvent(new OrganizationID(aOrganizationId), ULID.random().toString());
+
+        this.eventRepository().save(aEvent);
+
+        final var aActualEvent = this.eventRepository().eventOfId(aEvent.getId().value().toString());
+
+        Assertions.assertTrue(aActualEvent.isPresent());
+        Assertions.assertEquals(aEvent.getId(), aActualEvent.get().getId());
+    }
+
+    @Test
+    void givenAnInvalidEventId_whenCallEventOfId_thenReturnEmpty() {
+        final var aEventId = ULID.random().toString();
+
+        final var aActualEvent = this.eventRepository().eventOfId(aEventId);
+
+        Assertions.assertTrue(aActualEvent.isEmpty());
+    }
+
+    @Test
+    void givenAValidPersistedEvent_whenCallSave_thenReturnUpdatedEvent() {
+        final var aOrganizationId = ULID.random();
+        final var aEvent = Fixture.EventFixture.newEvent(new OrganizationID(aOrganizationId), ULID.random().toString());
+
+        this.eventRepository().save(aEvent);
+
+        final var aUpdatedEvent = aEvent.markAsDeleted();
+
+        final var aActualEvent = this.eventRepository().save(aUpdatedEvent);
+
+        Assertions.assertEquals(aEvent.getId(), aActualEvent.getId());
+        Assertions.assertEquals(aEvent.getTitle(), aActualEvent.getTitle());
+        Assertions.assertEquals(aEvent.getDescription().get(), aActualEvent.getDescription().get());
+        Assertions.assertEquals(aEvent.getStatus(), aActualEvent.getStatus());
+        Assertions.assertEquals(aEvent.getType(), aActualEvent.getType());
+        Assertions.assertEquals(aEvent.getAddress(), aActualEvent.getAddress());
+        Assertions.assertEquals(aEvent.getCategoryId(), aActualEvent.getCategoryId());
+        Assertions.assertEquals(aEvent.getStartAt(), aActualEvent.getStartAt());
+        Assertions.assertEquals(aEvent.getFinishAt(), aActualEvent.getFinishAt());
+        Assertions.assertEquals(aEvent.getCreatedAt(), aActualEvent.getCreatedAt());
+        Assertions.assertEquals(aEvent.getUpdatedAt(), aActualEvent.getUpdatedAt());
+        Assertions.assertTrue(aActualEvent.getDeletedAt().isPresent());
+    }
+
+    @Test
+    void givenAValidExistsEvent_whenCallSaveButVersionIsNotMatch_thenThrowsConflictException() {
+        Assertions.assertEquals(0, countEvents());
+
+        final var aOrganizationId = ULID.random();
+        final var aEvent = Fixture.EventFixture.newEvent(
+                new OrganizationID(aOrganizationId),
+                ULID.random().toString()
+        );
+
+        final var aEventSaved = this.eventRepository().save(aEvent);
+
+        final var expectedErrorMessage = "Event with identifier %s and version 2 does not match, event was updated by another transaction"
+                .formatted(aEvent.getId().value());
+
+        Assertions.assertEquals(1, countEvents());
+
+        final var aSavedEventSearched = this.eventRepository()
+                .eventOfId(aEventSaved.getId().value().toString())
+                .orElseThrow();
+
+        final var aUpdatedEvent = aSavedEventSearched.markAsDeleted();
+        aUpdatedEvent.incrementVersion(); // Simulate version mismatch
+
+        final var aEventRepositoryVariable = this.eventRepository(); // Variable to use in lambda, because this.eventRepository() is not allowed in lambda
+        // this is a way to test if the exception is thrown, THIS IS A SCAM, in future disable this rule in sonar
+
+        final var aException = Assertions.assertThrows(ConflictException.class,
+                () -> aEventRepositoryVariable.save(aUpdatedEvent));
+
+        Assertions.assertEquals(expectedErrorMessage, aException.getMessage());
     }
 }
