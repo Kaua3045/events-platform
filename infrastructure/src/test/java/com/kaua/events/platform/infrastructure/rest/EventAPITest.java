@@ -6,6 +6,7 @@ import com.kaua.events.platform.ControllerTest;
 import com.kaua.events.platform.application.usecases.eventmanagement.create.CreateEventInput;
 import com.kaua.events.platform.application.usecases.eventmanagement.create.CreateEventOutput;
 import com.kaua.events.platform.application.usecases.eventmanagement.create.CreateEventUseCase;
+import com.kaua.events.platform.application.usecases.eventmanagement.delete.SoftDeleteEventUseCase;
 import com.kaua.events.platform.application.usecases.eventmanagement.retrieve.list.ListEventsOutput;
 import com.kaua.events.platform.application.usecases.eventmanagement.retrieve.list.ListEventsUseCase;
 import com.kaua.events.platform.domain.Fixture;
@@ -14,7 +15,6 @@ import com.kaua.events.platform.domain.pagination.Pagination;
 import com.kaua.events.platform.domain.pagination.PaginationMetadata;
 import com.kaua.events.platform.domain.utils.InstantUtils;
 import com.kaua.events.platform.domain.utils.ULID;
-import com.kaua.events.platform.infrastructure.configurations.json.Json;
 import com.kaua.events.platform.infrastructure.eventmanagement.req.CreateEventAddressRequest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -30,7 +30,6 @@ import org.springframework.test.web.servlet.result.MockMvcResultHandlers;
 
 import java.time.temporal.ChronoUnit;
 import java.util.List;
-import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -50,6 +49,9 @@ class EventAPITest {
 
     @MockitoBean
     private ListEventsUseCase listEventsUseCase;
+
+    @MockitoBean
+    private SoftDeleteEventUseCase softDeleteEventUseCase;
 
     @Captor
     private ArgumentCaptor<CreateEventInput> createEventInputCaptor;
@@ -247,5 +249,27 @@ class EventAPITest {
                 .andExpect(jsonPath("$.items[0].title").value(aEventOne.getTitle()));
 
         Mockito.verify(listEventsUseCase, Mockito.times(1)).execute(any());
+    }
+
+    @Test
+    void givenAValidEventIdAndAuthenticatedUser_whenCallSoftDeleteEvent_thenReturnNoContent() throws Exception {
+        final var aEventId = ULID.random().toString();
+        final var aUserId = ULID.random().toString();
+
+        Mockito.doNothing().when(softDeleteEventUseCase).execute(any());
+
+        final var aRequest = MockMvcRequestBuilders.delete("/v1/events/{eventId}", aEventId)
+                .with(ApiTest.admin(aUserId))
+                .with(csrf())
+                .accept(MediaType.APPLICATION_JSON_VALUE)
+                .contentType(MediaType.APPLICATION_JSON_VALUE);
+
+        final var aResponse = this.mvc.perform(aRequest);
+
+        aResponse
+                .andDo(MockMvcResultHandlers.print())
+                .andExpect(status().isNoContent());
+
+        Mockito.verify(softDeleteEventUseCase, Mockito.times(1)).execute(any());
     }
 }

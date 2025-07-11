@@ -1,10 +1,13 @@
 package com.kaua.events.platform.infrastructure.rest.controllers;
 
 import com.kaua.events.platform.application.usecases.eventmanagement.create.CreateEventUseCase;
+import com.kaua.events.platform.application.usecases.eventmanagement.delete.SoftDeleteEventInput;
+import com.kaua.events.platform.application.usecases.eventmanagement.delete.SoftDeleteEventUseCase;
 import com.kaua.events.platform.application.usecases.eventmanagement.retrieve.list.ListEventsUseCase;
 import com.kaua.events.platform.domain.pagination.Pagination;
 import com.kaua.events.platform.domain.pagination.SearchQuery;
 import com.kaua.events.platform.domain.utils.Period;
+import com.kaua.events.platform.infrastructure.configurations.authentication.AuthenticatedUser;
 import com.kaua.events.platform.infrastructure.eventmanagement.req.CreateEventRequest;
 import com.kaua.events.platform.infrastructure.eventmanagement.res.CreateEventResponse;
 import com.kaua.events.platform.infrastructure.eventmanagement.res.ListEventsResponse;
@@ -22,13 +25,16 @@ public class EventRestController implements EventAPI {
 
     private final CreateEventUseCase createEventUseCase;
     private final ListEventsUseCase listEventsUseCase;
+    private final SoftDeleteEventUseCase softDeleteEventUseCase;
 
     public EventRestController(
             final CreateEventUseCase createEventUseCase,
-            final ListEventsUseCase listEventsUseCase
+            final ListEventsUseCase listEventsUseCase,
+            final SoftDeleteEventUseCase softDeleteEventUseCase
     ) {
         this.createEventUseCase = Objects.requireNonNull(createEventUseCase);
         this.listEventsUseCase = Objects.requireNonNull(listEventsUseCase);
+        this.softDeleteEventUseCase = Objects.requireNonNull(softDeleteEventUseCase);
     }
 
     @Override
@@ -74,5 +80,12 @@ public class EventRestController implements EventAPI {
         final var aOutput = this.listEventsUseCase.execute(aQuery);
 
         return aOutput.map(ListEventsResponse::from);
+    }
+
+    @Override
+    public void softDeleteEvent(final String eventId, final AuthenticatedUser authenticatedUser) {
+        final var aInput = SoftDeleteEventInput.with(eventId, authenticatedUser.id());
+
+        this.softDeleteEventUseCase.execute(aInput);
     }
 }

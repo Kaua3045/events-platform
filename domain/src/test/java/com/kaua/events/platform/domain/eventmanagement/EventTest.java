@@ -250,4 +250,33 @@ class EventTest extends UnitTest {
         Assertions.assertEquals(expectedProperty, aException.getErrors().getFirst().property());
         Assertions.assertEquals(expectedErrorMessage, aException.getErrors().getFirst().message());
     }
+
+    @Test
+    void givenAValidEvent_whenCallMarkAsDeleted_thenReturnEventWithDeletedAt() {
+        final var aOrganizationId = new OrganizationID(ULID.random());
+        final var aTitle = "event-title";
+        final var aDescription = "event-description";
+        final var aType = EventType.REMOTE;
+        final var aCategoryId = UUID.randomUUID().toString();
+        final var aStartAt = InstantUtils.now().plus(10, ChronoUnit.HOURS);
+        final var aFinishAt = InstantUtils.now().plus(5, ChronoUnit.DAYS);
+
+        final var aEvent = Event.newEvent(
+                aOrganizationId,
+                aTitle,
+                aDescription,
+                aType,
+                null,
+                aCategoryId,
+                aStartAt,
+                aFinishAt
+        );
+
+        Assertions.assertTrue(aEvent.getDeletedAt().isEmpty());
+
+        final var deletedEvent = aEvent.markAsDeleted();
+
+        Assertions.assertNotNull(deletedEvent.getDeletedAt());
+        Assertions.assertEquals(EventStatus.DELETED, deletedEvent.getStatus());
+    }
 }
