@@ -6,6 +6,8 @@ import com.kaua.events.platform.application.usecases.organizations.retrieve.get.
 import com.kaua.events.platform.application.usecases.organizations.retrieve.get.GetOrganizationByIdUseCase;
 import com.kaua.events.platform.application.usecases.organizations.retrieve.list.ListOrganizationMembersInput;
 import com.kaua.events.platform.application.usecases.organizations.retrieve.list.ListOrganizationMembersUseCase;
+import com.kaua.events.platform.application.usecases.organizations.retrieve.members.get.GetOrganizationMemberByUserIdInput;
+import com.kaua.events.platform.application.usecases.organizations.retrieve.members.get.GetOrganizationMemberByUserIdUseCase;
 import com.kaua.events.platform.application.usecases.organizations.update.member.UpdateMemberUseCase;
 import com.kaua.events.platform.domain.pagination.Pagination;
 import com.kaua.events.platform.domain.pagination.SearchQuery;
@@ -28,19 +30,22 @@ public class OrganizationRestController implements OrganizationAPI {
     private final GetOrganizationByIdUseCase getOrganizationByIdUseCase;
     private final UpdateMemberUseCase updateMemberUseCase;
     private final ListOrganizationMembersUseCase listOrganizationMembersUseCase;
+    private final GetOrganizationMemberByUserIdUseCase getOrganizationMemberByUserIdUseCase;
 
     public OrganizationRestController(
             final CreateOrganizationUseCase createOrganizationUseCase,
             final AddMemberToOrganizationUseCase addMemberToOrganizationUseCase,
             final GetOrganizationByIdUseCase getOrganizationByIdUseCase,
             final UpdateMemberUseCase updateMemberUseCase,
-            final ListOrganizationMembersUseCase listOrganizationMembersUseCase
+            final ListOrganizationMembersUseCase listOrganizationMembersUseCase,
+            final GetOrganizationMemberByUserIdUseCase getOrganizationMemberByUserIdUseCase
     ) {
         this.createOrganizationUseCase = Objects.requireNonNull(createOrganizationUseCase);
         this.addMemberToOrganizationUseCase = Objects.requireNonNull(addMemberToOrganizationUseCase);
         this.getOrganizationByIdUseCase = Objects.requireNonNull(getOrganizationByIdUseCase);
         this.updateMemberUseCase = Objects.requireNonNull(updateMemberUseCase);
         this.listOrganizationMembersUseCase = Objects.requireNonNull(listOrganizationMembersUseCase);
+        this.getOrganizationMemberByUserIdUseCase = Objects.requireNonNull(getOrganizationMemberByUserIdUseCase);
     }
 
     @Override
@@ -107,5 +112,18 @@ public class OrganizationRestController implements OrganizationAPI {
         final var aOutput = this.listOrganizationMembersUseCase.execute(aInput);
 
         return aOutput.map(ListOrganizationMembersResponse::from);
+    }
+
+    @Override
+    public ResponseEntity<GetOrganizationMemberByUserIdResponse> getOrganizationMemberByUserId(
+            final String userId
+    ) {
+        final var aInput = GetOrganizationMemberByUserIdInput.with(userId);
+
+        final var aOutput = this.getOrganizationMemberByUserIdUseCase.execute(aInput);
+
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(GetOrganizationMemberByUserIdResponse.from(aOutput));
     }
 }

@@ -13,6 +13,8 @@ import com.kaua.events.platform.application.usecases.organizations.retrieve.get.
 import com.kaua.events.platform.application.usecases.organizations.retrieve.get.GetOrganizationByIdUseCase;
 import com.kaua.events.platform.application.usecases.organizations.retrieve.list.ListOrganizationMembersOutput;
 import com.kaua.events.platform.application.usecases.organizations.retrieve.list.ListOrganizationMembersUseCase;
+import com.kaua.events.platform.application.usecases.organizations.retrieve.members.get.GetOrganizationMemberByUserIdOutput;
+import com.kaua.events.platform.application.usecases.organizations.retrieve.members.get.GetOrganizationMemberByUserIdUseCase;
 import com.kaua.events.platform.application.usecases.organizations.update.member.UpdateMemberInput;
 import com.kaua.events.platform.application.usecases.organizations.update.member.UpdateMemberOutput;
 import com.kaua.events.platform.application.usecases.organizations.update.member.UpdateMemberUseCase;
@@ -64,6 +66,9 @@ class OrganizationAPITest {
 
     @MockitoBean
     private ListOrganizationMembersUseCase listOrganizationMembersUseCase;
+
+    @MockitoBean
+    private GetOrganizationMemberByUserIdUseCase getOrganizationMemberByUserIdUseCase;
 
     @Captor
     private ArgumentCaptor<CreateOrganizationInput> createOrganizationInputCaptor;
@@ -299,5 +304,41 @@ class OrganizationAPITest {
                 .andExpect(jsonPath("$.items[1].member_id").value(aMemberTwo.getId().value().toString()));
 
         Mockito.verify(listOrganizationMembersUseCase, Mockito.times(1)).execute(any());
+    }
+
+    @Test
+    void givenAValidUserId_whenCallGetOrganizationMemberByUserId_thenReturnMember() throws Exception {
+        final var aUserId = ULID.random();
+        final var aOrganizationId = ULID.random();
+        final var aMemberRole = OrganizationMemberRole.OWNER;
+
+        final var aMember = Fixture.OrganizationMemberFixture.newOwnerMember(
+                new OrganizationID(aOrganizationId), new UserID(aUserId)
+        );
+
+        Mockito.when(getOrganizationMemberByUserIdUseCase.execute(any()))
+                .thenAnswer(call -> GetOrganizationMemberByUserIdOutput.from(aMember));
+
+        final var aRequest = MockMvcRequestBuilders.get("/v1/organizations/members/" + aUserId)
+                .with(ApiTest.admin())
+                .with(csrf())
+                .accept(MediaType.APPLICATION_JSON_VALUE)
+                .contentType(MediaType.APPLICATION_JSON_VALUE);
+
+        final var aResponse = this.mvc.perform(aRequest);
+
+        aResponse
+                .andDo(MockMvcResultHandlers.print())
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Type", MediaType.APPLICATION_JSON_VALUE))
+                .andExpect(jsonPath("$.organization_member_id").value(aMember.getId().value().toString()))
+                .andExpect(jsonPath("$.version").value(aMember.getVersion()))
+                .andExpect(jsonPath("$.organization_id").value(aOrganizationId.toString()))
+                .andExpect(jsonPath("$.user_id").value(aUserId.toString()))
+                .andExpect(jsonPath("$.member_role").value(aMemberRole.name()))
+                .andExpect(jsonPath("$.created_at").value(aMember.getCreatedAt().toString()))
+                .andExpect(jsonPath("$.updated_at").value(aMember.getUpdatedAt().toString()));
+
+        Mockito.verify(getOrganizationMemberByUserIdUseCase, Mockito.times(1)).execute(Mockito.any());
     }
 }

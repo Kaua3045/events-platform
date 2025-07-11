@@ -11,6 +11,8 @@ import com.kaua.events.platform.application.usecases.organizations.retrieve.get.
 import com.kaua.events.platform.application.usecases.organizations.retrieve.get.GetOrganizationByIdUseCase;
 import com.kaua.events.platform.application.usecases.organizations.retrieve.list.DefaultListOrganizationMembersUseCase;
 import com.kaua.events.platform.application.usecases.organizations.retrieve.list.ListOrganizationMembersUseCase;
+import com.kaua.events.platform.application.usecases.organizations.retrieve.members.get.DefaultGetOrganizationMemberByUserIdUseCase;
+import com.kaua.events.platform.application.usecases.organizations.retrieve.members.get.GetOrganizationMemberByUserIdUseCase;
 import com.kaua.events.platform.application.usecases.organizations.update.member.DefaultUpdateMemberUseCase;
 import com.kaua.events.platform.application.usecases.organizations.update.member.UpdateMemberUseCase;
 import com.kaua.events.platform.application.usecases.users.create.CreateUserUseCase;
@@ -65,5 +67,12 @@ public class OrganizationUseCaseConfig {
             final OrganizationMemberRepository organizationMemberRepository
     ) {
         return new DefaultListOrganizationMembersUseCase(organizationMemberRepository);
+    }
+
+    @Bean
+    public GetOrganizationMemberByUserIdUseCase getOrganizationMemberByUserIdUseCase(
+            final OrganizationMemberRepository organizationMemberRepository
+    ) {
+        return new DefaultGetOrganizationMemberByUserIdUseCase(organizationMemberRepository);
     }
 }
