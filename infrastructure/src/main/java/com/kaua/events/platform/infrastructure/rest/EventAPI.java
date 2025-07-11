@@ -1,6 +1,7 @@
 package com.kaua.events.platform.infrastructure.rest;
 
 import com.kaua.events.platform.domain.pagination.Pagination;
+import com.kaua.events.platform.infrastructure.configurations.authentication.AuthenticatedUser;
 import com.kaua.events.platform.infrastructure.eventmanagement.req.CreateEventRequest;
 import com.kaua.events.platform.infrastructure.eventmanagement.res.CreateEventResponse;
 import com.kaua.events.platform.infrastructure.eventmanagement.res.ListEventsResponse;
@@ -9,8 +10,10 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -52,5 +55,22 @@ public interface EventAPI {
             @RequestParam(name = "direction", required = false, defaultValue = "asc") String direction,
             @RequestParam(name = "startDate", required = false) String startDate,
             @RequestParam(name = "endDate", required = false) String endDate
+    );
+
+    @DeleteMapping(
+            value = "/{eventId}"
+    )
+    @Operation(summary = "Soft delete an event")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "204", description = "Event successfully deleted"),
+            @ApiResponse(responseCode = "400", description = "A validation error was observed"),
+            @ApiResponse(responseCode = "404", description = "Event not found"),
+            @ApiResponse(responseCode = "422", description = "A business rule was violated"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    @ResponseStatus(code = HttpStatus.NO_CONTENT)
+    void softDeleteEvent(
+            @PathVariable("eventId") String eventId,
+            @AuthenticationPrincipal AuthenticatedUser authenticatedUser
     );
 }
