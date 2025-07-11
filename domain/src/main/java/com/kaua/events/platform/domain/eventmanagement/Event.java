@@ -126,6 +126,13 @@ public class Event extends AggregateRoot<EventID> {
         );
     }
 
+    public Event markAsDeleted() {
+        this.setStatus(EventStatus.DELETED);
+        this.setDeletedAt(InstantUtils.now());
+        this.setUpdatedAt(InstantUtils.now());
+        return this;
+    }
+
     public OrganizationID getOrganizationId() {
         return organizationId;
     }
