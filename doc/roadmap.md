@@ -10,3 +10,5 @@
 - [X] Deletar um Evento
 - [X] Listar eventos (Por org ou geral?)
 - [ ] Atualizar um Evento
+- [X] Criar um Ticket
+- [ ] Criar uma Order
