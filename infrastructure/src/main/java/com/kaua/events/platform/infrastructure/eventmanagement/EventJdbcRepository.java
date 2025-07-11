@@ -7,6 +7,7 @@ import com.kaua.events.platform.domain.pagination.Pagination;
 import com.kaua.events.platform.domain.pagination.PaginationMetadata;
 import com.kaua.events.platform.domain.pagination.SearchQuery;
 import com.kaua.events.platform.domain.utils.ULID;
+import com.kaua.events.platform.infrastructure.exceptions.ConflictException;
 import com.kaua.events.platform.infrastructure.jdbc.DatabaseClient;
 import com.kaua.events.platform.infrastructure.jdbc.JdbcUtils;
 import com.kaua.events.platform.infrastructure.jdbc.RowMap;
@@ -41,6 +42,8 @@ public class EventJdbcRepository implements EventRepository {
 
     @Override
     public Pagination<Event> listAll(final SearchQuery query) {
+        // TODO ele vai trazer ate os eventos deletados precisamos fazer ele ignorar os eventos deletados
+        // ou adicionar alguma forma de so trazer os eventos deletados quando quiser
         final var allowedFilters = Map.of(
                 "categoryId", "category_id",
                 "status", "status",
@@ -96,12 +99,22 @@ public class EventJdbcRepository implements EventRepository {
     }
 
     @Override
+    public Optional<Event> eventOfId(final String id) {
+        final var aSql = "SELECT * FROM events WHERE id = :id";
+        return this.databaseClient.queryOne(aSql, Map.of("id", id), eventMapper());
+    }
+
+    @Override
     @Transactional(propagation = Propagation.REQUIRED)
     public Event save(final Event event) {
         if (event.getVersion() == 0) {
             log.debug("Creating new event: {}", event);
             create(event);
             log.info("Created new event: {}", event);
+        } else {
+            log.debug("Updating event: {}", event);
+            update(event);
+            log.info("Updated event: {}", event);
         }
 
         event.incrementVersion();
@@ -109,8 +122,8 @@ public class EventJdbcRepository implements EventRepository {
     }
 
     private DynamicQueryListBuilder.Specification assembleSpecification(final String terms) {
-        return com.kaua.events.platform.infrastructure.utils.DynamicQueryListBuilder.like("title", "terms_title", terms)
-                .or(com.kaua.events.platform.infrastructure.utils.DynamicQueryListBuilder.like("description", "terms_description", terms));
+        return DynamicQueryListBuilder.like("title", "terms_title", terms)
+                .or(DynamicQueryListBuilder.like("description", "terms_description", terms));
     }
 
     private Optional<DynamicQueryListBuilder.Specification> buildFiltersSpecification(
@@ -187,6 +200,39 @@ public class EventJdbcRepository implements EventRepository {
                 """;
 
         executeUpdate(aSql, aEvent);
+    }
+
+    private void update(final Event aEvent) {
+        final var aSql = """
+                UPDATE events
+                SET version = :version + 1,
+                    organization_id = :organization_id,
+                    title = :title,
+                    description = :description,
+                    status = :status,
+                    type = :type,
+                    image_url = :image_url,
+                    category_id = :category_id,
+                    start_at = :start_at,
+                    finish_at = :finish_at,
+                    created_at = :created_at,
+                    updated_at = :updated_at,
+                    deleted_at = :deleted_at,
+                    address_street = :address_street,
+                    address_number = :address_number,
+                    address_complement = :address_complement,
+                    address_neighborhood = :address_neighborhood,
+                    address_city = :address_city,
+                    address_state = :address_state,
+                    address_postal_code = :address_postal_code,
+                    address_country = :address_country
+                WHERE id = :id AND version = :version
+                """;
+
+        if (executeUpdate(aSql, aEvent) == 0) {
+            throw ConflictException.with("Event with identifier %s and version %d does not match, event was updated by another transaction"
+                    .formatted(aEvent.getId().value(), aEvent.getVersion()));
+        }
     }
 
     private int executeUpdate(final String aSql, final Event aEvent) {
