@@ -91,4 +91,18 @@ public interface OrganizationAPI {
             @RequestParam(name = "sort", required = false, defaultValue = "role") String sort,
             @RequestParam(name = "direction", required = false, defaultValue = "asc") String direction
     );
+
+    @GetMapping(
+            produces = MediaType.APPLICATION_JSON_VALUE,
+            path = "/members/{userId}"
+    )
+    @Operation(summary = "Get organization member by user identifier")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Member successfully found"),
+            @ApiResponse(responseCode = "404", description = "Member was not found"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    ResponseEntity<GetOrganizationMemberByUserIdResponse> getOrganizationMemberByUserId(
+            @PathVariable String userId
+    );
 }
