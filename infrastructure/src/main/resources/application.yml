@@ -34,6 +34,12 @@ idempotency-key:
 
 logging:
   level:
+    org:
+      springframework:
+        jdbc:
+          core:
+            JdbcTemplate: DEBUG
+
     ROOT: WARN
     com.kaua.events.platform: DEBUG
 
