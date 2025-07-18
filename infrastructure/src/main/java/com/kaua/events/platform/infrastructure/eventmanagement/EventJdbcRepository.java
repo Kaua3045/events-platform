@@ -48,7 +48,8 @@ public class EventJdbcRepository implements EventRepository {
                 "categoryId", "category_id",
                 "status", "status",
                 "eventType", "type",
-                "address_city", "address_city"
+                "address_city", "address_city",
+                "organizationId", "organization_id"
         );
 
         final var allowedSortFields = List.of("title", "start_at", "finish_at", "created_at");
@@ -67,35 +68,41 @@ public class EventJdbcRepository implements EventRepository {
         // Add periodSpec if present
         spec = spec
                 .map(it -> query.getPeriod()
-                        .map(period -> com.kaua.events.platform.infrastructure.utils.DynamicQueryListBuilder.between(
+                        .map(period -> DynamicQueryListBuilder.between(
                                 "start_at", "start", "end", period.start(), period.end()))
                         .map(it::and)
                         .orElse(it))
                 .or(() -> query.getPeriod()
-                        .map(period -> com.kaua.events.platform.infrastructure.utils.DynamicQueryListBuilder.between(
+                        .map(period -> DynamicQueryListBuilder.between(
                                 "start_at", "start", "end", period.start(), period.end())));
 
         // Use empty spec if nothing was built
-        var finalSpec = spec.orElse(com.kaua.events.platform.infrastructure.utils.DynamicQueryListBuilder.Specification.where(null));
+        var finalSpec = spec.orElse(DynamicQueryListBuilder.Specification.where(null));
 
-        final var dynamicQuery = com.kaua.events.platform.infrastructure.utils.DynamicQueryListBuilder.build(
+        final var dynamicQuery = DynamicQueryListBuilder.build(
                 "events",
                 query,
                 finalSpec,
                 allowedSortFields
         );
 
-        final var items = this.databaseClient.query(dynamicQuery.sql(), dynamicQuery.params(), eventMapper());
-        final var totalPages = (int) Math.ceil((double) items.size() / query.perPage());
+        final var countSql = new StringBuilder("SELECT COUNT(*) FROM events WHERE 1=1");
+        final Map<String, Object> countParams = new HashMap<>();
+        finalSpec.apply(countSql, countParams);
+
+        final var items = this.databaseClient.count(countSql.toString(), countParams);
+        final var totalPages = (int) Math.ceil((double) items / query.perPage());
+
+        final var aPaginatedItems = this.databaseClient.query(dynamicQuery.sql(), dynamicQuery.params(), eventMapper());
 
         final var metadata = new PaginationMetadata(
                 query.page(),
                 query.perPage(),
                 totalPages,
-                items.size()
+                items
         );
 
-        return new Pagination<>(metadata, items);
+        return new Pagination<>(metadata, aPaginatedItems);
     }
 
     @Override
@@ -139,12 +146,12 @@ public class EventJdbcRepository implements EventRepository {
                     var value = entry.getValue();
                     return allowedFilters.containsKey(entry.getKey()) && !value.isBlank();
                 })
-                .map(entry -> com.kaua.events.platform.infrastructure.utils.DynamicQueryListBuilder.equal(
+                .map(entry -> DynamicQueryListBuilder.equal(
                         allowedFilters.get(entry.getKey()),
                         entry.getKey().replace(".", "_"),
                         entry.getValue()
                 ))
-                .reduce(com.kaua.events.platform.infrastructure.utils.DynamicQueryListBuilder.Specification::and);
+                .reduce(DynamicQueryListBuilder.Specification::and);
     }
 
     private void create(final Event aEvent) {

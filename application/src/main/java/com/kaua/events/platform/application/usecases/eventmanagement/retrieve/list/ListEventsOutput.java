@@ -5,10 +5,12 @@ import com.kaua.events.platform.domain.eventmanagement.Event;
 
 import java.time.Instant;
 
+// TODO return description
 public record ListEventsOutput(
         String eventId,
         String organizationId,
         String title,
+        String description,
         String imageUrl,
         String categoryId,
         String eventType,
@@ -23,6 +25,7 @@ public record ListEventsOutput(
                 aEvent.getId().value().toString(),
                 aEvent.getOrganizationId().value().toString(),
                 aEvent.getTitle(),
+                aEvent.getDescription().orElse(null),
                 aEvent.getImageUrl().orElse(null),
                 aEvent.getCategoryId(),
                 aEvent.getType().name(),
