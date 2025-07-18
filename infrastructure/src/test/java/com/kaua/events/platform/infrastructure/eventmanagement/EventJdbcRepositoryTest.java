@@ -670,4 +670,31 @@ class EventJdbcRepositoryTest extends AbstractRepositoryTest {
 
         Assertions.assertEquals(expectedErrorMessage, aException.getMessage());
     }
+
+    @Test
+    void givenAValidOrganizationIdFilter_whenCallListAll_thenReturnOnlyAllEventsForOrganizationId() {
+        final var aOrganizationId = new OrganizationID(ULID.random());
+
+        final var aEventOne = Fixture.EventFixture.newEvent(aOrganizationId, ULID.random().toString());
+        final var aEventTwo = Fixture.EventFixture.newEvent(new OrganizationID(ULID.random()), ULID.random().toString());
+
+        this.eventRepository().save(aEventOne);
+        this.eventRepository().save(Fixture.EventFixture.withStatus(aEventTwo, EventStatus.FINISHED));
+
+        final var filters = Map.of("filters.organizationId", aOrganizationId.value().toString());
+
+        final var query = SearchQuery.newSearchQuery(
+                0,                        // page
+                10,                       // perPage
+                "",                       // terms
+                "created_at",             // sort
+                "asc",                    // direction
+                filters
+        );
+
+        final var response = this.eventRepository().listAll(query);
+
+        Assertions.assertEquals(1, response.metadata().totalItems());
+        Assertions.assertEquals(aOrganizationId.value(), response.items().getFirst().getOrganizationId().value());
+    }
 }
