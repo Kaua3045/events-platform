@@ -4,6 +4,7 @@ import com.kaua.events.platform.domain.pagination.Pagination;
 import com.kaua.events.platform.infrastructure.configurations.authentication.AuthenticatedUser;
 import com.kaua.events.platform.infrastructure.eventmanagement.req.CreateEventRequest;
 import com.kaua.events.platform.infrastructure.eventmanagement.res.CreateEventResponse;
+import com.kaua.events.platform.infrastructure.eventmanagement.res.GetEventByIdResponse;
 import com.kaua.events.platform.infrastructure.eventmanagement.res.ListEventsResponse;
 import com.kaua.events.platform.infrastructure.idempotency.IdempotencyKey;
 import io.swagger.v3.oas.annotations.Operation;
@@ -56,6 +57,18 @@ public interface EventAPI {
             @RequestParam(name = "startDate", required = false) String startDate,
             @RequestParam(name = "endDate", required = false) String endDate
     );
+
+    @GetMapping(
+            value = "/{eventId}",
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    @Operation(summary = "Get event by it's identifier")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Event successfully found"),
+            @ApiResponse(responseCode = "404", description = "Event was not found"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    ResponseEntity<GetEventByIdResponse> getEventById(@AuthenticationPrincipal AuthenticatedUser user, @PathVariable("eventId") String eventId);
 
     @DeleteMapping(
             value = "/{eventId}"
