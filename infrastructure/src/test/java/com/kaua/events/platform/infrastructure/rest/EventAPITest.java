@@ -11,6 +11,9 @@ import com.kaua.events.platform.application.usecases.eventmanagement.retrieve.ge
 import com.kaua.events.platform.application.usecases.eventmanagement.retrieve.get.GetEventByIdUseCase;
 import com.kaua.events.platform.application.usecases.eventmanagement.retrieve.list.ListEventsOutput;
 import com.kaua.events.platform.application.usecases.eventmanagement.retrieve.list.ListEventsUseCase;
+import com.kaua.events.platform.application.usecases.eventmanagement.update.UpdateEventInput;
+import com.kaua.events.platform.application.usecases.eventmanagement.update.UpdateEventOutput;
+import com.kaua.events.platform.application.usecases.eventmanagement.update.UpdateEventUseCase;
 import com.kaua.events.platform.domain.Fixture;
 import com.kaua.events.platform.domain.eventmanagement.Address;
 import com.kaua.events.platform.domain.eventmanagement.Event;
@@ -61,8 +64,14 @@ class EventAPITest {
     @MockitoBean
     private GetEventByIdUseCase getEventByIdUseCase;
 
+    @MockitoBean
+    private UpdateEventUseCase updateEventUseCase;
+
     @Captor
     private ArgumentCaptor<CreateEventInput> createEventInputCaptor;
+
+    @Captor
+    private ArgumentCaptor<UpdateEventInput> updateEventInputCaptor;
 
     @Test
     void givenAValidRequestUsingRemoteEventType_whenCallCreateEvent_thenReturnOrganizationIdAndEventId() throws Exception {
@@ -376,5 +385,135 @@ class EventAPITest {
                 .andExpect(jsonPath("$.updated_at").value(aEvent.getUpdatedAt().toString()));
 
         Mockito.verify(getEventByIdUseCase, Mockito.times(1)).execute(Mockito.any());
+    }
+
+    @Test
+    void givenAValidRequestUsingRemoteEventType_whenCallUpdateEvent_thenReturnOrganizationIdAndEventId() throws Exception {
+        final var aOrganizationId = ULID.random();
+        final var aTitle = "event-title";
+        final var aDescription = "event-description";
+        final var aType = "remote";
+        final var aCategoryId = ULID.random().toString();
+        final var aStartAt = InstantUtils.now().plus(10, ChronoUnit.MINUTES);
+        final var aFinishAt = InstantUtils.now().plus(10, ChronoUnit.DAYS);
+
+        final var aExpectedEventId = ULID.random().toString();
+
+        Mockito.when(updateEventUseCase.execute(any()))
+                .thenAnswer(call -> new UpdateEventOutput(aExpectedEventId, aOrganizationId.toString()));
+
+        var json = """
+                {
+                    "title": "%s",
+                    "description": "%s",
+                    "event_type": "%s",
+                    "category_id": "%s",
+                    "start_at": "%s",
+                    "finish_at": "%s"
+                }
+                """.formatted(aTitle, aDescription, aType, aCategoryId, aStartAt, aFinishAt);
+
+        final var aRequest = MockMvcRequestBuilders.patch("/v1/events/" + aExpectedEventId)
+                .with(ApiTest.admin())
+                .with(csrf())
+                .accept(MediaType.APPLICATION_JSON_VALUE)
+                .contentType(MediaType.APPLICATION_JSON_VALUE)
+                .content(json);
+
+        final var aResponse = this.mvc.perform(aRequest);
+
+        aResponse
+                .andDo(MockMvcResultHandlers.print())
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Type", MediaType.APPLICATION_JSON_VALUE))
+                .andExpect(jsonPath("$.event_id").value(aExpectedEventId))
+                .andExpect(jsonPath("$.organization_id").value(aOrganizationId.toString()));
+
+        Mockito.verify(updateEventUseCase, Mockito.times(1)).execute(updateEventInputCaptor.capture());
+
+        final var updateEventCaptor = updateEventInputCaptor.getValue();
+
+        Assertions.assertEquals(aTitle, updateEventCaptor.title());
+        Assertions.assertEquals(aDescription, updateEventCaptor.description());
+        Assertions.assertEquals(aType, updateEventCaptor.eventType());
+        Assertions.assertEquals(aCategoryId, updateEventCaptor.categoryId());
+        Assertions.assertEquals(aStartAt, updateEventCaptor.startAt());
+        Assertions.assertEquals(aFinishAt, updateEventCaptor.finishAt());
+    }
+
+    @Test
+    void givenAValidRequestUsingInPersonEventType_whenCallUpdateEvent_thenReturnOrganizationIdAndEventId() throws Exception {
+        final var aOrganizationId = ULID.random();
+        final var aTitle = "event-title";
+        final var aDescription = "event-description";
+        final var aType = "remote";
+        final var aStreet = "event-street";
+        final var aNumber = "12345B";
+        final var aComplement = "home";
+        final var aNeighborhood = "baiiro";
+        final var aCity = "city-test";
+        final var aState = "state-test";
+        final var aPostalCode = "120292831288";
+        final var aCountry = "br-tes";
+        final var aCategoryId = ULID.random().toString();
+        final var aStartAt = InstantUtils.now().plus(10, ChronoUnit.MINUTES);
+        final var aFinishAt = InstantUtils.now().plus(10, ChronoUnit.DAYS);
+
+        final var aExpectedEventId = ULID.random().toString();
+
+        Mockito.when(updateEventUseCase.execute(any()))
+                .thenAnswer(call -> new UpdateEventOutput(aExpectedEventId, aOrganizationId.toString()));
+
+        var json = """
+                {
+                    "title": "%s",
+                    "description": "%s",
+                    "event_type": "%s",
+                    "category_id": "%s",
+                    "start_at": "%s",
+                    "finish_at": "%s",
+                    "address": {
+                        "street": "%s",
+                        "number": "%s",
+                        "complement": "%s",
+                        "neighborhood": "%s",
+                        "city": "%s",
+                        "state": "%s",
+                        "postal_code": "%s",
+                        "country": "%s"
+                    }
+                }
+                """.formatted(
+                aTitle, aDescription, aType, aCategoryId, aStartAt, aFinishAt,
+                aStreet, aNumber, aComplement, aNeighborhood, aCity, aState, aPostalCode, aCountry
+        );
+
+        final var aRequest = MockMvcRequestBuilders.patch("/v1/events/" + aExpectedEventId)
+                .with(ApiTest.admin())
+                .with(csrf())
+                .accept(MediaType.APPLICATION_JSON_VALUE)
+                .contentType(MediaType.APPLICATION_JSON_VALUE)
+                .content(json);
+
+        final var aResponse = this.mvc.perform(aRequest);
+
+        aResponse
+                .andDo(MockMvcResultHandlers.print())
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Type", MediaType.APPLICATION_JSON_VALUE))
+                .andExpect(jsonPath("$.event_id").value(aExpectedEventId))
+                .andExpect(jsonPath("$.organization_id").value(aOrganizationId.toString()));
+
+        Mockito.verify(updateEventUseCase, Mockito.times(1)).execute(updateEventInputCaptor.capture());
+
+        final var updateEventCaptor = updateEventInputCaptor.getValue();
+
+        Assertions.assertEquals(aTitle, updateEventCaptor.title());
+        Assertions.assertEquals(aDescription, updateEventCaptor.description());
+        Assertions.assertEquals(aType, updateEventCaptor.eventType());
+        Assertions.assertEquals(aCategoryId, updateEventCaptor.categoryId());
+        Assertions.assertEquals(aStartAt, updateEventCaptor.startAt());
+        Assertions.assertEquals(aFinishAt, updateEventCaptor.finishAt());
+        Assertions.assertEquals(aStreet, updateEventCaptor.address().street());
     }
 }
