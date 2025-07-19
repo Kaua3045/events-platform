@@ -10,6 +10,6 @@
 - [X] Deletar um Evento
 - [X] Listar eventos (Por org ou geral?)
 - [X] Adicionar o GetById do Evento
-- [ ] Atualizar um Evento
+- [X] Atualizar um Evento
 - [X] Criar um Ticket
 - [ ] Criar uma Order
