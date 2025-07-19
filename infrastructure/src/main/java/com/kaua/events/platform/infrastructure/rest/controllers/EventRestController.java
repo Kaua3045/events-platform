@@ -6,14 +6,17 @@ import com.kaua.events.platform.application.usecases.eventmanagement.delete.Soft
 import com.kaua.events.platform.application.usecases.eventmanagement.retrieve.get.GetEventByIdInput;
 import com.kaua.events.platform.application.usecases.eventmanagement.retrieve.get.GetEventByIdUseCase;
 import com.kaua.events.platform.application.usecases.eventmanagement.retrieve.list.ListEventsUseCase;
+import com.kaua.events.platform.application.usecases.eventmanagement.update.UpdateEventUseCase;
 import com.kaua.events.platform.domain.pagination.Pagination;
 import com.kaua.events.platform.domain.pagination.SearchQuery;
 import com.kaua.events.platform.domain.utils.Period;
 import com.kaua.events.platform.infrastructure.configurations.authentication.AuthenticatedUser;
 import com.kaua.events.platform.infrastructure.eventmanagement.req.CreateEventRequest;
+import com.kaua.events.platform.infrastructure.eventmanagement.req.UpdateEventRequest;
 import com.kaua.events.platform.infrastructure.eventmanagement.res.CreateEventResponse;
 import com.kaua.events.platform.infrastructure.eventmanagement.res.GetEventByIdResponse;
 import com.kaua.events.platform.infrastructure.eventmanagement.res.ListEventsResponse;
+import com.kaua.events.platform.infrastructure.eventmanagement.res.UpdateEventResponse;
 import com.kaua.events.platform.infrastructure.rest.EventAPI;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -30,17 +33,20 @@ public class EventRestController implements EventAPI {
     private final ListEventsUseCase listEventsUseCase;
     private final SoftDeleteEventUseCase softDeleteEventUseCase;
     private final GetEventByIdUseCase getEventByIdUseCase;
+    private final UpdateEventUseCase updateEventUseCase;
 
     public EventRestController(
             final CreateEventUseCase createEventUseCase,
             final ListEventsUseCase listEventsUseCase,
             final SoftDeleteEventUseCase softDeleteEventUseCase,
-            final GetEventByIdUseCase getEventByIdUseCase
+            final GetEventByIdUseCase getEventByIdUseCase,
+            final UpdateEventUseCase updateEventUseCase
     ) {
         this.createEventUseCase = Objects.requireNonNull(createEventUseCase);
         this.listEventsUseCase = Objects.requireNonNull(listEventsUseCase);
         this.softDeleteEventUseCase = Objects.requireNonNull(softDeleteEventUseCase);
         this.getEventByIdUseCase = Objects.requireNonNull(getEventByIdUseCase);
+        this.updateEventUseCase = Objects.requireNonNull(updateEventUseCase);
     }
 
     @Override
@@ -100,6 +106,21 @@ public class EventRestController implements EventAPI {
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(GetEventByIdResponse.from(aOutput));
+    }
+
+    @Override
+    public ResponseEntity<UpdateEventResponse> updateEvent(
+            final String eventId,
+            final UpdateEventRequest request,
+            final AuthenticatedUser user
+    ) {
+        final var aInput = request.toInput(user.id(), eventId);
+
+        final var aOutput = this.updateEventUseCase.execute(aInput);
+
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(UpdateEventResponse.from(aOutput));
     }
 
     @Override
