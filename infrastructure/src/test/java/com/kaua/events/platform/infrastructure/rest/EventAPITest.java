@@ -7,15 +7,19 @@ import com.kaua.events.platform.application.usecases.eventmanagement.create.Crea
 import com.kaua.events.platform.application.usecases.eventmanagement.create.CreateEventOutput;
 import com.kaua.events.platform.application.usecases.eventmanagement.create.CreateEventUseCase;
 import com.kaua.events.platform.application.usecases.eventmanagement.delete.SoftDeleteEventUseCase;
+import com.kaua.events.platform.application.usecases.eventmanagement.retrieve.get.GetEventByIdOutput;
+import com.kaua.events.platform.application.usecases.eventmanagement.retrieve.get.GetEventByIdUseCase;
 import com.kaua.events.platform.application.usecases.eventmanagement.retrieve.list.ListEventsOutput;
 import com.kaua.events.platform.application.usecases.eventmanagement.retrieve.list.ListEventsUseCase;
 import com.kaua.events.platform.domain.Fixture;
+import com.kaua.events.platform.domain.eventmanagement.Address;
+import com.kaua.events.platform.domain.eventmanagement.Event;
+import com.kaua.events.platform.domain.eventmanagement.EventType;
 import com.kaua.events.platform.domain.organizations.OrganizationID;
 import com.kaua.events.platform.domain.pagination.Pagination;
 import com.kaua.events.platform.domain.pagination.PaginationMetadata;
 import com.kaua.events.platform.domain.utils.InstantUtils;
 import com.kaua.events.platform.domain.utils.ULID;
-import com.kaua.events.platform.infrastructure.eventmanagement.req.CreateEventAddressRequest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -30,6 +34,7 @@ import org.springframework.test.web.servlet.result.MockMvcResultHandlers;
 
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -52,6 +57,9 @@ class EventAPITest {
 
     @MockitoBean
     private SoftDeleteEventUseCase softDeleteEventUseCase;
+
+    @MockitoBean
+    private GetEventByIdUseCase getEventByIdUseCase;
 
     @Captor
     private ArgumentCaptor<CreateEventInput> createEventInputCaptor;
@@ -132,17 +140,6 @@ class EventAPITest {
 
         Mockito.when(createEventUseCase.execute(any()))
                 .thenAnswer(call -> new CreateEventOutput(aOrganizationId.toString(), aExpectedEventId));
-
-        final var aAddressRequest = new CreateEventAddressRequest(
-                aStreet,
-                aNumber,
-                aComplement,
-                aNeighborhood,
-                aCity,
-                aState,
-                aPostalCode,
-                aCountry
-        );
 
         var json = """
                 {
@@ -271,5 +268,113 @@ class EventAPITest {
                 .andExpect(status().isNoContent());
 
         Mockito.verify(softDeleteEventUseCase, Mockito.times(1)).execute(any());
+    }
+
+    @Test
+    void givenAValidEventIdAndAuthenticatedUser_whenCallGetUserById_thenReturnEventWithoutAddress() throws Exception {
+        final var aEvent = Fixture.EventFixture.newEvent(new OrganizationID(ULID.random()), ULID.random().toString());
+        final var aEventId = aEvent.getId().value().toString();
+
+        Mockito.when(getEventByIdUseCase.execute(Mockito.any()))
+                .thenReturn(GetEventByIdOutput.from(aEvent));
+
+        final var aRequest = MockMvcRequestBuilders.get("/v1/events/{eventId}", aEventId)
+                .with(ApiTest.admin(ULID.random().toString()))
+                .with(csrf())
+                .accept(MediaType.APPLICATION_JSON_VALUE)
+                .contentType(MediaType.APPLICATION_JSON_VALUE);
+
+        final var aResponse = this.mvc.perform(aRequest);
+
+        aResponse
+                .andDo(MockMvcResultHandlers.print())
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Type", MediaType.APPLICATION_JSON_VALUE))
+                .andExpect(jsonPath("$.event_id").value(aEvent.getId().value().toString()))
+                .andExpect(jsonPath("$.organization_id").value(aEvent.getOrganizationId().value().toString()))
+                .andExpect(jsonPath("$.title").value(aEvent.getTitle()))
+                .andExpect(jsonPath("$.description").value(aEvent.getDescription().get()))
+                .andExpect(jsonPath("$.status").value(aEvent.getStatus().name()))
+                .andExpect(jsonPath("$.type").value(aEvent.getType().name()))
+                .andExpect(jsonPath("$.address").value(aEvent.getAddress().orElse(null)))
+                .andExpect(jsonPath("$.image_url").value(aEvent.getImageUrl().orElse(null)))
+                .andExpect(jsonPath("$.category_id").value(aEvent.getCategoryId()))
+                .andExpect(jsonPath("$.start_at").value(aEvent.getStartAt().toString()))
+                .andExpect(jsonPath("$.finish_at").value(aEvent.getFinishAt().toString()))
+                .andExpect(jsonPath("$.created_at").value(aEvent.getCreatedAt().toString()))
+                .andExpect(jsonPath("$.updated_at").value(aEvent.getUpdatedAt().toString()));
+
+        Mockito.verify(getEventByIdUseCase, Mockito.times(1)).execute(Mockito.any());
+    }
+
+    @Test
+    void givenAValidEventIdAndAuthenticatedUser_whenCallGetUserById_thenReturnEventWithAddress() throws Exception {
+        final var aOrganizationId = new OrganizationID(ULID.random());
+        final var aTitle = "event-title";
+        final var aDescription = "event-description";
+        final var aType = EventType.IN_PERSON;
+        final var aAddress = Address.newAddress(
+                "test street",
+                "12345A",
+                "teste",
+                "Bairro test",
+                "POA TEST",
+                "RS",
+                "101010101010000",
+                "BR"
+        );
+        final var aCategoryId = UUID.randomUUID().toString();
+        final var aStartAt = InstantUtils.now().plus(10, ChronoUnit.HOURS);
+        final var aFinishAt = InstantUtils.now().plus(5, ChronoUnit.DAYS);
+
+        final var aEvent = Event.newEvent(
+                aOrganizationId,
+                aTitle,
+                aDescription,
+                aType,
+                aAddress,
+                aCategoryId,
+                aStartAt,
+                aFinishAt
+        );
+        final var aEventId = aEvent.getId().value().toString();
+
+        Mockito.when(getEventByIdUseCase.execute(Mockito.any()))
+                .thenReturn(GetEventByIdOutput.from(aEvent));
+
+        final var aRequest = MockMvcRequestBuilders.get("/v1/events/{eventId}", aEventId)
+                .with(ApiTest.admin(ULID.random().toString()))
+                .with(csrf())
+                .accept(MediaType.APPLICATION_JSON_VALUE)
+                .contentType(MediaType.APPLICATION_JSON_VALUE);
+
+        final var aResponse = this.mvc.perform(aRequest);
+
+        aResponse
+                .andDo(MockMvcResultHandlers.print())
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Type", MediaType.APPLICATION_JSON_VALUE))
+                .andExpect(jsonPath("$.event_id").value(aEvent.getId().value().toString()))
+                .andExpect(jsonPath("$.organization_id").value(aEvent.getOrganizationId().value().toString()))
+                .andExpect(jsonPath("$.title").value(aEvent.getTitle()))
+                .andExpect(jsonPath("$.description").value(aEvent.getDescription().get()))
+                .andExpect(jsonPath("$.status").value(aEvent.getStatus().name()))
+                .andExpect(jsonPath("$.type").value(aEvent.getType().name()))
+                .andExpect(jsonPath("$.address.street").value(aAddress.getStreet()))
+                .andExpect(jsonPath("$.address.number").value(aAddress.getNumber()))
+                .andExpect(jsonPath("$.address.complement").value(aAddress.getComplement().get()))
+                .andExpect(jsonPath("$.address.neighborhood").value(aAddress.getNeighborhood()))
+                .andExpect(jsonPath("$.address.city").value(aAddress.getCity()))
+                .andExpect(jsonPath("$.address.state").value(aAddress.getState()))
+                .andExpect(jsonPath("$.address.postal_code").value(aAddress.getPostalCode()))
+                .andExpect(jsonPath("$.address.country").value(aAddress.getCountry()))
+                .andExpect(jsonPath("$.image_url").value(aEvent.getImageUrl().orElse(null)))
+                .andExpect(jsonPath("$.category_id").value(aEvent.getCategoryId()))
+                .andExpect(jsonPath("$.start_at").value(aEvent.getStartAt().toString()))
+                .andExpect(jsonPath("$.finish_at").value(aEvent.getFinishAt().toString()))
+                .andExpect(jsonPath("$.created_at").value(aEvent.getCreatedAt().toString()))
+                .andExpect(jsonPath("$.updated_at").value(aEvent.getUpdatedAt().toString()));
+
+        Mockito.verify(getEventByIdUseCase, Mockito.times(1)).execute(Mockito.any());
     }
 }
