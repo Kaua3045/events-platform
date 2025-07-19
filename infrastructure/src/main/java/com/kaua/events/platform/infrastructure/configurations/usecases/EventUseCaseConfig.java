@@ -10,6 +10,8 @@ import com.kaua.events.platform.application.usecases.eventmanagement.retrieve.ge
 import com.kaua.events.platform.application.usecases.eventmanagement.retrieve.get.GetEventByIdUseCase;
 import com.kaua.events.platform.application.usecases.eventmanagement.retrieve.list.DefaultListEventsUseCase;
 import com.kaua.events.platform.application.usecases.eventmanagement.retrieve.list.ListEventsUseCase;
+import com.kaua.events.platform.application.usecases.eventmanagement.update.DefaultUpdateEventUseCase;
+import com.kaua.events.platform.application.usecases.eventmanagement.update.UpdateEventUseCase;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -43,5 +45,16 @@ public class EventUseCaseConfig {
             final EventRepository eventRepository
     ) {
         return new DefaultGetEventByIdUseCase(eventRepository);
+    }
+
+    @Bean
+    public UpdateEventUseCase updateEventUseCase(
+            final EventRepository eventRepository,
+            final OrganizationMemberRepository organizationMemberRepository
+    ) {
+        return new DefaultUpdateEventUseCase(
+                eventRepository,
+                organizationMemberRepository
+        );
     }
 }
