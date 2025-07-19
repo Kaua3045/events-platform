@@ -1,5 +1,6 @@
 package com.kaua.events.platform.domain.eventmanagement;
 
+import com.kaua.events.platform.domain.Fixture;
 import com.kaua.events.platform.domain.UnitTest;
 import com.kaua.events.platform.domain.exceptions.ValidationException;
 import com.kaua.events.platform.domain.organizations.OrganizationID;
@@ -278,5 +279,41 @@ class EventTest extends UnitTest {
 
         Assertions.assertNotNull(deletedEvent.getDeletedAt());
         Assertions.assertEquals(EventStatus.DELETED, deletedEvent.getStatus());
+    }
+
+    @Test
+    void givenAValidValues_whenCallUpdate_thenReturnUpdatedEvent() {
+        final var aEvent = Fixture.EventFixture.newEventWithAddress(
+                new OrganizationID(ULID.random()),
+                ULID.random().toString()
+        );
+
+        final var aNewTitle = "title teste";
+        final var aNewDescription = "new description";
+        final var aNewCategoryId = ULID.random().toString();
+        final var aNewStartAt = InstantUtils.now().plus(30, ChronoUnit.MINUTES);
+        final var aNewFinishAt = InstantUtils.now().plus(60, ChronoUnit.DAYS);
+
+        final var aActualUpdatedAt = aEvent.getUpdatedAt();
+
+        final var aUpdatedEvent = aEvent.update(
+                aNewTitle,
+                aNewDescription,
+                EventType.REMOTE,
+                null,
+                aNewCategoryId,
+                aNewStartAt,
+                aNewFinishAt
+
+        );
+
+        Assertions.assertEquals(aNewTitle, aUpdatedEvent.getTitle());
+        Assertions.assertTrue(aUpdatedEvent.getAddress().isEmpty());
+        Assertions.assertEquals(EventType.REMOTE, aUpdatedEvent.getType());
+        Assertions.assertEquals(aNewDescription, aUpdatedEvent.getDescription().get());
+        Assertions.assertEquals(aNewCategoryId, aUpdatedEvent.getCategoryId());
+        Assertions.assertEquals(aNewStartAt, aUpdatedEvent.getStartAt());
+        Assertions.assertEquals(aNewFinishAt, aUpdatedEvent.getFinishAt());
+        Assertions.assertTrue(aActualUpdatedAt.isBefore(aUpdatedEvent.getUpdatedAt()));
     }
 }
