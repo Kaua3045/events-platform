@@ -133,6 +133,27 @@ public class Event extends AggregateRoot<EventID> {
         return this;
     }
 
+    public Event update(
+            final String aTitle,
+            final String aDescription,
+            final EventType aType,
+            final Address aAddress,
+            final String aCategoryId,
+            final Instant aStartAt,
+            final Instant aFinishAt
+    ) {
+        setTitle(aTitle);
+        setDescription(aDescription);
+        setType(aType);
+        setAddress(aAddress);
+        setCategoryId(aCategoryId);
+        setStartAt(aStartAt);
+        setFinishAt(aFinishAt);
+        setUpdatedAt(InstantUtils.now());
+
+        return this;
+    }
+
     public OrganizationID getOrganizationId() {
         return organizationId;
     }
