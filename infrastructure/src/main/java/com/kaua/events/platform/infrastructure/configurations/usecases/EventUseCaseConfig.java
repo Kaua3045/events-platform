@@ -6,6 +6,8 @@ import com.kaua.events.platform.application.usecases.eventmanagement.create.Crea
 import com.kaua.events.platform.application.usecases.eventmanagement.create.DefaultCreateEventUseCase;
 import com.kaua.events.platform.application.usecases.eventmanagement.delete.DefaultSoftDeleteEventUseCase;
 import com.kaua.events.platform.application.usecases.eventmanagement.delete.SoftDeleteEventUseCase;
+import com.kaua.events.platform.application.usecases.eventmanagement.retrieve.get.DefaultGetEventByIdUseCase;
+import com.kaua.events.platform.application.usecases.eventmanagement.retrieve.get.GetEventByIdUseCase;
 import com.kaua.events.platform.application.usecases.eventmanagement.retrieve.list.DefaultListEventsUseCase;
 import com.kaua.events.platform.application.usecases.eventmanagement.retrieve.list.ListEventsUseCase;
 import org.springframework.context.annotation.Bean;
@@ -34,5 +36,12 @@ public class EventUseCaseConfig {
             final OrganizationMemberRepository organizationMemberRepository
     ) {
         return new DefaultSoftDeleteEventUseCase(eventRepository, organizationMemberRepository);
+    }
+
+    @Bean
+    public GetEventByIdUseCase getEventByIdUseCase(
+            final EventRepository eventRepository
+    ) {
+        return new DefaultGetEventByIdUseCase(eventRepository);
     }
 }
