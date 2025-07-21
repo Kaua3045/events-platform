@@ -396,4 +396,43 @@ class UpdateEventUseCaseTest extends UseCaseTest {
         verify(eventRepository, times(1)).eventOfId(any());
         verify(eventRepository, times(0)).save(any());
     }
+
+    @Test
+    void givenASameValuesInInput_whenCallUpdateEventUseCase_thenReturnNotUpdatedEvent() {
+        final var aEvent = Fixture.EventFixture.withType(
+                Fixture.EventFixture.newEvent(new OrganizationID(ULID.random()), ULID.random().toString()),
+                EventType.REMOTE
+        );
+        final var aOwner = Fixture.OrganizationMemberFixture.newMember(
+                aEvent.getOrganizationId(),
+                new UserID(ULID.random()),
+                OrganizationMemberRole.ADMIN
+        );
+
+        final var aInput = UpdateEventInput.with(
+                aOwner.getUserId().value().toString(),
+                aEvent.getId().value().toString(),
+                aEvent.getTitle(),
+                aEvent.getDescription().orElse(null),
+                aEvent.getType().name(),
+                null,
+                aEvent.getCategoryId(),
+                aEvent.getStartAt(),
+                aEvent.getFinishAt()
+        );
+
+        when(organizationMemberRepository.memberOfUserId(aOwner.getUserId().value().toString()))
+                .thenReturn(Optional.of(aOwner));
+        when(eventRepository.eventOfId(aEvent.getId().value().toString()))
+                .thenReturn(Optional.of(aEvent));
+
+        final var aOutput = Assertions.assertDoesNotThrow(() -> this.useCase.execute(aInput));
+
+        Assertions.assertEquals(aEvent.getId().value().toString(), aOutput.eventId());
+        Assertions.assertEquals(aEvent.getOrganizationId().value().toString(), aOutput.organizationId());
+
+        verify(organizationMemberRepository, times(1)).memberOfUserId(any());
+        verify(eventRepository, times(1)).eventOfId(any());
+        verify(eventRepository, times(0)).save(any());
+    }
 }
