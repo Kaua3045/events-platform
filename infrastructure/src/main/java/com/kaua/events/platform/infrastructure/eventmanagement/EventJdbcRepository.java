@@ -76,6 +76,15 @@ public class EventJdbcRepository implements EventRepository {
                         .map(period -> DynamicQueryListBuilder.between(
                                 "start_at", "start", "end", period.start(), period.end())));
 
+        boolean isSearchingForDeleted = "DELETED".equalsIgnoreCase(query.filters().get("status"));
+
+        if (!isSearchingForDeleted) {
+            spec = Optional.of(
+                    spec.orElse(DynamicQueryListBuilder.Specification.where(null))
+                            .and(DynamicQueryListBuilder.notEqual("status", "status_deleted", "DELETED"))
+            );
+        }
+
         // Use empty spec if nothing was built
         var finalSpec = spec.orElse(DynamicQueryListBuilder.Specification.where(null));
 
