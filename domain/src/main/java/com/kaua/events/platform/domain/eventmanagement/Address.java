@@ -1,7 +1,9 @@
 package com.kaua.events.platform.domain.eventmanagement;
 
 import com.kaua.events.platform.domain.ValueObject;
+import com.kaua.events.platform.domain.utils.Generated;
 
+import java.util.Objects;
 import java.util.Optional;
 
 public class Address implements ValueObject {
@@ -146,5 +148,18 @@ public class Address implements ValueObject {
                 ", postalCode='" + postalCode + '\'' +
                 ", country='" + country + '\'' +
                 ')';
+    }
+
+    @Generated
+    @Override
+    public boolean equals(final Object object) {
+        if (!(object instanceof Address address)) return false;
+        return Objects.equals(street, address.street) && Objects.equals(number, address.number) && Objects.equals(complement, address.complement) && Objects.equals(neighborhood, address.neighborhood) && Objects.equals(city, address.city) && Objects.equals(state, address.state) && Objects.equals(postalCode, address.postalCode) && Objects.equals(country, address.country);
+    }
+
+    @Generated
+    @Override
+    public int hashCode() {
+        return Objects.hash(street, number, complement, neighborhood, city, state, postalCode, country);
     }
 }
