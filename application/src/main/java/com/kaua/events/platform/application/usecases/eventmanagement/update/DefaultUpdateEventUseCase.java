@@ -83,6 +83,10 @@ public class DefaultUpdateEventUseCase extends UpdateEventUseCase {
                 aFinishAt
         );
 
+        if (aEvent.equals(aUpdatedEvent)) {
+            return UpdateEventOutput.from(aUpdatedEvent);
+        }
+
         this.eventRepository.save(aUpdatedEvent);
 
         return UpdateEventOutput.from(aUpdatedEvent);
