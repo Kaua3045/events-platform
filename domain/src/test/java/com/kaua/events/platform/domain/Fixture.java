@@ -1,5 +1,6 @@
 package com.kaua.events.platform.domain;
 
+import com.kaua.events.platform.domain.eventmanagement.Address;
 import com.kaua.events.platform.domain.eventmanagement.Event;
 import com.kaua.events.platform.domain.eventmanagement.EventStatus;
 import com.kaua.events.platform.domain.eventmanagement.EventType;
@@ -90,6 +91,28 @@ public final class Fixture {
             );
         }
 
+        public static Event newEventWithAddress(final OrganizationID aOrganizationId, final String categoryId) {
+            return Event.newEvent(
+                    aOrganizationId,
+                    faker.lorem().sentence(3),
+                    "test event description",
+                    EventType.IN_PERSON,
+                    Address.newAddress(
+                            "rua x",
+                            "0000",
+                            null,
+                            "bairro tst",
+                            "city ts",
+                            "ts",
+                            "00000000",
+                            "non"
+                    ),
+                    categoryId,
+                    InstantUtils.now().plus(10, ChronoUnit.MINUTES),
+                    InstantUtils.now().plus(10, ChronoUnit.DAYS)
+            );
+        }
+
         public static Event withStatus(final Event event, final EventStatus status) {
             return Event.with(
                     event.getId(),
@@ -99,6 +122,26 @@ public final class Fixture {
                     event.getCategoryId(),
                     status,
                     event.getType(),
+                    event.getAddress().orElse(null),
+                    event.getImageUrl().orElse(null),
+                    event.getCategoryId(),
+                    event.getStartAt(),
+                    event.getFinishAt(),
+                    event.getCreatedAt(),
+                    event.getUpdatedAt(),
+                    event.getDeletedAt().orElse(null)
+            );
+        }
+
+        public static Event withType(final Event event, final EventType type) {
+            return Event.with(
+                    event.getId(),
+                    event.getVersion(),
+                    event.getOrganizationId(),
+                    event.getTitle(),
+                    event.getCategoryId(),
+                    event.getStatus(),
+                    type,
                     event.getAddress().orElse(null),
                     event.getImageUrl().orElse(null),
                     event.getCategoryId(),

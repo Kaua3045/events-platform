@@ -3,9 +3,11 @@ package com.kaua.events.platform.infrastructure.rest;
 import com.kaua.events.platform.domain.pagination.Pagination;
 import com.kaua.events.platform.infrastructure.configurations.authentication.AuthenticatedUser;
 import com.kaua.events.platform.infrastructure.eventmanagement.req.CreateEventRequest;
+import com.kaua.events.platform.infrastructure.eventmanagement.req.UpdateEventRequest;
 import com.kaua.events.platform.infrastructure.eventmanagement.res.CreateEventResponse;
 import com.kaua.events.platform.infrastructure.eventmanagement.res.GetEventByIdResponse;
 import com.kaua.events.platform.infrastructure.eventmanagement.res.ListEventsResponse;
+import com.kaua.events.platform.infrastructure.eventmanagement.res.UpdateEventResponse;
 import com.kaua.events.platform.infrastructure.idempotency.IdempotencyKey;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -69,6 +71,21 @@ public interface EventAPI {
             @ApiResponse(responseCode = "500", description = "Internal server error")
     })
     ResponseEntity<GetEventByIdResponse> getEventById(@AuthenticationPrincipal AuthenticatedUser user, @PathVariable("eventId") String eventId);
+
+    @PatchMapping(
+            value = "/{eventId}",
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    @IdempotencyKey
+    @Operation(summary = "Update event by it's identifier")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "Event created successfully"),
+            @ApiResponse(responseCode = "400", description = "A validation error was observed"),
+            @ApiResponse(responseCode = "422", description = "A business rule was violated"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    ResponseEntity<UpdateEventResponse> updateEvent(@PathVariable("eventId") String eventId, @RequestBody UpdateEventRequest request, @AuthenticationPrincipal AuthenticatedUser user);
 
     @DeleteMapping(
             value = "/{eventId}"

@@ -627,14 +627,13 @@ class EventJdbcRepositoryTest extends AbstractRepositoryTest {
         Assertions.assertEquals(aEvent.getId(), aActualEvent.getId());
         Assertions.assertEquals(aEvent.getTitle(), aActualEvent.getTitle());
         Assertions.assertEquals(aEvent.getDescription().get(), aActualEvent.getDescription().get());
-        Assertions.assertEquals(aEvent.getStatus(), aActualEvent.getStatus());
+        Assertions.assertEquals(EventStatus.DELETED, aActualEvent.getStatus());
         Assertions.assertEquals(aEvent.getType(), aActualEvent.getType());
         Assertions.assertEquals(aEvent.getAddress(), aActualEvent.getAddress());
         Assertions.assertEquals(aEvent.getCategoryId(), aActualEvent.getCategoryId());
         Assertions.assertEquals(aEvent.getStartAt(), aActualEvent.getStartAt());
         Assertions.assertEquals(aEvent.getFinishAt(), aActualEvent.getFinishAt());
         Assertions.assertEquals(aEvent.getCreatedAt(), aActualEvent.getCreatedAt());
-        Assertions.assertEquals(aEvent.getUpdatedAt(), aActualEvent.getUpdatedAt());
         Assertions.assertTrue(aActualEvent.getDeletedAt().isPresent());
     }
 

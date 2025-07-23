@@ -2,11 +2,13 @@ package com.kaua.events.platform.domain.eventmanagement;
 
 import com.kaua.events.platform.domain.AggregateRoot;
 import com.kaua.events.platform.domain.organizations.OrganizationID;
+import com.kaua.events.platform.domain.utils.Generated;
 import com.kaua.events.platform.domain.utils.InstantUtils;
 import com.kaua.events.platform.domain.utils.ULID;
 import com.kaua.events.platform.domain.validation.ValidationHandler;
 
 import java.time.Instant;
+import java.util.Objects;
 import java.util.Optional;
 
 public class Event extends AggregateRoot<EventID> {
@@ -127,10 +129,68 @@ public class Event extends AggregateRoot<EventID> {
     }
 
     public Event markAsDeleted() {
-        this.setStatus(EventStatus.DELETED);
-        this.setDeletedAt(InstantUtils.now());
-        this.setUpdatedAt(InstantUtils.now());
-        return this;
+        final var aUpdatedEntity = new Event(
+                getId(),
+                getVersion(),
+                getOrganizationId(),
+                getTitle(),
+                getDescription().orElse(null),
+                getStatus(),
+                getType(),
+                getAddress().orElse(null),
+                getImageUrl().orElse(null),
+                getCategoryId(),
+                getStartAt(),
+                getFinishAt(),
+                getCreatedAt(),
+                getUpdatedAt(),
+                getDeletedAt().orElse(null)
+        );
+
+        aUpdatedEntity.setStatus(EventStatus.DELETED);
+        aUpdatedEntity.setDeletedAt(InstantUtils.now());
+        aUpdatedEntity.setUpdatedAt(InstantUtils.now());
+
+        return aUpdatedEntity;
+    }
+
+    public Event update(
+            final String aTitle,
+            final String aDescription,
+            final EventType aType,
+            final Address aAddress,
+            final String aCategoryId,
+            final Instant aStartAt,
+            final Instant aFinishAt
+    ) {
+        final var aUpdatedEntity = new Event(
+                getId(),
+                getVersion(),
+                getOrganizationId(),
+                getTitle(),
+                getDescription().orElse(null),
+                getStatus(),
+                getType(),
+                getAddress().orElse(null),
+                getImageUrl().orElse(null),
+                getCategoryId(),
+                getStartAt(),
+                getFinishAt(),
+                getCreatedAt(),
+                getUpdatedAt(),
+                getDeletedAt().orElse(null)
+        );
+
+        aUpdatedEntity.setTitle(aTitle);
+        aUpdatedEntity.setDescription(aDescription);
+        aUpdatedEntity.setType(aType);
+        aUpdatedEntity.setAddress(aAddress);
+        aUpdatedEntity.setCategoryId(aCategoryId);
+        aUpdatedEntity.setStartAt(aStartAt);
+        aUpdatedEntity.setFinishAt(aFinishAt);
+        aUpdatedEntity.setUpdatedAt(InstantUtils.now());
+
+        return aUpdatedEntity;
     }
 
     public OrganizationID getOrganizationId() {
@@ -276,5 +336,19 @@ public class Event extends AggregateRoot<EventID> {
                 ", updatedAt=" + updatedAt +
                 ", deletedAt=" + deletedAt +
                 ')';
+    }
+
+    @Generated
+    @Override
+    public boolean equals(final Object object) {
+        if (!(object instanceof Event event)) return false;
+        if (!super.equals(object)) return false;
+        return Objects.equals(organizationId, event.organizationId) && Objects.equals(title, event.title) && Objects.equals(description, event.description) && status == event.status && type == event.type && Objects.equals(address, event.address) && Objects.equals(imageUrl, event.imageUrl) && Objects.equals(categoryId, event.categoryId) && Objects.equals(startAt, event.startAt) && Objects.equals(finishAt, event.finishAt) && Objects.equals(deletedAt, event.deletedAt);
+    }
+
+    @Generated
+    @Override
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), organizationId, title, description, status, type, address, imageUrl, categoryId, startAt, finishAt, deletedAt);
     }
 }
