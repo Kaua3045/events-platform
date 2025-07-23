@@ -1,17 +1,19 @@
 package com.kaua.events.platform.domain;
 
-import com.kaua.events.platform.domain.eventmanagement.Address;
-import com.kaua.events.platform.domain.eventmanagement.Event;
-import com.kaua.events.platform.domain.eventmanagement.EventStatus;
-import com.kaua.events.platform.domain.eventmanagement.EventType;
+import com.kaua.events.platform.domain.eventmanagement.*;
 import com.kaua.events.platform.domain.organizations.Organization;
 import com.kaua.events.platform.domain.organizations.OrganizationID;
 import com.kaua.events.platform.domain.organizations.OrganizationMember;
 import com.kaua.events.platform.domain.organizations.OrganizationMemberRole;
+import com.kaua.events.platform.domain.ticket.Ticket;
+import com.kaua.events.platform.domain.ticket.TicketStatus;
+import com.kaua.events.platform.domain.ticket.TicketType;
 import com.kaua.events.platform.domain.users.*;
 import com.kaua.events.platform.domain.utils.InstantUtils;
+import com.kaua.events.platform.domain.utils.ULID;
 import net.datafaker.Faker;
 
+import java.math.BigDecimal;
 import java.time.temporal.ChronoUnit;
 
 public final class Fixture {
@@ -150,6 +152,83 @@ public final class Fixture {
                     event.getCreatedAt(),
                     event.getUpdatedAt(),
                     event.getDeletedAt().orElse(null)
+            );
+        }
+    }
+
+    public static final class TicketFixture {
+        private TicketFixture() {
+        }
+
+        public static Ticket newTicket() {
+            return Ticket.newTicket(
+                    new EventID(ULID.random()),
+                    "test-ticket",
+                    "test-ticket-description",
+                    new BigDecimal("10.00"),
+                    10,
+                    TicketType.STANDARD,
+                    TicketStatus.AVAILABLE
+            );
+        }
+
+        public static Ticket newTicket(final EventID aEventId) {
+            return Ticket.newTicket(
+                    aEventId,
+                    "test-ticket",
+                    "test-ticket-description",
+                    new BigDecimal("10.00"),
+                    10,
+                    TicketType.STANDARD,
+                    TicketStatus.AVAILABLE
+            );
+        }
+
+        public static Ticket withStatus(final EventID aEventId, final TicketStatus aStatus) {
+            return Ticket.newTicket(
+                    aEventId,
+                    "test-ticket",
+                    "test-ticket-description",
+                    new BigDecimal("10.00"),
+                    10,
+                    TicketType.STANDARD,
+                    aStatus
+            );
+        }
+
+        public static Ticket withType(final EventID aEventId, final TicketType aType) {
+            return Ticket.newTicket(
+                    aEventId,
+                    "test-ticket",
+                    "test-ticket-description",
+                    new BigDecimal("10.00"),
+                    10,
+                    aType,
+                    TicketStatus.AVAILABLE
+            );
+        }
+
+        public static Ticket withName(final EventID aEventId, final String aName) {
+            return Ticket.newTicket(
+                    aEventId,
+                    aName,
+                    "test-ticket-description",
+                    new BigDecimal("10.00"),
+                    10,
+                    TicketType.STANDARD,
+                    TicketStatus.AVAILABLE
+            );
+        }
+
+        public static Ticket withQuantity(final EventID aEventId, final int aQuantity) {
+            return Ticket.newTicket(
+                    aEventId,
+                    "test-ticket",
+                    "test-ticket-description",
+                    new BigDecimal("10.00"),
+                    aQuantity,
+                    TicketType.STANDARD,
+                    TicketStatus.AVAILABLE
             );
         }
     }
