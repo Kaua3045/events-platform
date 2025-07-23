@@ -18,6 +18,7 @@ exporters:
     tls:
       insecure_skip_verify: true
     logs_index: "observability-logs"
+    traces_index: "observability-traces"
 #    mapping: # default is none
 #      mode: ecs
 #    user: "elastic"
@@ -60,7 +61,7 @@ service:
   pipelines:
     traces:
       receivers: [otlp]
-      exporters: [otlp/jaeger]
+      exporters: [elasticsearch]
     metrics:
       receivers: [otlp]
       exporters: [prometheus]
