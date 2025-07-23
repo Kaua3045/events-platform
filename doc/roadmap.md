@@ -12,4 +12,5 @@
 - [X] Adicionar o GetById do Evento
 - [X] Atualizar um Evento
 - [X] Criar um Ticket
+- [X] Listar Tickets (Por Evento)
 - [ ] Criar uma Order
