@@ -5,7 +5,6 @@ import com.kaua.events.platform.domain.eventmanagement.Event;
 
 import java.time.Instant;
 
-// TODO return description
 public record ListEventsOutput(
         String eventId,
         String organizationId,
