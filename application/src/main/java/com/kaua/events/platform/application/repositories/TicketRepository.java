@@ -4,7 +4,11 @@ import com.kaua.events.platform.domain.pagination.Pagination;
 import com.kaua.events.platform.domain.pagination.SearchQuery;
 import com.kaua.events.platform.domain.ticket.Ticket;
 
+import java.util.Optional;
+
 public interface TicketRepository {
+
+    Optional<Ticket> ticketOfId(String id);
 
     Pagination<Ticket> listAll(SearchQuery query);
 
