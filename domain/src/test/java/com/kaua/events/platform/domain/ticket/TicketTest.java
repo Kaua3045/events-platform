@@ -218,4 +218,56 @@ class TicketTest extends UnitTest {
         Assertions.assertEquals(expectedProperty, aException.getErrors().getFirst().property());
         Assertions.assertEquals(expectedErrorMessage, aException.getErrors().getFirst().message());
     }
+
+    @Test
+    void givenAValidValues_whenCallUpdate_thenReturnUpdatedTicket() {
+        final var aTicketID = new TicketID(ULID.random());
+        final var aVersion = 1;
+        final var aEventId = new EventID(ULID.random());
+        final var aName = "VIP Access";
+        final var aDescription = "Access to VIP area";
+        final var aPrice = BigDecimal.valueOf(100.00);
+        final var aQuantity = 50;
+        final var aSold = 0;
+        final var aType = TicketType.VIP;
+        final var aStatus = TicketStatus.AVAILABLE;
+        final var aNow = InstantUtils.now();
+
+        final var aTicket = Ticket.with(
+                aTicketID,
+                aVersion,
+                aName,
+                aDescription,
+                aEventId,
+                aPrice,
+                aQuantity,
+                aSold,
+                aType,
+                aStatus,
+                aNow,
+                aNow
+        );
+
+        final var aUpdatedName = "Updated VIP Access";
+        final var aUpdatedDescription = "Updated access to VIP area";
+        final var aUpdatedPrice = BigDecimal.valueOf(120.00);
+        final var aUpdatedQuantity = 60;
+
+        final var aUpdatedTicket = aTicket.update(
+                aUpdatedName,
+                aUpdatedDescription,
+                aUpdatedPrice,
+                aUpdatedQuantity,
+                aTicket.getType(),
+                aTicket.getStatus()
+        );
+
+        Assertions.assertNotNull(aUpdatedTicket);
+        Assertions.assertEquals(aTicketID, aUpdatedTicket.getId());
+        Assertions.assertEquals(aUpdatedName, aUpdatedTicket.getName());
+        Assertions.assertEquals(aUpdatedDescription, aUpdatedTicket.getDescription().get());
+        Assertions.assertEquals(aEventId, aUpdatedTicket.getEventId());
+        Assertions.assertEquals(aUpdatedPrice, aUpdatedTicket.getPrice());
+        Assertions.assertEquals(aUpdatedQuantity, aUpdatedTicket.getQuantity());
+    }
 }
