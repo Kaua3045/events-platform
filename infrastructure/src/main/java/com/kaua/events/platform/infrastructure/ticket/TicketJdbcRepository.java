@@ -60,6 +60,15 @@ public class TicketJdbcRepository implements TicketRepository {
                         .orElse(it))
                 .or(() -> buildFiltersSpecification(query.filters(), allowedFilters));
 
+        boolean isSearchingForDeleted = "DELETED".equalsIgnoreCase(query.filters().get("status"));
+
+        if (!isSearchingForDeleted) {
+            spec = Optional.of(
+                    spec.orElse(DynamicQueryListBuilder.Specification.where(null))
+                            .and(DynamicQueryListBuilder.notEqual("status", "status_deleted", "DELETED"))
+            );
+        }
+
         var finalSpec = spec.orElse(DynamicQueryListBuilder.Specification.where(null));
 
         final var dynamicQuery = DynamicQueryListBuilder.build(
@@ -145,7 +154,8 @@ public class TicketJdbcRepository implements TicketRepository {
                 type,
                 status,
                 created_at,
-                updated_at
+                updated_at,
+                deleted_at
                 )
                 VALUES (
                 :id,
@@ -159,7 +169,8 @@ public class TicketJdbcRepository implements TicketRepository {
                 :type,
                 :status,
                 :createdAt,
-                :updatedAt
+                :updatedAt,
+                :deletedAt
                 )
                 """;
 
@@ -180,7 +191,8 @@ public class TicketJdbcRepository implements TicketRepository {
                 type = :type,
                 status = :status,
                 created_at = :createdAt,
-                updated_at = :updatedAt
+                updated_at = :updatedAt,
+                deleted_at = :deletedAt
                 WHERE id = :id AND version = :version
                 """;
 
@@ -204,6 +216,7 @@ public class TicketJdbcRepository implements TicketRepository {
         aParams.put("status", aTicket.getStatus().name());
         aParams.put("createdAt", aTicket.getCreatedAt());
         aParams.put("updatedAt", aTicket.getUpdatedAt());
+        aParams.put("deletedAt", aTicket.getDeletedAt().orElse(null));
 
         return this.databaseClient.update(aSql, aParams);
     }
@@ -221,7 +234,8 @@ public class TicketJdbcRepository implements TicketRepository {
                 TicketType.from(rs.getString("type")).orElse(null),
                 TicketStatus.from(rs.getString("status")).orElse(null),
                 JdbcUtils.getInstant(rs, "created_at"),
-                JdbcUtils.getInstant(rs, "updated_at")
+                JdbcUtils.getInstant(rs, "updated_at"),
+                JdbcUtils.getInstant(rs, "deleted_at")
         );
     }
 }
