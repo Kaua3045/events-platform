@@ -5,6 +5,8 @@ import com.kaua.events.platform.application.repositories.OrganizationMemberRepos
 import com.kaua.events.platform.application.repositories.TicketRepository;
 import com.kaua.events.platform.application.usecases.ticket.create.CreateTicketUseCase;
 import com.kaua.events.platform.application.usecases.ticket.create.DefaultCreateTicketUseCase;
+import com.kaua.events.platform.application.usecases.ticket.delete.soft.DefaultSoftDeleteTicketUseCase;
+import com.kaua.events.platform.application.usecases.ticket.delete.soft.SoftDeleteTicketUseCase;
 import com.kaua.events.platform.application.usecases.ticket.retrieve.get.DefaultGetTicketByIdUseCase;
 import com.kaua.events.platform.application.usecases.ticket.retrieve.get.GetTicketByIdUseCase;
 import com.kaua.events.platform.application.usecases.ticket.retrieve.list.DefaultListTicketsUseCase;
@@ -55,5 +57,18 @@ public class TicketUseCaseConfig {
             final TicketRepository ticketRepository
     ) {
         return new DefaultGetTicketByIdUseCase(ticketRepository);
+    }
+
+    @Bean
+    public SoftDeleteTicketUseCase softDeleteTicketUseCase(
+            final TicketRepository ticketRepository,
+            final EventRepository eventRepository,
+            final OrganizationMemberRepository organizationMemberRepository
+    ) {
+        return new DefaultSoftDeleteTicketUseCase(
+                ticketRepository,
+                eventRepository,
+                organizationMemberRepository
+        );
     }
 }
