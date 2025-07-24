@@ -6,6 +6,7 @@ import com.kaua.events.platform.infrastructure.idempotency.IdempotencyKey;
 import com.kaua.events.platform.infrastructure.ticket.req.CreateTicketRequest;
 import com.kaua.events.platform.infrastructure.ticket.req.UpdateTicketRequest;
 import com.kaua.events.platform.infrastructure.ticket.res.CreateTicketResponse;
+import com.kaua.events.platform.infrastructure.ticket.res.GetTicketByIdResponse;
 import com.kaua.events.platform.infrastructure.ticket.res.ListTicketsResponse;
 import com.kaua.events.platform.infrastructure.ticket.res.UpdateTicketResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -58,6 +59,18 @@ public interface TicketAPI {
             @RequestParam(name = "startDate", required = false) String startDate,
             @RequestParam(name = "endDate", required = false) String endDate
     );
+
+    @GetMapping(
+            value = "/{ticketId}",
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    @Operation(summary = "Get a ticket by it's identifier")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Ticket successfully found"),
+            @ApiResponse(responseCode = "404", description = "Ticket not found"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    ResponseEntity<GetTicketByIdResponse> getTicketById(@PathVariable("ticketId") String ticketId);
 
     @PatchMapping(
             value = "/{ticketId}",
