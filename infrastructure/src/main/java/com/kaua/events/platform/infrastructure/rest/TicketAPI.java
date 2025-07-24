@@ -13,6 +13,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -89,5 +90,19 @@ public interface TicketAPI {
             @PathVariable("ticketId") String ticketId,
             @AuthenticationPrincipal AuthenticatedUser authenticatedUser,
             @RequestBody UpdateTicketRequest request
+    );
+
+    @DeleteMapping(value = "/{ticketId}")
+    @Operation(summary = "Delete a ticket by it's identifier")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "204", description = "Ticket deleted successfully"),
+            @ApiResponse(responseCode = "404", description = "Ticket was not found"),
+            @ApiResponse(responseCode = "422", description = "A business rule was violated"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    @ResponseStatus(code = HttpStatus.NO_CONTENT)
+    void deleteTicket(
+            @PathVariable("ticketId") String ticketId,
+            @AuthenticationPrincipal AuthenticatedUser authenticatedUser
     );
 }
