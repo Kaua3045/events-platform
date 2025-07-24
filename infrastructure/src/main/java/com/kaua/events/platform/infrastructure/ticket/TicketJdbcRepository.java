@@ -10,6 +10,7 @@ import com.kaua.events.platform.domain.ticket.TicketID;
 import com.kaua.events.platform.domain.ticket.TicketStatus;
 import com.kaua.events.platform.domain.ticket.TicketType;
 import com.kaua.events.platform.domain.utils.ULID;
+import com.kaua.events.platform.infrastructure.exceptions.ConflictException;
 import com.kaua.events.platform.infrastructure.jdbc.DatabaseClient;
 import com.kaua.events.platform.infrastructure.jdbc.JdbcUtils;
 import com.kaua.events.platform.infrastructure.jdbc.RowMap;
@@ -31,6 +32,12 @@ public class TicketJdbcRepository implements TicketRepository {
 
     public TicketJdbcRepository(final DatabaseClient databaseClient) {
         this.databaseClient = Objects.requireNonNull(databaseClient);
+    }
+
+    @Override
+    public Optional<Ticket> ticketOfId(final String id) {
+        final var aSql = "SELECT * FROM tickets WHERE id = :id";
+        return this.databaseClient.queryOne(aSql, Map.of("id", id), ticketMapper());
     }
 
     @Override
@@ -88,6 +95,10 @@ public class TicketJdbcRepository implements TicketRepository {
             log.debug("Creating new ticket: {}", ticket);
             create(ticket);
             log.info("Created new ticket: {}", ticket);
+        } else {
+            log.debug("Updating ticket: {}", ticket);
+            update(ticket);
+            log.info("Updated ticket: {}", ticket);
         }
 
         ticket.incrementVersion();
@@ -153,6 +164,30 @@ public class TicketJdbcRepository implements TicketRepository {
                 """;
 
         executeUpdate(aSql, aTicket);
+    }
+
+    private void update(final Ticket aTicket) {
+        final var aSql = """
+                UPDATE tickets
+                SET
+                version = (:version + 1),
+                event_id = :eventId,
+                name = :name,
+                description = :description,
+                price = :price,
+                quantity = :quantity,
+                sold = :sold,
+                type = :type,
+                status = :status,
+                created_at = :createdAt,
+                updated_at = :updatedAt
+                WHERE id = :id AND version = :version
+                """;
+
+        if (executeUpdate(aSql, aTicket) == 0) {
+            throw ConflictException.with("Ticket with identifier %s and version %d does not match, ticket was updated by another transaction"
+                    .formatted(aTicket.getId().value(), aTicket.getVersion()));
+        }
     }
 
     private int executeUpdate(final String aSql, final Ticket aTicket) {

@@ -8,6 +8,9 @@ import com.kaua.events.platform.application.usecases.ticket.create.CreateTicketO
 import com.kaua.events.platform.application.usecases.ticket.create.CreateTicketUseCase;
 import com.kaua.events.platform.application.usecases.ticket.retrieve.list.ListTicketsOutput;
 import com.kaua.events.platform.application.usecases.ticket.retrieve.list.ListTicketsUseCase;
+import com.kaua.events.platform.application.usecases.ticket.update.UpdateTicketInput;
+import com.kaua.events.platform.application.usecases.ticket.update.UpdateTicketOutput;
+import com.kaua.events.platform.application.usecases.ticket.update.UpdateTicketUseCase;
 import com.kaua.events.platform.domain.Fixture;
 import com.kaua.events.platform.domain.eventmanagement.EventID;
 import com.kaua.events.platform.domain.pagination.Pagination;
@@ -47,8 +50,14 @@ class TicketAPITest {
     @MockitoBean
     private ListTicketsUseCase listTicketsUseCase;
 
+    @MockitoBean
+    private UpdateTicketUseCase updateTicketUseCase;
+
     @Captor
     private ArgumentCaptor<CreateTicketInput> createTicketInputCaptor;
+
+    @Captor
+    private ArgumentCaptor<UpdateTicketInput> updateTicketInputCaptor;
 
     @Test
     void givenAValidRequest_whenCallCreateTicket_thenReturnTicketIdAndEventId() throws Exception {
@@ -170,5 +179,71 @@ class TicketAPITest {
                 .andExpect(jsonPath("$.items[0].updated_at").value(aTicketOne.getUpdatedAt().toString()));
 
         Mockito.verify(listTicketsUseCase, Mockito.times(1)).execute(any());
+    }
+
+    @Test
+    void givenAValidValues_whenCallUpdateTicket_thenReturnUpdatedTicket() throws Exception {
+        final var aUserId = ULID.random().toString();
+        final var aTicketId = ULID.random().toString();
+        final var anEventId = ULID.random().toString();
+        final var aName = "Updated Ticket Name";
+        final var aDescription = "Updated Ticket Description";
+        final var aPrice = BigDecimal.valueOf(20.00);
+        final var aQuantity = 50;
+        final var aType = "paid";
+        final var aStatus = "inactive";
+
+        Mockito.when(updateTicketUseCase.execute(any()))
+                .thenAnswer(call -> new UpdateTicketOutput(aTicketId, anEventId));
+
+        var json = """
+                {
+                    "event_id": "%s",
+                    "name": "%s",
+                    "description": "%s",
+                    "price": %s,
+                    "quantity": %d,
+                    "type": "%s",
+                    "status": "%s"
+                }
+                """.formatted(
+                anEventId,
+                aName,
+                aDescription,
+                aPrice,
+                aQuantity,
+                aType,
+                aStatus
+        );
+
+        final var aRequest = MockMvcRequestBuilders.patch("/v1/tickets/%s".formatted(aTicketId))
+                .with(ApiTest.admin(aUserId))
+                .with(csrf())
+                .accept(MediaType.APPLICATION_JSON_VALUE)
+                .contentType(MediaType.APPLICATION_JSON_VALUE)
+                .content(json);
+
+        final var aResponse = this.mvc.perform(aRequest);
+
+        aResponse
+                .andDo(MockMvcResultHandlers.print())
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Type", MediaType.APPLICATION_JSON_VALUE))
+                .andExpect(jsonPath("$.ticket_id").value(aTicketId))
+                .andExpect(jsonPath("$.event_id").value(anEventId));
+
+        Mockito.verify(updateTicketUseCase, Mockito.times(1)).execute(updateTicketInputCaptor.capture());
+
+        final var anUpdateTicketInput = updateTicketInputCaptor.getValue();
+
+        Assertions.assertEquals(aUserId, anUpdateTicketInput.userId());
+        Assertions.assertEquals(aTicketId, anUpdateTicketInput.ticketId());
+        Assertions.assertEquals(anEventId, anUpdateTicketInput.eventId());
+        Assertions.assertEquals(aName, anUpdateTicketInput.name());
+        Assertions.assertEquals(aDescription, anUpdateTicketInput.description());
+        Assertions.assertEquals(aPrice.toString(), anUpdateTicketInput.price());
+        Assertions.assertEquals(aQuantity, anUpdateTicketInput.quantity());
+        Assertions.assertEquals(aType, anUpdateTicketInput.type());
+        Assertions.assertEquals(aStatus, anUpdateTicketInput.status());
     }
 }

@@ -7,6 +7,8 @@ import com.kaua.events.platform.application.usecases.ticket.create.CreateTicketU
 import com.kaua.events.platform.application.usecases.ticket.create.DefaultCreateTicketUseCase;
 import com.kaua.events.platform.application.usecases.ticket.retrieve.list.DefaultListTicketsUseCase;
 import com.kaua.events.platform.application.usecases.ticket.retrieve.list.ListTicketsUseCase;
+import com.kaua.events.platform.application.usecases.ticket.update.DefaultUpdateTicketUseCase;
+import com.kaua.events.platform.application.usecases.ticket.update.UpdateTicketUseCase;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -31,5 +33,18 @@ public class TicketUseCaseConfig {
             final TicketRepository ticketRepository
     ) {
         return new DefaultListTicketsUseCase(ticketRepository);
+    }
+
+    @Bean
+    public UpdateTicketUseCase updateTicketUseCase(
+            final TicketRepository ticketRepository,
+            final OrganizationMemberRepository organizationMemberRepository,
+            final EventRepository eventRepository
+    ) {
+        return new DefaultUpdateTicketUseCase(
+                ticketRepository,
+                eventRepository,
+                organizationMemberRepository
+        );
     }
 }

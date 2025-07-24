@@ -9,6 +9,7 @@ import com.kaua.events.platform.domain.ticket.Ticket;
 import com.kaua.events.platform.domain.ticket.TicketStatus;
 import com.kaua.events.platform.domain.ticket.TicketType;
 import com.kaua.events.platform.domain.utils.ULID;
+import com.kaua.events.platform.infrastructure.exceptions.ConflictException;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.context.jdbc.Sql;
@@ -58,6 +59,111 @@ class TicketJdbcRepositoryTest extends AbstractRepositoryTest {
         Assertions.assertEquals(aTicket.getStatus(), aActualTicket.getStatus());
         Assertions.assertEquals(aTicket.getCreatedAt(), aActualTicket.getCreatedAt());
         Assertions.assertEquals(aTicket.getUpdatedAt(), aActualTicket.getUpdatedAt());
+    }
+
+    @Test
+    void givenAValidPersistedTicket_whenCallSave_thenReturnUpdatedTicket() {
+        Assertions.assertEquals(0, countTickets());
+
+        final var aEventId = ULID.random();
+        final var aTicket = Fixture.TicketFixture.newTicket(new EventID(aEventId));
+
+        this.ticketRepository().save(aTicket);
+
+        final var aUpdatedTicket = aTicket.update(
+                "updated-ticket-name",
+                "updated-ticket-description",
+                BigDecimal.valueOf(150.00),
+                20,
+                TicketType.VIP,
+                TicketStatus.INACTIVE
+        );
+
+        final var aActualTicket = this.ticketRepository().save(aUpdatedTicket);
+
+        Assertions.assertEquals(aTicket.getId(), aActualTicket.getId());
+        Assertions.assertEquals(aTicket.getVersion() + 1, aActualTicket.getVersion());
+        Assertions.assertEquals(aUpdatedTicket.getName(), aActualTicket.getName());
+        Assertions.assertEquals(aUpdatedTicket.getDescription().get(), aActualTicket.getDescription().get());
+        Assertions.assertEquals(aUpdatedTicket.getPrice(), aActualTicket.getPrice());
+        Assertions.assertEquals(aUpdatedTicket.getQuantity(), aActualTicket.getQuantity());
+        Assertions.assertEquals(aUpdatedTicket.getType(), aActualTicket.getType());
+        Assertions.assertEquals(aUpdatedTicket.getStatus(), aActualTicket.getStatus());
+        Assertions.assertEquals(aUpdatedTicket.getCreatedAt(), aActualTicket.getCreatedAt());
+        Assertions.assertTrue(aActualTicket.getUpdatedAt().isAfter(aUpdatedTicket.getCreatedAt()));
+    }
+
+    @Test
+    void givenAValidExistsEvent_whenCallSaveButVersionIsNotMatch_thenThrowsConflictException() {
+        Assertions.assertEquals(0, countTickets());
+
+        final var aEventId = ULID.random();
+        final var aTicket = Fixture.TicketFixture.newTicket(new EventID(aEventId));
+
+        final var aTicketSaved = this.ticketRepository().save(aTicket);
+
+        final var expectedErrorMessage = "Ticket with identifier %s and version 2 does not match, ticket was updated by another transaction"
+                .formatted(aTicket.getId().value());
+
+        Assertions.assertEquals(1, countTickets());
+
+        final var aSavedTicketSearched = this.ticketRepository()
+                .ticketOfId(aTicketSaved.getId().value().toString())
+                .orElseThrow();
+
+        final var aUpdatedTicket = aSavedTicketSearched.update(
+                "updated-ticket-name",
+                "updated-ticket-description",
+                BigDecimal.valueOf(150.00),
+                20,
+                TicketType.VIP,
+                TicketStatus.INACTIVE
+        );
+        aUpdatedTicket.incrementVersion(); // Simulate version mismatch
+
+        final var aTicketRepositoryVariable = this.ticketRepository(); // Variable to use in lambda, because this.ticketRepository() is not allowed in lambda
+        // this is a way to test if the exception is thrown, THIS IS A SCAM, in future disable this rule in sonar
+
+        final var aException = Assertions.assertThrows(ConflictException.class,
+                () -> aTicketRepositoryVariable.save(aUpdatedTicket));
+
+        Assertions.assertEquals(expectedErrorMessage, aException.getMessage());
+    }
+
+    @Test
+    void givenAValidTicketId_whenCallTickerOfId_thenReturnTicket() {
+        Assertions.assertEquals(0, countTickets());
+
+        final var aEventId = ULID.random();
+        final var aTicket = Fixture.TicketFixture.newTicket(new EventID(aEventId));
+
+        this.ticketRepository().save(aTicket);
+
+        Assertions.assertEquals(1, countTickets());
+
+        final var aActualTicket = this.ticketRepository().ticketOfId(aTicket.getId().value().toString())
+                .orElseThrow();
+
+        Assertions.assertEquals(aTicket.getId(), aActualTicket.getId());
+        Assertions.assertEquals(aTicket.getVersion(), aActualTicket.getVersion());
+        Assertions.assertEquals(aTicket.getName(), aActualTicket.getName());
+        Assertions.assertEquals(aTicket.getDescription().get(), aActualTicket.getDescription().get());
+        Assertions.assertEquals(aTicket.getPrice(), aActualTicket.getPrice());
+        Assertions.assertEquals(aTicket.getQuantity(), aActualTicket.getQuantity());
+        Assertions.assertEquals(aTicket.getSold(), aActualTicket.getSold());
+        Assertions.assertEquals(aTicket.getType(), aActualTicket.getType());
+        Assertions.assertEquals(aTicket.getStatus(), aActualTicket.getStatus());
+        Assertions.assertEquals(aTicket.getCreatedAt(), aActualTicket.getCreatedAt());
+        Assertions.assertEquals(aTicket.getUpdatedAt(), aActualTicket.getUpdatedAt());
+    }
+
+    @Test
+    void givenAnInvalidTicketId_whenCallTickerOfId_thenReturnEmpty() {
+        Assertions.assertEquals(0, countTickets());
+
+        final var aActualTicket = this.ticketRepository().ticketOfId("invalid-id");
+
+        Assertions.assertTrue(aActualTicket.isEmpty());
     }
 
     @Test

@@ -2,12 +2,14 @@ package com.kaua.events.platform.domain.ticket;
 
 import com.kaua.events.platform.domain.AggregateRoot;
 import com.kaua.events.platform.domain.eventmanagement.EventID;
+import com.kaua.events.platform.domain.utils.Generated;
 import com.kaua.events.platform.domain.utils.IdentifierUtils;
 import com.kaua.events.platform.domain.utils.InstantUtils;
 import com.kaua.events.platform.domain.validation.ValidationHandler;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.Objects;
 import java.util.Optional;
 
 public class Ticket extends AggregateRoot<TicketID> {
@@ -105,6 +107,31 @@ public class Ticket extends AggregateRoot<TicketID> {
                 aStatus,
                 aCreatedAt,
                 aUpdatedAt
+        );
+    }
+
+    public Ticket update(
+            final String aName,
+            final String aDescription,
+            final BigDecimal aPrice,
+            final int aQuantity,
+            final TicketType aType,
+            final TicketStatus aStatus
+    ) {
+
+        return new Ticket(
+                getId(),
+                getVersion(),
+                aName,
+                aDescription,
+                eventId,
+                aPrice,
+                aQuantity,
+                sold,
+                aType,
+                aStatus,
+                createdAt,
+                InstantUtils.now()
         );
     }
 
@@ -220,5 +247,19 @@ public class Ticket extends AggregateRoot<TicketID> {
 
     @Override
     public void validate(ValidationHandler aHandler) {
+    }
+
+    @Generated
+    @Override
+    public boolean equals(final Object object) {
+        if (!(object instanceof Ticket ticket)) return false;
+        if (!super.equals(object)) return false;
+        return quantity == ticket.quantity && sold == ticket.sold && Objects.equals(name, ticket.name) && Objects.equals(description, ticket.description) && Objects.equals(eventId, ticket.eventId) && Objects.equals(price, ticket.price) && type == ticket.type && status == ticket.status;
+    }
+
+    @Generated
+    @Override
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), name, description, eventId, price, quantity, sold, type, status);
     }
 }
