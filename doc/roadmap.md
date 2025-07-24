@@ -13,4 +13,6 @@
 - [X] Atualizar um Evento
 - [X] Criar um Ticket
 - [X] Listar Tickets (Por Evento)
+- [X] Update Ticket
+- [ ] Buscar um Ticket por ID
 - [ ] Criar uma Order
