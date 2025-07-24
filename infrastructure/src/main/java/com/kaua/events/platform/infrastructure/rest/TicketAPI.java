@@ -4,8 +4,10 @@ import com.kaua.events.platform.domain.pagination.Pagination;
 import com.kaua.events.platform.infrastructure.configurations.authentication.AuthenticatedUser;
 import com.kaua.events.platform.infrastructure.idempotency.IdempotencyKey;
 import com.kaua.events.platform.infrastructure.ticket.req.CreateTicketRequest;
+import com.kaua.events.platform.infrastructure.ticket.req.UpdateTicketRequest;
 import com.kaua.events.platform.infrastructure.ticket.res.CreateTicketResponse;
 import com.kaua.events.platform.infrastructure.ticket.res.ListTicketsResponse;
+import com.kaua.events.platform.infrastructure.ticket.res.UpdateTicketResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -55,5 +57,24 @@ public interface TicketAPI {
             @RequestParam(name = "direction", required = false, defaultValue = "asc") String direction,
             @RequestParam(name = "startDate", required = false) String startDate,
             @RequestParam(name = "endDate", required = false) String endDate
+    );
+
+    @PatchMapping(
+            value = "/{ticketId}",
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    @IdempotencyKey
+    @Operation(summary = "Update a ticket by it's identifier")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Ticket updated successfully"),
+            @ApiResponse(responseCode = "400", description = "A validation error was observed"),
+            @ApiResponse(responseCode = "422", description = "A business rule was violated"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    ResponseEntity<UpdateTicketResponse> updateTicket(
+            @PathVariable("ticketId") String ticketId,
+            @AuthenticationPrincipal AuthenticatedUser authenticatedUser,
+            @RequestBody UpdateTicketRequest request
     );
 }
