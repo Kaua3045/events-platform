@@ -1,6 +1,8 @@
 package com.kaua.events.platform.infrastructure.rest.controllers;
 
 import com.kaua.events.platform.application.usecases.ticket.create.CreateTicketUseCase;
+import com.kaua.events.platform.application.usecases.ticket.delete.soft.SoftDeleteTicketInput;
+import com.kaua.events.platform.application.usecases.ticket.delete.soft.SoftDeleteTicketUseCase;
 import com.kaua.events.platform.application.usecases.ticket.retrieve.get.GetTicketByIdInput;
 import com.kaua.events.platform.application.usecases.ticket.retrieve.get.GetTicketByIdUseCase;
 import com.kaua.events.platform.application.usecases.ticket.retrieve.list.ListTicketsUseCase;
@@ -31,17 +33,20 @@ public class TicketRestController implements TicketAPI {
     private final ListTicketsUseCase listTicketsUseCase;
     private final UpdateTicketUseCase updateTicketUseCase;
     private final GetTicketByIdUseCase getTicketByIdUseCase;
+    private final SoftDeleteTicketUseCase softDeleteTicketUseCase;
 
     public TicketRestController(
             final CreateTicketUseCase createTicketUseCase,
             final ListTicketsUseCase listTicketsUseCase,
             final UpdateTicketUseCase updateTicketUseCase,
-            final GetTicketByIdUseCase getTicketByIdUseCase
+            final GetTicketByIdUseCase getTicketByIdUseCase,
+            final SoftDeleteTicketUseCase softDeleteTicketUseCase
     ) {
         this.createTicketUseCase = Objects.requireNonNull(createTicketUseCase);
         this.listTicketsUseCase = Objects.requireNonNull(listTicketsUseCase);
         this.updateTicketUseCase = Objects.requireNonNull(updateTicketUseCase);
         this.getTicketByIdUseCase = Objects.requireNonNull(getTicketByIdUseCase);
+        this.softDeleteTicketUseCase = Objects.requireNonNull(softDeleteTicketUseCase);
     }
 
     @Override
@@ -116,5 +121,12 @@ public class TicketRestController implements TicketAPI {
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(UpdateTicketResponse.from(aOutput));
+    }
+
+    @Override
+    public void deleteTicket(final String ticketId, final AuthenticatedUser authenticatedUser) {
+        final var aInput = SoftDeleteTicketInput.with(ticketId, authenticatedUser.id());
+
+        this.softDeleteTicketUseCase.execute(aInput);
     }
 }
