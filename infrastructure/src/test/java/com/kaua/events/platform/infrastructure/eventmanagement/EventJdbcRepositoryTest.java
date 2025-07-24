@@ -696,4 +696,33 @@ class EventJdbcRepositoryTest extends AbstractRepositoryTest {
         Assertions.assertEquals(1, response.metadata().totalItems());
         Assertions.assertEquals(aOrganizationId.value(), response.items().getFirst().getOrganizationId().value());
     }
+
+    @Test
+    void givenAValidFilterStatusWithDeleted_whenCallListAll_thenReturnOnlyDeletedEvents() {
+        final var aOrganizationId = new OrganizationID(ULID.random());
+
+        final var aEventOne = Fixture.EventFixture.newEvent(aOrganizationId, ULID.random().toString());
+        final var aEventTwo = Fixture.EventFixture.withStatus(
+                Fixture.EventFixture.newEvent(new OrganizationID(ULID.random()), ULID.random().toString()),
+                EventStatus.DELETED);
+
+        this.eventRepository().save(aEventOne);
+        this.eventRepository().save(aEventTwo);
+
+        final var filters = Map.of("status", "DELETED");
+
+        final var query = SearchQuery.newSearchQuery(
+                0,                        // page
+                10,                       // perPage
+                "",                       // terms
+                "created_at",             // sort
+                "asc",                    // direction
+                filters
+        );
+
+        final var response = this.eventRepository().listAll(query);
+
+        Assertions.assertEquals(1, response.metadata().totalItems());
+        Assertions.assertEquals(aEventTwo.getId().value(), response.items().getFirst().getId().value());
+    }
 }
