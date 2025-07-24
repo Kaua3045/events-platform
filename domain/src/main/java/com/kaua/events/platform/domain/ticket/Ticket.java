@@ -24,6 +24,7 @@ public class Ticket extends AggregateRoot<TicketID> {
     private TicketStatus status; // Status of the ticket (e.g., Available, Sold, Cancelled)
     private Instant createdAt;
     private Instant updatedAt;
+    private Instant deletedAt;
 
     private Ticket(
             final TicketID aTicketID,
@@ -37,7 +38,8 @@ public class Ticket extends AggregateRoot<TicketID> {
             final TicketType aType,
             final TicketStatus aStatus,
             final Instant aCreatedAt,
-            final Instant aUpdatedAt
+            final Instant aUpdatedAt,
+            final Instant aDeletedAt
     ) {
         super(aTicketID, aVersion);
         setName(aName);
@@ -50,6 +52,7 @@ public class Ticket extends AggregateRoot<TicketID> {
         setStatus(aStatus);
         setCreatedAt(aCreatedAt);
         setUpdatedAt(aUpdatedAt);
+        setDeletedAt(aDeletedAt);
     }
 
     public static Ticket newTicket(
@@ -76,7 +79,8 @@ public class Ticket extends AggregateRoot<TicketID> {
                 aType,
                 aStatus,
                 aNow,
-                aNow
+                aNow,
+                null
         );
     }
 
@@ -92,7 +96,8 @@ public class Ticket extends AggregateRoot<TicketID> {
             final TicketType aType,
             final TicketStatus aStatus,
             final Instant aCreatedAt,
-            final Instant aUpdatedAt
+            final Instant aUpdatedAt,
+            final Instant aDeletedAt
     ) {
         return new Ticket(
                 aTicketID,
@@ -106,7 +111,8 @@ public class Ticket extends AggregateRoot<TicketID> {
                 aType,
                 aStatus,
                 aCreatedAt,
-                aUpdatedAt
+                aUpdatedAt,
+                aDeletedAt
         );
     }
 
@@ -118,7 +124,7 @@ public class Ticket extends AggregateRoot<TicketID> {
             final TicketType aType,
             final TicketStatus aStatus
     ) {
-
+        // TODO validate if not accepting deleted status
         return new Ticket(
                 getId(),
                 getVersion(),
@@ -131,6 +137,25 @@ public class Ticket extends AggregateRoot<TicketID> {
                 aType,
                 aStatus,
                 createdAt,
+                InstantUtils.now(),
+                null
+        );
+    }
+
+    public Ticket markAsDeleted() {
+        return new Ticket(
+                getId(),
+                getVersion() + 1,
+                name,
+                description,
+                eventId,
+                price,
+                quantity,
+                sold,
+                type,
+                TicketStatus.DELETED,
+                createdAt,
+                InstantUtils.now(),
                 InstantUtils.now()
         );
     }
@@ -173,6 +198,10 @@ public class Ticket extends AggregateRoot<TicketID> {
 
     public Instant getUpdatedAt() {
         return updatedAt;
+    }
+
+    public Optional<Instant> getDeletedAt() {
+        return Optional.ofNullable(deletedAt);
     }
 
     private void setName(final String name) {
@@ -227,6 +256,10 @@ public class Ticket extends AggregateRoot<TicketID> {
         this.updatedAt = this.assertArgumentNotNull(updatedAt, "updatedAt", "cannot be null");
     }
 
+    private void setDeletedAt(final Instant deletedAt) {
+        this.deletedAt = deletedAt;
+    }
+
     @Override
     public String toString() {
         return "Ticket(" +
@@ -242,6 +275,7 @@ public class Ticket extends AggregateRoot<TicketID> {
                 ", status=" + status.name() +
                 ", createdAt=" + createdAt +
                 ", updatedAt=" + updatedAt +
+                ", deletedAt=" + getDeletedAt().map(Instant::toString).orElse(null) +
                 ')';
     }
 
