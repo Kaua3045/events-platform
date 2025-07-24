@@ -6,6 +6,8 @@ import com.kaua.events.platform.ControllerTest;
 import com.kaua.events.platform.application.usecases.ticket.create.CreateTicketInput;
 import com.kaua.events.platform.application.usecases.ticket.create.CreateTicketOutput;
 import com.kaua.events.platform.application.usecases.ticket.create.CreateTicketUseCase;
+import com.kaua.events.platform.application.usecases.ticket.retrieve.get.GetTicketByIdOutput;
+import com.kaua.events.platform.application.usecases.ticket.retrieve.get.GetTicketByIdUseCase;
 import com.kaua.events.platform.application.usecases.ticket.retrieve.list.ListTicketsOutput;
 import com.kaua.events.platform.application.usecases.ticket.retrieve.list.ListTicketsUseCase;
 import com.kaua.events.platform.application.usecases.ticket.update.UpdateTicketInput;
@@ -52,6 +54,9 @@ class TicketAPITest {
 
     @MockitoBean
     private UpdateTicketUseCase updateTicketUseCase;
+
+    @MockitoBean
+    private GetTicketByIdUseCase getTicketByIdUseCase;
 
     @Captor
     private ArgumentCaptor<CreateTicketInput> createTicketInputCaptor;
@@ -245,5 +250,38 @@ class TicketAPITest {
         Assertions.assertEquals(aQuantity, anUpdateTicketInput.quantity());
         Assertions.assertEquals(aType, anUpdateTicketInput.type());
         Assertions.assertEquals(aStatus, anUpdateTicketInput.status());
+    }
+
+    @Test
+    void givenAValidTicketId_whenCallGetTicketById_thenReturnTicket() throws Exception {
+        final var aTicket = Fixture.TicketFixture.newTicket();
+        final var aTicketId = aTicket.getId().value().toString();
+
+        Mockito.when(getTicketByIdUseCase.execute(any()))
+                .thenReturn(GetTicketByIdOutput.from(aTicket));
+
+        final var aRequest = MockMvcRequestBuilders.get("/v1/tickets/%s".formatted(aTicketId))
+                .with(ApiTest.admin(ULID.random().toString()))
+                .accept(MediaType.APPLICATION_JSON_VALUE)
+                .contentType(MediaType.APPLICATION_JSON_VALUE);
+
+        final var aResponse = this.mvc.perform(aRequest);
+
+        aResponse
+                .andDo(MockMvcResultHandlers.print())
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Type", MediaType.APPLICATION_JSON_VALUE))
+                .andExpect(jsonPath("$.ticket_id").value(aTicket.getId().value().toString()))
+                .andExpect(jsonPath("$.event_id").value(aTicket.getEventId().value().toString()))
+                .andExpect(jsonPath("$.name").value(aTicket.getName()))
+                .andExpect(jsonPath("$.description").value(aTicket.getDescription().orElse(null)))
+                .andExpect(jsonPath("$.quantity").value(aTicket.getQuantity()))
+                .andExpect(jsonPath("$.sold").value(aTicket.getSold()))
+                .andExpect(jsonPath("$.type").value(aTicket.getType().name()))
+                .andExpect(jsonPath("$.status").value(aTicket.getStatus().name()))
+                .andExpect(jsonPath("$.created_at").value(aTicket.getCreatedAt().toString()))
+                .andExpect(jsonPath("$.updated_at").value(aTicket.getUpdatedAt().toString()));
+
+        Mockito.verify(getTicketByIdUseCase, Mockito.times(1)).execute(any());
     }
 }
