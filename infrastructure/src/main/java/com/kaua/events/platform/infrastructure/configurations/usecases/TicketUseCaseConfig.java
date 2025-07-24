@@ -5,6 +5,8 @@ import com.kaua.events.platform.application.repositories.OrganizationMemberRepos
 import com.kaua.events.platform.application.repositories.TicketRepository;
 import com.kaua.events.platform.application.usecases.ticket.create.CreateTicketUseCase;
 import com.kaua.events.platform.application.usecases.ticket.create.DefaultCreateTicketUseCase;
+import com.kaua.events.platform.application.usecases.ticket.retrieve.get.DefaultGetTicketByIdUseCase;
+import com.kaua.events.platform.application.usecases.ticket.retrieve.get.GetTicketByIdUseCase;
 import com.kaua.events.platform.application.usecases.ticket.retrieve.list.DefaultListTicketsUseCase;
 import com.kaua.events.platform.application.usecases.ticket.retrieve.list.ListTicketsUseCase;
 import com.kaua.events.platform.application.usecases.ticket.update.DefaultUpdateTicketUseCase;
@@ -46,5 +48,12 @@ public class TicketUseCaseConfig {
                 eventRepository,
                 organizationMemberRepository
         );
+    }
+
+    @Bean
+    public GetTicketByIdUseCase getTicketByIdUseCase(
+            final TicketRepository ticketRepository
+    ) {
+        return new DefaultGetTicketByIdUseCase(ticketRepository);
     }
 }
