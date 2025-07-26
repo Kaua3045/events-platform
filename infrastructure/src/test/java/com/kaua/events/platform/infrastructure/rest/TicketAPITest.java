@@ -6,6 +6,7 @@ import com.kaua.events.platform.ControllerTest;
 import com.kaua.events.platform.application.usecases.ticket.create.CreateTicketInput;
 import com.kaua.events.platform.application.usecases.ticket.create.CreateTicketOutput;
 import com.kaua.events.platform.application.usecases.ticket.create.CreateTicketUseCase;
+import com.kaua.events.platform.application.usecases.ticket.delete.soft.SoftDeleteTicketUseCase;
 import com.kaua.events.platform.application.usecases.ticket.retrieve.get.GetTicketByIdOutput;
 import com.kaua.events.platform.application.usecases.ticket.retrieve.get.GetTicketByIdUseCase;
 import com.kaua.events.platform.application.usecases.ticket.retrieve.list.ListTicketsOutput;
@@ -57,6 +58,9 @@ class TicketAPITest {
 
     @MockitoBean
     private GetTicketByIdUseCase getTicketByIdUseCase;
+
+    @MockitoBean
+    private SoftDeleteTicketUseCase softDeleteTicketUseCase;
 
     @Captor
     private ArgumentCaptor<CreateTicketInput> createTicketInputCaptor;
@@ -283,5 +287,27 @@ class TicketAPITest {
                 .andExpect(jsonPath("$.updated_at").value(aTicket.getUpdatedAt().toString()));
 
         Mockito.verify(getTicketByIdUseCase, Mockito.times(1)).execute(any());
+    }
+
+    @Test
+    void givenAValidTicketId_whenCallSoftDeleteTicket_thenReturnNoContent() throws Exception {
+        final var aTicketId = ULID.random().toString();
+        final var aUserId = ULID.random().toString();
+
+        Mockito.doNothing().when(softDeleteTicketUseCase).execute(any());
+
+        final var aRequest = MockMvcRequestBuilders.delete("/v1/tickets/%s".formatted(aTicketId))
+                .with(ApiTest.admin(aUserId))
+                .with(csrf())
+                .accept(MediaType.APPLICATION_JSON_VALUE)
+                .contentType(MediaType.APPLICATION_JSON_VALUE);
+
+        final var aResponse = this.mvc.perform(aRequest);
+
+        aResponse
+                .andDo(MockMvcResultHandlers.print())
+                .andExpect(status().isNoContent());
+
+        Mockito.verify(softDeleteTicketUseCase, Mockito.times(1)).execute(any());
     }
 }

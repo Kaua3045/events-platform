@@ -74,7 +74,8 @@ class TicketTest extends UnitTest {
                 aType,
                 aStatus,
                 aNow,
-                aNow
+                aNow,
+                null
         );
 
         Assertions.assertNotNull(aTicket);
@@ -118,7 +119,8 @@ class TicketTest extends UnitTest {
                 aType,
                 aStatus,
                 aNow,
-                aNow
+                aNow,
+                null
         );
 
         Assertions.assertNotNull(aTicket.toString());
@@ -212,7 +214,8 @@ class TicketTest extends UnitTest {
                         aType,
                         aStatus,
                         aNow,
-                        aNow
+                        aNow,
+                        null
                 ));
 
         Assertions.assertEquals(expectedProperty, aException.getErrors().getFirst().property());
@@ -245,7 +248,8 @@ class TicketTest extends UnitTest {
                 aType,
                 aStatus,
                 aNow,
-                aNow
+                aNow,
+                null
         );
 
         final var aUpdatedName = "Updated VIP Access";
@@ -269,5 +273,43 @@ class TicketTest extends UnitTest {
         Assertions.assertEquals(aEventId, aUpdatedTicket.getEventId());
         Assertions.assertEquals(aUpdatedPrice, aUpdatedTicket.getPrice());
         Assertions.assertEquals(aUpdatedQuantity, aUpdatedTicket.getQuantity());
+    }
+
+    @Test
+    void givenAValidTicket_whenCallMarkAsDeleted_thenReturnDeletedTicket() {
+        final var aTicketID = new TicketID(ULID.random());
+        final var aVersion = 1;
+        final var aEventId = new EventID(ULID.random());
+        final var aName = "VIP Access";
+        final var aDescription = "Access to VIP area";
+        final var aPrice = BigDecimal.valueOf(100.00);
+        final var aQuantity = 50;
+        final var aSold = 0;
+        final var aType = TicketType.VIP;
+        final var aStatus = TicketStatus.AVAILABLE;
+        final var aNow = InstantUtils.now();
+
+        final var aTicket = Ticket.with(
+                aTicketID,
+                aVersion,
+                aName,
+                aDescription,
+                aEventId,
+                aPrice,
+                aQuantity,
+                aSold,
+                aType,
+                aStatus,
+                aNow,
+                aNow,
+                null
+        );
+
+        final var aDeletedTicket = aTicket.markAsDeleted();
+
+        Assertions.assertNotNull(aDeletedTicket);
+        Assertions.assertEquals(aTicketID, aDeletedTicket.getId());
+        Assertions.assertEquals(TicketStatus.DELETED, aDeletedTicket.getStatus());
+        Assertions.assertTrue(aDeletedTicket.getDeletedAt().isPresent());
     }
 }

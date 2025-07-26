@@ -503,4 +503,32 @@ class TicketJdbcRepositoryTest extends AbstractRepositoryTest {
         Assertions.assertEquals(2, response.metadata().totalItems());
         Assertions.assertEquals(aTicketOne.getId(), response.items().getFirst().getId());
     }
+
+    @Test
+    void givenAValidFilterStatusWithDeleted_whenCallListAll_thenReturnTicketsWithDeletedStatus() {
+        final var aEventId = new EventID(ULID.random());
+
+        final var aTicketOne = Fixture.TicketFixture.withStatus(aEventId, TicketStatus.DELETED);
+        final var aTicketTwo = Fixture.TicketFixture.withStatus(aEventId, TicketStatus.AVAILABLE);
+
+        this.ticketRepository().save(aTicketOne);
+        this.ticketRepository().save(aTicketTwo);
+
+        final var filters = Map.of("status", "DELETED");
+
+        final var query = SearchQuery.newSearchQuery(
+                0,                        // page
+                10,                       // perPage
+                "",                       // terms
+                "created_at",             // sort
+                "asc",                    // direction
+                null,                     // period
+                filters
+        );
+
+        final var response = this.ticketRepository().listAll(query);
+
+        Assertions.assertEquals(1, response.metadata().totalItems());
+        Assertions.assertEquals(aTicketOne.getId(), response.items().getFirst().getId());
+    }
 }

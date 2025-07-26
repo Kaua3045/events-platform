@@ -15,4 +15,5 @@
 - [X] Listar Tickets (Por Evento)
 - [X] Update Ticket
 - [X] Buscar um Ticket por ID
+- [X] Soft Delete do Ticket
 - [ ] Criar uma Order

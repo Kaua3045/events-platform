@@ -7,7 +7,8 @@ public enum TicketStatus {
 
     AVAILABLE,
     INACTIVE,
-    SOLD_OUT;
+    SOLD_OUT,
+    DELETED;
 
     public static Optional<TicketStatus> from(final String value) {
         return Arrays.stream(values())
