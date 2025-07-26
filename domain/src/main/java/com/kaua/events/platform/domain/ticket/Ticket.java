@@ -145,7 +145,7 @@ public class Ticket extends AggregateRoot<TicketID> {
     public Ticket markAsDeleted() {
         return new Ticket(
                 getId(),
-                getVersion() + 1,
+                getVersion(),
                 name,
                 description,
                 eventId,
