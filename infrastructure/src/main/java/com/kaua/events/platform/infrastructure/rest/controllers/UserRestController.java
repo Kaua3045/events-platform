@@ -4,6 +4,7 @@ import com.kaua.events.platform.application.usecases.users.create.CreateUserUseC
 import com.kaua.events.platform.application.usecases.users.retrive.get.GetUserByIdInput;
 import com.kaua.events.platform.application.usecases.users.retrive.get.GetUserByIdUseCase;
 import com.kaua.events.platform.infrastructure.configurations.authentication.AuthenticatedUser;
+import com.kaua.events.platform.infrastructure.idempotency.IdempotencyKey;
 import com.kaua.events.platform.infrastructure.rest.UserAPI;
 import com.kaua.events.platform.infrastructure.users.req.CreateUserRequest;
 import com.kaua.events.platform.infrastructure.users.res.CreateUserResponse;
@@ -29,6 +30,7 @@ public class UserRestController implements UserAPI {
         this.getUserByIdUseCase = Objects.requireNonNull(getUserByIdUseCase);
     }
 
+    @IdempotencyKey
     @Override
     public ResponseEntity<CreateUserResponse> createUser(final CreateUserRequest request) {
         // TODO - In the future, after create user, need call auth usecase to create user auth (jwt)

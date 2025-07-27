@@ -11,6 +11,7 @@ import com.kaua.events.platform.application.usecases.organizations.retrieve.memb
 import com.kaua.events.platform.application.usecases.organizations.update.member.UpdateMemberUseCase;
 import com.kaua.events.platform.domain.pagination.Pagination;
 import com.kaua.events.platform.domain.pagination.SearchQuery;
+import com.kaua.events.platform.infrastructure.idempotency.IdempotencyKey;
 import com.kaua.events.platform.infrastructure.organizations.req.AddMemberToOrganizationRequest;
 import com.kaua.events.platform.infrastructure.organizations.req.CreateOrganizationRequest;
 import com.kaua.events.platform.infrastructure.organizations.req.UpdateMemberRequest;
@@ -48,6 +49,7 @@ public class OrganizationRestController implements OrganizationAPI {
         this.getOrganizationMemberByUserIdUseCase = Objects.requireNonNull(getOrganizationMemberByUserIdUseCase);
     }
 
+    @IdempotencyKey
     @Override
     public ResponseEntity<CreateOrganizationResponse> createOrganization(final CreateOrganizationRequest request) {
         final var aInput = request.toInput();
@@ -59,6 +61,7 @@ public class OrganizationRestController implements OrganizationAPI {
                 .body(CreateOrganizationResponse.from(aOutput));
     }
 
+    @IdempotencyKey
     @Override
     public ResponseEntity<AddMemberToOrganizationResponse> addMemberToOrganization(final AddMemberToOrganizationRequest request) {
         final var aInput = request.toInput();
@@ -70,6 +73,7 @@ public class OrganizationRestController implements OrganizationAPI {
                 .body(AddMemberToOrganizationResponse.from(aOutput));
     }
 
+    @IdempotencyKey
     @Override
     public ResponseEntity<UpdateMemberResponse> updateMember(final UpdateMemberRequest request) {
         final var aInput = request.toInput();

@@ -85,9 +85,9 @@ public class IdempotencyKeyFilter extends OncePerRequestFilter {
 
                             if (aExistsIdempotencyKey.isPresent()) {
                                 response.setStatus(aExistsIdempotencyKey.get().statusCode());
-                                aExistsIdempotencyKey.get().headers().forEach(response::addHeader);
-                                response.getWriter().write(aExistsIdempotencyKey.get().body());
+                                aExistsIdempotencyKey.get().headers().forEach(response::setHeader);
                                 response.addHeader(IdempotencyKey.IDEMPOTENCY_RESPONSE_HEADER, "true");
+                                response.getWriter().write(aExistsIdempotencyKey.get().body());
                                 span.setAttribute("idempotency_key_found", true);
                                 log.debug("Idempotency key found, returning the previous response {}", aExistsIdempotencyKey.get());
                                 return;
@@ -109,10 +109,12 @@ public class IdempotencyKeyFilter extends OncePerRequestFilter {
                             aResponseWrapper.copyBodyToResponse();
 
                             final var aBody = new String(aBodyArray, aResponseWrapper.getCharacterEncoding());
+
                             final var aHeaders = aResponseWrapper.getHeaderNames().stream()
                                     .collect(Collectors.toMap(
                                             headerName -> headerName,
-                                            aResponseWrapper::getHeader
+                                            headerName -> String.join(", ", aResponseWrapper.getHeaders(headerName)),
+                                            (existingValue, newValue) -> existingValue
                                     ));
 
                             final var aInput = new IdempotencyKeyInput(

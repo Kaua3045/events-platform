@@ -17,6 +17,7 @@ import com.kaua.events.platform.infrastructure.eventmanagement.res.CreateEventRe
 import com.kaua.events.platform.infrastructure.eventmanagement.res.GetEventByIdResponse;
 import com.kaua.events.platform.infrastructure.eventmanagement.res.ListEventsResponse;
 import com.kaua.events.platform.infrastructure.eventmanagement.res.UpdateEventResponse;
+import com.kaua.events.platform.infrastructure.idempotency.IdempotencyKey;
 import com.kaua.events.platform.infrastructure.rest.EventAPI;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -49,6 +50,7 @@ public class EventRestController implements EventAPI {
         this.updateEventUseCase = Objects.requireNonNull(updateEventUseCase);
     }
 
+    @IdempotencyKey
     @Override
     public ResponseEntity<CreateEventResponse> createEvent(final CreateEventRequest request) {
         final var aInput = request.toInput();
@@ -108,6 +110,7 @@ public class EventRestController implements EventAPI {
                 .body(GetEventByIdResponse.from(aOutput));
     }
 
+    @IdempotencyKey
     @Override
     public ResponseEntity<UpdateEventResponse> updateEvent(
             final String eventId,

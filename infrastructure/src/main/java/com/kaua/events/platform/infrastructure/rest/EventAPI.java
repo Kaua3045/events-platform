@@ -8,7 +8,6 @@ import com.kaua.events.platform.infrastructure.eventmanagement.res.CreateEventRe
 import com.kaua.events.platform.infrastructure.eventmanagement.res.GetEventByIdResponse;
 import com.kaua.events.platform.infrastructure.eventmanagement.res.ListEventsResponse;
 import com.kaua.events.platform.infrastructure.eventmanagement.res.UpdateEventResponse;
-import com.kaua.events.platform.infrastructure.idempotency.IdempotencyKey;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -29,7 +28,6 @@ public interface EventAPI {
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE
     )
-    @IdempotencyKey
     @Operation(summary = "Create a new event")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Event created successfully"),
@@ -77,7 +75,6 @@ public interface EventAPI {
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE
     )
-    @IdempotencyKey
     @Operation(summary = "Update event by it's identifier")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Event created successfully"),

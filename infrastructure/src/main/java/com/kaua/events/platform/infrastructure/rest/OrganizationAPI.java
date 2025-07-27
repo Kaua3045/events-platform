@@ -1,7 +1,6 @@
 package com.kaua.events.platform.infrastructure.rest;
 
 import com.kaua.events.platform.domain.pagination.Pagination;
-import com.kaua.events.platform.infrastructure.idempotency.IdempotencyKey;
 import com.kaua.events.platform.infrastructure.organizations.req.AddMemberToOrganizationRequest;
 import com.kaua.events.platform.infrastructure.organizations.req.CreateOrganizationRequest;
 import com.kaua.events.platform.infrastructure.organizations.req.UpdateMemberRequest;
@@ -22,7 +21,6 @@ public interface OrganizationAPI {
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE
     )
-    @IdempotencyKey
     @Operation(summary = "Create a new organization and owner user")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Organization and Owner user created successfully"),
@@ -37,7 +35,6 @@ public interface OrganizationAPI {
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE
     )
-    @IdempotencyKey
     @Operation(summary = "Add member to organization")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Added user member successfully"),
@@ -52,7 +49,6 @@ public interface OrganizationAPI {
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE
     )
-    @IdempotencyKey
     @Operation(summary = "Update a organization member")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Updated member successfully"),
