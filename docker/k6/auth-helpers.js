@@ -5,7 +5,7 @@ const BASE_URL = 'http://localhost:8081/api';
 const CLIENT_ID = "default";
 const CLIENT_SECRET = "default";
 
-export async function authenticateApp() {
+export function authenticateApp() {
   const credentials = `${CLIENT_ID}:${CLIENT_SECRET}`;
   const encodedCredentials = encoding.b64encode(credentials);
 
@@ -22,7 +22,7 @@ export async function authenticateApp() {
   return json.access_token;
 }
 
-export async function createAuthCode({ email, password, challenge, appToken }) {
+export function createAuthCode({ email, password, challenge, appToken }) {
   const headers = {
     'Authorization': `Bearer ${appToken}`,
     'Content-Type': 'application/json',
@@ -41,7 +41,7 @@ export async function createAuthCode({ email, password, challenge, appToken }) {
   return res.json();
 }
 
-export async function exchangeTokenWithCode({ authCode, codeVerifier }) {
+export function exchangeTokenWithCode({ authCode, codeVerifier }) {
   const credentials = `${CLIENT_ID}:${CLIENT_SECRET}`;
   const encodedCredentials = encoding.b64encode(credentials);
 

@@ -1,25 +1,23 @@
 import { authenticateApp, createAuthCode, exchangeTokenWithCode } from './auth-helpers.js';
 import { generateCodeVerifierAndChallenge } from './code-challenge.js';
 
-export async function performFullLogin(email, password) {
+export function performFullLogin(email, password) {
   const { verifier, challenge } = generateCodeVerifierAndChallenge();
 
-  const appToken = await authenticateApp();
+  const appToken = authenticateApp();
 
-  const codeResponse = await createAuthCode({
+  const codeResponse = createAuthCode({
     email,
     password,
     challenge,
     appToken,
   });
 
-  console.log(`Código de autorização gerado: ${JSON.stringify(codeResponse)}`);
-
   if (!codeResponse.code) {
     throw new Error(`Erro ao gerar código: ${JSON.stringify(codeResponse)}`);
   }
 
-  const tokenResponse = await exchangeTokenWithCode({
+  const tokenResponse = exchangeTokenWithCode({
     authCode: codeResponse.code,
     codeVerifier: verifier,
   });

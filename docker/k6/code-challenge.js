@@ -1,31 +1,3 @@
-// import { sha256 } from 'k6/crypto';
-// import encoding from 'k6/encoding';
-
-// export function generateCodeVerifierAndChallenge() {
-//   const verifier = generateRandomString();
-//   const challenge = generateCodeChallenge(verifier);
-//   return { verifier, challenge };
-// }
-
-// function generateRandomString(length = 64) {
-//   const charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~";
-//   let result = "";
-//   const randomValues = new Uint8Array(length);
-//   for (let i = 0; i < length; i++) {
-//     result += charset[randomValues[i] % charset.length];
-//   }
-//   return result;
-// }
-
-// function generateCodeChallenge(verifier) {
-//   const hashed = sha256(verifier, 'binary'); // k6's crypto.sha256
-//   return base64UrlEncode(hashed);
-// }
-
-// function base64UrlEncode(buffer) {
-//   return encoding.b64encode(buffer, 'rawurl'); // base64url sem padding
-// }
-
 import { sha256 } from 'k6/crypto';
 import encoding from 'k6/encoding';
 
