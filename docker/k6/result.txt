@@ -44,3 +44,95 @@ default ↓ [ 100% ] 004/100 VUs  2m0s
 
 running (2m01.7s), 000/100 VUs, 2346 complete and 0 interrupted iterations
 default ✓ [ 100% ] 000/100 VUs  2m0s
+
+Novo resultado:
+
+  █ THRESHOLDS 
+
+    http_req_duration
+    ✓ 'p(95)<500' p(95)=60.71ms
+
+    http_req_failed
+    ✓ 'rate<0.01' rate=0.00%
+
+
+  █ TOTAL RESULTS 
+
+    checks_total.......................: 6154    50.019344/s
+    checks_succeeded...................: 100.00% 6154 out of 6154
+    checks_failed......................: 0.00%   0 out of 6154
+
+    ✓ user organization created
+    ✓ token is valid
+    ✓ event created
+    ✓ get event by id
+    ✓ ticket created
+    ✓ list events
+
+    HTTP
+    http_req_duration.......................................................: avg=19.88ms min=976.97µs med=4.07ms max=199.93ms p(90)=58.22ms p(95)=60.71ms
+      { expected_response:true }............................................: avg=19.88ms min=976.97µs med=4.07ms max=199.93ms p(90)=58.22ms p(95)=60.71ms
+    http_req_failed.........................................................: 0.00%  0 out of 11020
+    http_reqs...............................................................: 11020  89.569901/s
+
+    EXECUTION
+    iteration_duration......................................................: avg=3.13s   min=3.12s    med=3.13s  max=3.47s    p(90)=3.15s   p(95)=3.15s  
+    iterations..............................................................: 1622   13.183519/s
+    vus.....................................................................: 1      min=1          max=100
+    vus_max.................................................................: 100    min=100        max=100
+
+    NETWORK
+    data_received...........................................................: 10 MB  82 kB/s
+    data_sent...............................................................: 8.2 MB 66 kB/s
+
+
+
+
+running (2m03.0s), 000/100 VUs, 1622 complete and 0 interrupted iterations
+default ✓ [ 100% ] 000/100 VUs  2m0s
+
+Terceiro resultado
+
+  █ THRESHOLDS 
+
+    http_req_duration
+    ✓ 'p(95)<500' p(95)=66.05ms
+
+    http_req_failed
+    ✓ 'rate<0.01' rate=0.00%
+
+
+  █ TOTAL RESULTS 
+
+    checks_total.......................: 8921    73.561313/s
+    checks_succeeded...................: 100.00% 8921 out of 8921
+    checks_failed......................: 0.00%   0 out of 8921
+
+    ✓ user organization created
+    ✓ token is valid
+    ✓ event created
+    ✓ ticket created
+    ✓ get event by id
+    ✓ list events
+
+    HTTP
+    http_req_duration.......................................................: avg=20.77ms min=892.27µs med=3.99ms max=201.06ms p(90)=60.53ms p(95)=66.05ms
+      { expected_response:true }............................................: avg=20.77ms min=892.27µs med=3.99ms max=201.06ms p(90)=60.53ms p(95)=66.05ms
+    http_req_failed.........................................................: 0.00% 0 out of 15974
+    http_reqs...............................................................: 15974 131.71936/s
+
+    EXECUTION
+    iteration_duration......................................................: avg=2.14s   min=2.12s    med=2.13s  max=2.48s    p(90)=2.16s   p(95)=2.18s  
+    iterations..............................................................: 2351  19.386016/s
+    vus.....................................................................: 1     min=1          max=100
+    vus_max.................................................................: 100   min=100        max=100
+
+    NETWORK
+    data_received...........................................................: 15 MB 121 kB/s
+    data_sent...............................................................: 12 MB 98 kB/s
+
+
+
+
+running (2m01.3s), 000/100 VUs, 2351 complete and 0 interrupted iterations
+default ✓ [ 100% ] 000/100 VUs  2m0s

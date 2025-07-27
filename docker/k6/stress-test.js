@@ -32,10 +32,10 @@ function createIdempotencyKey() {
   return `idempotency-${Math.random().toString(36).substring(2, 9)}`;
 }
 
-async function tryLoginWithRetries(email, password, maxRetries = 5, delaySeconds = 1) {
+function tryLoginWithRetries(email, password, maxRetries = 5, delaySeconds = 1) {
   for (let i = 0; i < maxRetries; i++) {
     try {
-      const token = await performFullLogin(email, password);
+      const token = performFullLogin(email, password);
       if (token) return token;
     } catch (e) {
       if (i === maxRetries - 1) throw e;
@@ -44,11 +44,11 @@ async function tryLoginWithRetries(email, password, maxRetries = 5, delaySeconds
   }
 }
 
-export default async function () {
+export default function () {
   const { email, password, firstName, lastName } = randomUser();
 
   // Cria usuário
-  const appToken = await authenticateApp();
+  const appToken = authenticateApp();
   const createUserOrganizationRes = http.post(`${BASE_URL}/v1/organizations`, JSON.stringify({
     first_name: firstName,
     last_name: lastName,
@@ -56,14 +56,15 @@ export default async function () {
     password,
     organization_name: "K6 Test Organization " + generateUUID(),
     description: "Organization for K6 stress tests",
-  }), { headers: { 'Content-Type': 'application/json', "Authorization": `Bearer ${appToken}` } });
+  }), { headers: { 'Content-Type': 'application/json', "Authorization": `Bearer ${appToken}`, "x-idempotency-key": createIdempotencyKey() } });
 
   check(createUserOrganizationRes, { 'user organization created': (r) => r.status === 201 });
-  console.log('Create User Org response:', createUserOrganizationRes.body);
   sleep(1);
 
-  // const token = await performFullLogin(email, password);
-  const token = await tryLoginWithRetries(email, password);
+  const token = performFullLogin(email, password);
+
+  check(token, { 'token is valid': (t) => t && t.length > 0 });
+  // const token = tryLoginWithRetries(email, password);
   const headers = {
     Authorization: `Bearer ${token}`,
     'Content-Type': 'application/json',
@@ -77,13 +78,13 @@ export default async function () {
     category_id: "mock-category-id",
     start_at: '2025-08-01T18:00:00Z',
     finish_at: '2025-08-10T22:00:00Z',
-  }), { headers });
+  }), { headers: Object.assign({}, headers, { 'x-idempotency-key': createIdempotencyKey() }) });
   check(createEventRes, { 'event created': (r) => r.status === 201 });
 
   const rnd = Math.random();
 
   if (rnd < 0.2) {
-    const res = http.get(`${BASE_URL}/v1/events?search=show&page=0&perPage=10`, { headers });
+    const res = http.get(`${BASE_URL}/v1/events?search=k6&page=0&perPage=10`, { headers });
     check(res, { 'list events': (r) => r.status === 200 });
 
   } else if (rnd < 0.4) {
@@ -102,7 +103,7 @@ export default async function () {
       status: "AVAILABLE",
     });
     const ticketRes = http.post(`${BASE_URL}/v1/tickets`, payload, {
-      headers: Object.assign({}, headers, { 'Idempotency-Key': createIdempotencyKey() }),
+      headers: Object.assign({}, headers, { 'x-idempotency-key': createIdempotencyKey() }),
     });
     check(ticketRes, { 'ticket created': (r) => r.status === 201 });
 
@@ -118,8 +119,7 @@ export default async function () {
     });
 
     const eventRes = http.post(`${BASE_URL}/v1/events`, payload, {
-       headers: Object.assign({}, headers),
-      // headers: Object.assign({}, headers, { 'Idempotency-Key': createIdempotencyKey() }),
+      headers: Object.assign({}, headers, { 'x-idempotency-key': createIdempotencyKey() }),
     });
     check(eventRes, { 'event created': (r) => r.status === 201 });
 
