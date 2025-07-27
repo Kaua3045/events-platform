@@ -1,7 +1,6 @@
 package com.kaua.events.platform.infrastructure.rest;
 
 import com.kaua.events.platform.infrastructure.configurations.authentication.AuthenticatedUser;
-import com.kaua.events.platform.infrastructure.idempotency.IdempotencyKey;
 import com.kaua.events.platform.infrastructure.users.req.CreateUserRequest;
 import com.kaua.events.platform.infrastructure.users.res.CreateUserResponse;
 import com.kaua.events.platform.infrastructure.users.res.GetUserByIdResponse;
@@ -25,7 +24,6 @@ public interface UserAPI {
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE
     )
-    @IdempotencyKey
     @Operation(summary = "Create a new user")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "User created successfully"),

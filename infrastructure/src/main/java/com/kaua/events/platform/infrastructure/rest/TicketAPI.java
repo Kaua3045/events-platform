@@ -2,7 +2,6 @@ package com.kaua.events.platform.infrastructure.rest;
 
 import com.kaua.events.platform.domain.pagination.Pagination;
 import com.kaua.events.platform.infrastructure.configurations.authentication.AuthenticatedUser;
-import com.kaua.events.platform.infrastructure.idempotency.IdempotencyKey;
 import com.kaua.events.platform.infrastructure.ticket.req.CreateTicketRequest;
 import com.kaua.events.platform.infrastructure.ticket.req.UpdateTicketRequest;
 import com.kaua.events.platform.infrastructure.ticket.res.CreateTicketResponse;
@@ -29,7 +28,6 @@ public interface TicketAPI {
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE
     )
-    @IdempotencyKey
     @Operation(summary = "Create a new ticket")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Ticket created successfully"),
@@ -78,7 +76,6 @@ public interface TicketAPI {
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE
     )
-    @IdempotencyKey
     @Operation(summary = "Update a ticket by it's identifier")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Ticket updated successfully"),

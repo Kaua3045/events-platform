@@ -23,6 +23,7 @@ import com.kaua.events.platform.domain.pagination.Pagination;
 import com.kaua.events.platform.domain.pagination.PaginationMetadata;
 import com.kaua.events.platform.domain.utils.InstantUtils;
 import com.kaua.events.platform.domain.utils.ULID;
+import com.kaua.events.platform.infrastructure.idempotency.IdempotencyKey;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -102,6 +103,7 @@ class EventAPITest {
         final var aRequest = MockMvcRequestBuilders.post("/v1/events")
                 .with(ApiTest.admin())
                 .with(csrf())
+                .header(IdempotencyKey.IDEMPOTENCY_KEY_HEADER, ULID.random().toString())
                 .accept(MediaType.APPLICATION_JSON_VALUE)
                 .contentType(MediaType.APPLICATION_JSON_VALUE)
                 .content(json);
@@ -177,6 +179,7 @@ class EventAPITest {
         final var aRequest = MockMvcRequestBuilders.post("/v1/events")
                 .with(ApiTest.admin())
                 .with(csrf())
+                .header(IdempotencyKey.IDEMPOTENCY_KEY_HEADER, ULID.random().toString())
                 .accept(MediaType.APPLICATION_JSON_VALUE)
                 .contentType(MediaType.APPLICATION_JSON_VALUE)
                 .content(json);
@@ -416,6 +419,7 @@ class EventAPITest {
         final var aRequest = MockMvcRequestBuilders.patch("/v1/events/" + aExpectedEventId)
                 .with(ApiTest.admin())
                 .with(csrf())
+                .header(IdempotencyKey.IDEMPOTENCY_KEY_HEADER, ULID.random().toString())
                 .accept(MediaType.APPLICATION_JSON_VALUE)
                 .contentType(MediaType.APPLICATION_JSON_VALUE)
                 .content(json);
@@ -491,6 +495,7 @@ class EventAPITest {
         final var aRequest = MockMvcRequestBuilders.patch("/v1/events/" + aExpectedEventId)
                 .with(ApiTest.admin())
                 .with(csrf())
+                .header(IdempotencyKey.IDEMPOTENCY_KEY_HEADER, ULID.random().toString())
                 .accept(MediaType.APPLICATION_JSON_VALUE)
                 .contentType(MediaType.APPLICATION_JSON_VALUE)
                 .content(json);

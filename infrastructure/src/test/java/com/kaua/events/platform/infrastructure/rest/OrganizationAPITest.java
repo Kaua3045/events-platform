@@ -25,6 +25,7 @@ import com.kaua.events.platform.domain.pagination.Pagination;
 import com.kaua.events.platform.domain.pagination.PaginationMetadata;
 import com.kaua.events.platform.domain.users.UserID;
 import com.kaua.events.platform.domain.utils.ULID;
+import com.kaua.events.platform.infrastructure.idempotency.IdempotencyKey;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -108,6 +109,7 @@ class OrganizationAPITest {
         final var aRequest = MockMvcRequestBuilders.post("/v1/organizations")
                 .with(ApiTest.admin())
                 .with(csrf())
+                .header(IdempotencyKey.IDEMPOTENCY_KEY_HEADER, ULID.random().toString())
                 .accept(MediaType.APPLICATION_JSON_VALUE)
                 .contentType(MediaType.APPLICATION_JSON_VALUE)
                 .content(json);
@@ -155,6 +157,7 @@ class OrganizationAPITest {
         final var aRequest = MockMvcRequestBuilders.post("/v1/organizations/add-member")
                 .with(ApiTest.admin(aAuthenticatedUserId))
                 .with(csrf())
+                .header(IdempotencyKey.IDEMPOTENCY_KEY_HEADER, ULID.random().toString())
                 .accept(MediaType.APPLICATION_JSON_VALUE)
                 .contentType(MediaType.APPLICATION_JSON_VALUE)
                 .content(json);
@@ -230,6 +233,7 @@ class OrganizationAPITest {
         final var aRequest = MockMvcRequestBuilders.patch("/v1/organizations/update")
                 .with(ApiTest.admin(aAuthenticatedUserId))
                 .with(csrf())
+                .header(IdempotencyKey.IDEMPOTENCY_KEY_HEADER, ULID.random().toString())
                 .accept(MediaType.APPLICATION_JSON_VALUE)
                 .contentType(MediaType.APPLICATION_JSON_VALUE)
                 .content(json);

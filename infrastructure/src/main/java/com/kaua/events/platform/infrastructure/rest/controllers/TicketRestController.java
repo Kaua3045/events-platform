@@ -11,6 +11,7 @@ import com.kaua.events.platform.domain.pagination.Pagination;
 import com.kaua.events.platform.domain.pagination.SearchQuery;
 import com.kaua.events.platform.domain.utils.Period;
 import com.kaua.events.platform.infrastructure.configurations.authentication.AuthenticatedUser;
+import com.kaua.events.platform.infrastructure.idempotency.IdempotencyKey;
 import com.kaua.events.platform.infrastructure.rest.TicketAPI;
 import com.kaua.events.platform.infrastructure.ticket.req.CreateTicketRequest;
 import com.kaua.events.platform.infrastructure.ticket.req.UpdateTicketRequest;
@@ -49,6 +50,7 @@ public class TicketRestController implements TicketAPI {
         this.softDeleteTicketUseCase = Objects.requireNonNull(softDeleteTicketUseCase);
     }
 
+    @IdempotencyKey
     @Override
     public ResponseEntity<CreateTicketResponse> createTicket(
             final AuthenticatedUser authenticatedUser,
@@ -108,6 +110,7 @@ public class TicketRestController implements TicketAPI {
                 .body(GetTicketByIdResponse.from(aOutput));
     }
 
+    @IdempotencyKey
     @Override
     public ResponseEntity<UpdateTicketResponse> updateTicket(
             final String ticketId,

@@ -1,0 +1,46 @@
+running (2m01.0s), 001/100 VUs, 2345 complete and 0 interrupted iterations
+default ↓ [ 100% ] 004/100 VUs  2m0s
+
+
+  █ THRESHOLDS 
+
+    http_req_duration
+    ✓ 'p(95)<500' p(95)=70ms
+
+    http_req_failed
+    ✓ 'rate<0.01' rate=0.00%
+
+
+  █ TOTAL RESULTS 
+
+    checks_total.......................: 6566    53.95278/s
+    checks_succeeded...................: 100.00% 6566 out of 6566
+    checks_failed......................: 0.00%   0 out of 6566
+
+    ✓ user organization created
+    ✓ event created
+    ✓ get event by id
+    ✓ ticket created
+    ✓ list events
+
+    HTTP
+    http_req_duration.......................................................: avg=21.93ms min=934.76µs med=4.73ms max=234.99ms p(90)=63.57ms p(95)=70ms 
+      { expected_response:true }............................................: avg=21.93ms min=934.76µs med=4.73ms max=234.99ms p(90)=63.57ms p(95)=70ms 
+    http_req_failed.........................................................: 0.00% 0 out of 15950
+    http_reqs...............................................................: 15950 131.061049/s
+
+    EXECUTION
+    iteration_duration......................................................: avg=2.15s   min=2.12s    med=2.14s  max=2.5s     p(90)=2.18s   p(95)=2.19s
+    iterations..............................................................: 2346  19.277067/s
+    vus.....................................................................: 1     min=1          max=100
+    vus_max.................................................................: 100   min=100        max=100
+
+    NETWORK
+    data_received...........................................................: 13 MB 106 kB/s
+    data_sent...............................................................: 12 MB 95 kB/s
+
+
+
+
+running (2m01.7s), 000/100 VUs, 2346 complete and 0 interrupted iterations
+default ✓ [ 100% ] 000/100 VUs  2m0s
