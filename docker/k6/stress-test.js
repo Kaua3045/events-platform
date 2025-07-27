@@ -59,8 +59,7 @@ export default function () {
   }), { headers: { 'Content-Type': 'application/json', "Authorization": `Bearer ${appToken}`, "x-idempotency-key": createIdempotencyKey() } });
 
   check(createUserOrganizationRes, { 'user organization created': (r) => r.status === 201 });
-  console.log('Create User Org response:', createUserOrganizationRes.body);
-  sleep(2);
+  sleep(1);
 
   const token = performFullLogin(email, password);
 
