@@ -59,6 +59,8 @@ class CreateEventUseCaseTest extends UseCaseTest {
         Assertions.assertNotNull(aOutput.eventId());
         Assertions.assertEquals(aOrganizationId, aOutput.organizationId());
 
+        Mockito.verify(tracerWrapper, Mockito.times(1))
+                .traceWithReturn(Mockito.eq("createEventUseCase"), Mockito.any());
         Mockito.verify(eventRepository, Mockito.times(1)).existsByTitleAndOrganizationId(aTitle, aOrganizationId);
         Mockito.verify(eventRepository, Mockito.times(1)).save(argThat(aCmd ->
                 Objects.equals(aOrganizationId, aCmd.getOrganizationId().value().toString())
@@ -121,6 +123,8 @@ class CreateEventUseCaseTest extends UseCaseTest {
         Assertions.assertNotNull(aOutput.eventId());
         Assertions.assertEquals(aOrganizationId, aOutput.organizationId());
 
+        Mockito.verify(tracerWrapper, Mockito.times(1))
+                .traceWithReturn(Mockito.eq("createEventUseCase"), Mockito.any());
         Mockito.verify(eventRepository, Mockito.times(1)).existsByTitleAndOrganizationId(aTitle, aOrganizationId);
         Mockito.verify(eventRepository, Mockito.times(1)).save(argThat(aCmd ->
                 Objects.equals(aOrganizationId, aCmd.getOrganizationId().value().toString())

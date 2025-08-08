@@ -55,6 +55,8 @@ class SoftDeleteEventUseCaseTest extends UseCaseTest {
 
         Assertions.assertDoesNotThrow(() -> this.useCase.execute(aInput));
 
+        Mockito.verify(tracerWrapper, Mockito.times(1))
+                .trace(Mockito.eq("softDeleteEventUseCase"), Mockito.any());
         Mockito.verify(organizationMemberRepository, Mockito.times(1)).memberOfUserId(aUserId);
         Mockito.verify(eventRepository, Mockito.times(1)).eventOfId(aEventId);
         Mockito.verify(eventRepository, Mockito.times(1)).save(argThat(cmd ->
@@ -83,6 +85,8 @@ class SoftDeleteEventUseCaseTest extends UseCaseTest {
 
         Assertions.assertEquals(aExpectedErrorMessage, aException.getMessage());
 
+        Mockito.verify(tracerWrapper, Mockito.times(1))
+                .trace(Mockito.eq("softDeleteEventUseCase"), Mockito.any());
         Mockito.verify(organizationMemberRepository, Mockito.times(1)).memberOfUserId(aUserId);
         Mockito.verify(eventRepository, Mockito.never()).eventOfId(Mockito.any());
         Mockito.verify(eventRepository, Mockito.never()).save(Mockito.any());
@@ -110,6 +114,8 @@ class SoftDeleteEventUseCaseTest extends UseCaseTest {
 
         Assertions.assertEquals(aExpectedErrorMessage, aException.getMessage());
 
+        Mockito.verify(tracerWrapper, Mockito.times(1))
+                .trace(Mockito.eq("softDeleteEventUseCase"), Mockito.any());
         Mockito.verify(organizationMemberRepository, Mockito.times(1)).memberOfUserId(aUserId);
         Mockito.verify(eventRepository, Mockito.times(1)).eventOfId(aEventId);
         Mockito.verify(eventRepository, Mockito.never()).save(Mockito.any());
@@ -138,6 +144,8 @@ class SoftDeleteEventUseCaseTest extends UseCaseTest {
 
         Assertions.assertEquals(aExpectedErrorMessage, aException.getMessage());
 
+        Mockito.verify(tracerWrapper, Mockito.times(1))
+                .trace(Mockito.eq("softDeleteEventUseCase"), Mockito.any());
         Mockito.verify(organizationMemberRepository, Mockito.times(1)).memberOfUserId(aUserId);
         Mockito.verify(eventRepository, Mockito.times(1)).eventOfId(aEventId);
         Mockito.verify(eventRepository, Mockito.never()).save(Mockito.any());
@@ -164,6 +172,8 @@ class SoftDeleteEventUseCaseTest extends UseCaseTest {
 
         Assertions.assertEquals(aExpectedErrorMessage, aException.getMessage());
 
+        Mockito.verify(tracerWrapper, Mockito.times(1))
+                .trace(Mockito.eq("softDeleteEventUseCase"), Mockito.any());
         Mockito.verify(organizationMemberRepository, Mockito.times(1)).memberOfUserId(aUserId);
         Mockito.verify(eventRepository, Mockito.times(0)).eventOfId(Mockito.any());
         Mockito.verify(eventRepository, Mockito.never()).save(Mockito.any());
@@ -178,6 +188,8 @@ class SoftDeleteEventUseCaseTest extends UseCaseTest {
 
         Assertions.assertEquals(aExpectedErrorMessage, aException.getMessage());
 
+        Mockito.verify(tracerWrapper, Mockito.times(1))
+                .trace(Mockito.eq("softDeleteEventUseCase"), Mockito.any());
         Mockito.verify(organizationMemberRepository, Mockito.never()).memberOfUserId(Mockito.any());
         Mockito.verify(eventRepository, Mockito.never()).eventOfId(Mockito.any());
         Mockito.verify(eventRepository, Mockito.never()).save(Mockito.any());

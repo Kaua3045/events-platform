@@ -18,6 +18,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 
 import java.time.temporal.ChronoUnit;
 import java.util.Objects;
@@ -85,6 +86,8 @@ class UpdateEventUseCaseTest extends UseCaseTest {
         Assertions.assertNotNull(aOutput);
         Assertions.assertEquals(aEvent.getId().value().toString(), aOutput.eventId());
 
+        Mockito.verify(tracerWrapper, Mockito.times(1))
+                .traceWithReturn(Mockito.eq("updateEventUseCase"), Mockito.any());
         verify(organizationMemberRepository, times(1)).memberOfUserId(any());
         verify(eventRepository, times(1)).eventOfId(any());
         verify(eventRepository, times(1)).save(argThat(aCmd ->
@@ -140,6 +143,8 @@ class UpdateEventUseCaseTest extends UseCaseTest {
         Assertions.assertNotNull(aOutput);
         Assertions.assertEquals(aEvent.getId().value().toString(), aOutput.eventId());
 
+        Mockito.verify(tracerWrapper, Mockito.times(1))
+                .traceWithReturn(Mockito.eq("updateEventUseCase"), Mockito.any());
         verify(organizationMemberRepository, times(1)).memberOfUserId(any());
         verify(eventRepository, times(1)).eventOfId(any());
         verify(eventRepository, times(1)).save(argThat(aCmd ->
@@ -199,6 +204,8 @@ class UpdateEventUseCaseTest extends UseCaseTest {
         Assertions.assertNotNull(aOutput);
         Assertions.assertEquals(aEvent.getId().value().toString(), aOutput.eventId());
 
+        Mockito.verify(tracerWrapper, Mockito.times(1))
+                .traceWithReturn(Mockito.eq("updateEventUseCase"), Mockito.any());
         verify(organizationMemberRepository, times(1)).memberOfUserId(any());
         verify(eventRepository, times(1)).eventOfId(any());
         verify(eventRepository, times(1)).save(argThat(aCmd ->
@@ -219,6 +226,9 @@ class UpdateEventUseCaseTest extends UseCaseTest {
                 () -> this.useCase.execute(null));
 
         Assertions.assertEquals(expectedMessage, exception.getMessage());
+
+        Mockito.verify(tracerWrapper, Mockito.times(1))
+                .traceWithReturn(Mockito.eq("updateEventUseCase"), Mockito.any());
     }
 
     @Test
@@ -247,6 +257,8 @@ class UpdateEventUseCaseTest extends UseCaseTest {
 
         Assertions.assertEquals(expectedErrorMessage, aException.getMessage());
 
+        Mockito.verify(tracerWrapper, Mockito.times(1))
+                .traceWithReturn(Mockito.eq("updateEventUseCase"), Mockito.any());
         verify(organizationMemberRepository, times(1)).memberOfUserId(any());
         verify(eventRepository, times(0)).eventOfId(any());
         verify(eventRepository, times(0)).save(any());
@@ -284,6 +296,8 @@ class UpdateEventUseCaseTest extends UseCaseTest {
 
         Assertions.assertEquals(expectedErrorMessage, aException.getMessage());
 
+        Mockito.verify(tracerWrapper, Mockito.times(1))
+                .traceWithReturn(Mockito.eq("updateEventUseCase"), Mockito.any());
         verify(organizationMemberRepository, times(1)).memberOfUserId(any());
         verify(eventRepository, times(1)).eventOfId(any());
         verify(eventRepository, times(0)).save(any());
@@ -338,6 +352,8 @@ class UpdateEventUseCaseTest extends UseCaseTest {
 
         Assertions.assertEquals(expectedErrorMessage, aException.getMessage());
 
+        Mockito.verify(tracerWrapper, Mockito.times(1))
+                .traceWithReturn(Mockito.eq("updateEventUseCase"), Mockito.any());
         verify(organizationMemberRepository, times(1)).memberOfUserId(any());
         verify(eventRepository, times(1)).eventOfId(any());
         verify(eventRepository, times(0)).save(any());
@@ -392,6 +408,8 @@ class UpdateEventUseCaseTest extends UseCaseTest {
 
         Assertions.assertEquals(expectedErrorMessage, aException.getMessage());
 
+        Mockito.verify(tracerWrapper, Mockito.times(1))
+                .traceWithReturn(Mockito.eq("updateEventUseCase"), Mockito.any());
         verify(organizationMemberRepository, times(1)).memberOfUserId(any());
         verify(eventRepository, times(1)).eventOfId(any());
         verify(eventRepository, times(0)).save(any());
@@ -431,8 +449,60 @@ class UpdateEventUseCaseTest extends UseCaseTest {
         Assertions.assertEquals(aEvent.getId().value().toString(), aOutput.eventId());
         Assertions.assertEquals(aEvent.getOrganizationId().value().toString(), aOutput.organizationId());
 
+        Mockito.verify(tracerWrapper, Mockito.times(1))
+                .traceWithReturn(Mockito.eq("updateEventUseCase"), Mockito.any());
         verify(organizationMemberRepository, times(1)).memberOfUserId(any());
         verify(eventRepository, times(1)).eventOfId(any());
+        verify(eventRepository, times(0)).save(any());
+    }
+
+    @Test
+    void givenAnInvalidInputWithDuplicatedTitle_whenCallUpdateEventUseCase_thenThrowDomainException() {
+        final var organizationId = new OrganizationID(ULID.random());
+        final var eventId = ULID.random().toString();
+        final var userId = ULID.random();
+        final var duplicatedTitle = "Duplicated Title";
+
+        final var aEvent = Fixture.EventFixture.newEvent("Old title", organizationId, ULID.random().toString());
+
+        final var aOwner = Fixture.OrganizationMemberFixture.newOwnerMember(
+                organizationId,
+                new UserID(userId)
+        );
+
+        final var expectedErrorMessage = "Already exists other event using this name";
+
+        final var aInput = UpdateEventInput.with(
+                userId.toString(),
+                eventId,
+                duplicatedTitle,
+                "Updated Description",
+                EventType.REMOTE.name(),
+                null,
+                ULID.random().toString(),
+                InstantUtils.now().plus(30, ChronoUnit.MINUTES),
+                InstantUtils.now().plus(60, ChronoUnit.DAYS)
+        );
+
+        when(organizationMemberRepository.memberOfUserId(userId.toString()))
+                .thenReturn(Optional.of(aOwner));
+        when(eventRepository.eventOfId(eventId))
+                .thenReturn(Optional.of(aEvent));
+        when(eventRepository.existsByTitleAndOrganizationId(
+                duplicatedTitle, organizationId.value().toString()))
+                .thenReturn(true);
+
+        final var aException = Assertions.assertThrows(DomainException.class,
+                () -> this.useCase.execute(aInput));
+
+        Assertions.assertEquals(expectedErrorMessage, aException.getMessage());
+
+        Mockito.verify(tracerWrapper, Mockito.times(1))
+                .traceWithReturn(Mockito.eq("updateEventUseCase"), Mockito.any());
+        verify(organizationMemberRepository, times(1)).memberOfUserId(any());
+        verify(eventRepository, times(1)).eventOfId(any());
+        verify(eventRepository, times(1))
+                .existsByTitleAndOrganizationId(duplicatedTitle, organizationId.value().toString());
         verify(eventRepository, times(0)).save(any());
     }
 }
