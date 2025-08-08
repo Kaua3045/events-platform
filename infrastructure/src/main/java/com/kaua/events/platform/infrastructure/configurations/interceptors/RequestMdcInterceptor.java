@@ -1,5 +1,10 @@
 package com.kaua.events.platform.infrastructure.configurations.interceptors;
 
+import com.kaua.events.platform.infrastructure.configurations.authentication.AuthenticatedService;
+import com.kaua.events.platform.infrastructure.configurations.authentication.AuthenticatedUser;
+import com.kaua.events.platform.infrastructure.configurations.authentication.ServiceAuthentication;
+import com.kaua.events.platform.infrastructure.configurations.authentication.UserAuthentication;
+import com.kaua.events.platform.infrastructure.oauth.OAuth2ClientAuthenticationToken;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Context;
 import jakarta.servlet.http.HttpServletRequest;
@@ -9,6 +14,8 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.springframework.boot.info.BuildProperties;
 import org.springframework.lang.NonNull;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
@@ -34,6 +41,8 @@ public class RequestMdcInterceptor implements HandlerInterceptor {
     ) {
         final var aCurrentSpan = Span.fromContext(Context.current());
 
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
         MDC.put("appName", buildProperties.getName());
         MDC.put("appVersion", buildProperties.getVersion());
         MDC.put("appBuildDate", buildProperties.getTime().toString());
@@ -45,7 +54,6 @@ public class RequestMdcInterceptor implements HandlerInterceptor {
         MDC.put("requestUri", request.getRequestURI());
         MDC.put("clientIp", request.getRemoteAddr());
 
-
         final var aTraceparent = Optional.ofNullable(request.getHeader("traceparent"))
                 .orElse(" ");
         final var aTracestate = Optional.ofNullable(request.getHeader("tracestate"))
@@ -53,6 +61,23 @@ public class RequestMdcInterceptor implements HandlerInterceptor {
 
         MDC.put("traceparent", aTraceparent);
         MDC.put("tracestate", aTracestate);
+
+        if (authentication == null || !authentication.isAuthenticated()) {
+            MDC.put("user", "anonymous");
+        } else {
+            String userId = switch (authentication) {
+                case OAuth2ClientAuthenticationToken oauth2ClientAuthenticationToken ->
+                        (String) oauth2ClientAuthenticationToken.getPrincipal();
+                case ServiceAuthentication serviceAuthentication
+                        when serviceAuthentication.getPrincipal() instanceof AuthenticatedService authenticatedService ->
+                        authenticatedService.id();
+                case UserAuthentication userAuthentication
+                        when userAuthentication.getPrincipal() instanceof AuthenticatedUser aUser -> aUser.id();
+                default -> "anonymous";
+            };
+
+            MDC.put("user", userId);
+        }
 
         log.debug("Request: {}", MDC.getCopyOfContextMap());
 
