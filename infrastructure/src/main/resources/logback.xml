@@ -3,14 +3,6 @@
     <import class="ch.qos.logback.core.FileAppender" />
     <import class="ch.qos.logback.classic.encoder.PatternLayoutEncoder" />
 
-    <appender name="OTEL" class="io.opentelemetry.instrumentation.logback.appender.v1_0.OpenTelemetryAppender">
-        <captureExperimentalAttributes>true</captureExperimentalAttributes>
-        <captureCodeAttributes>true</captureCodeAttributes>
-        <captureMarkerAttribute>true</captureMarkerAttribute>
-        <captureKeyValuePairAttributes>true</captureKeyValuePairAttributes>
-        <captureMdcAttributes>*</captureMdcAttributes>
-    </appender>
-
     <appender name="stdout_plain" class="ConsoleAppender">
         <encoder class="ch.qos.logback.core.encoder.LayoutWrappingEncoder"> <!-- https://www.codelord.net/2010/08/27/logging-with-a-context-users-in-logback-and-spring-security/ -->
             <layout class="com.kaua.events.platform.infrastructure.configurations.logback.PatternLayoutWithAttributes">
@@ -30,7 +22,6 @@
     <logger name="store" level="DEBUG" />
 
     <root level="INFO">
-        <appender-ref ref="OTEL" />
         <appender-ref ref="stdout_plain" />
     </root>
 </configuration>
