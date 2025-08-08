@@ -28,15 +28,6 @@ repositories {
 
 var opentelemetryVersion = "1.52.0"
 
-configurations.all {
-    resolutionStrategy.eachDependency { details ->
-        if (details.requested.group == "io.opentelemetry") {
-            details.useVersion "1.52.0" // Or change all 1.52.0 to 1.43.0
-            details.because("Force all OpenTelemetry dependencies to 1.52.0 to avoid conflicts")
-        }
-    }
-}
-
 dependencies {
     implementation(project(":application"))
     implementation(project(":domain"))
