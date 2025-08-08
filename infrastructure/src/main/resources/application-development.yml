@@ -2,6 +2,7 @@ application:
   otel:
     memory-exporter: true
   name: events-platform
+  environment: ${DEPLOYMENT_ENVIRONMENT_NAME:dev}
   instance: events-platform-01
 
 redis:
@@ -37,8 +38,12 @@ spring:
     enabled: true
     locations: classpath:db/migration
 
-otel:
-  exporter:
-    otlp:
-      endpoint: http://localhost:4318
-      compression: gzip
+management:
+  health:
+    redis:
+      enabled: false # Use this on redis is disabled in this profile
+
+opentelemetry:
+  metrics:
+#    endpoint: ${OTEL_EXPORTER_OTLP_METRICS_ENDPOINT} # For Production
+    endpoint: ${OTEL_EXPORTER_OTLP_METRICS_ENDPOINT:http://localhost:4317/v1/metrics} # For dev or sandbox
