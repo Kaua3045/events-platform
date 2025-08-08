@@ -2,7 +2,9 @@ package com.kaua.events.platform.infrastructure.configurations.logback;
 
 import ch.qos.logback.classic.pattern.ClassicConverter;
 import ch.qos.logback.classic.spi.ILoggingEvent;
+import com.kaua.events.platform.infrastructure.configurations.authentication.AuthenticatedService;
 import com.kaua.events.platform.infrastructure.configurations.authentication.AuthenticatedUser;
+import com.kaua.events.platform.infrastructure.configurations.authentication.ServiceAuthentication;
 import com.kaua.events.platform.infrastructure.configurations.authentication.UserAuthentication;
 import com.kaua.events.platform.infrastructure.oauth.OAuth2ClientAuthenticationToken;
 import org.slf4j.Logger;
@@ -22,16 +24,15 @@ public class UserLogConverter extends ClassicConverter {
                 return "anonymous"; // anonymous user
             }
 
-            if (authentication instanceof OAuth2ClientAuthenticationToken oauth2ClientAuthenticationToken) {
-                return (String) oauth2ClientAuthenticationToken.getPrincipal();
-            }
-
-            if (!(authentication instanceof UserAuthentication aUser)) {
-                return "anonymous"; // not authenticated
-            }
-
-            final var aAuthenticatedUser = (AuthenticatedUser) aUser.getPrincipal();
-            return aAuthenticatedUser.id();
+            return switch (authentication) {
+                case OAuth2ClientAuthenticationToken oauth2ClientAuthenticationToken ->
+                        (String) oauth2ClientAuthenticationToken.getPrincipal();
+                case ServiceAuthentication serviceAuthentication when serviceAuthentication.getPrincipal() instanceof AuthenticatedService authenticatedService ->
+                        authenticatedService.id();
+                case UserAuthentication userAuthentication when userAuthentication.getPrincipal() instanceof AuthenticatedUser aUser ->
+                        aUser.id();
+                default -> "anonymous";
+            };
         } catch (Exception ex) {
             log.warn("Error on get authenticated user/system to set in log");
             return "error";
