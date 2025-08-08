@@ -25,8 +25,16 @@ exporters:
 #    password: "elastic"
   prometheus:
     endpoint: 0.0.0.0:9464
+    resource_to_telemetry_conversion:
+      enabled: true
 
 processors:
+  filter/spans-to-drop:
+    error_mode: ignore
+    traces:
+      span:
+        - IsMatch(attributes["url.full"], "http://otel-collector:4318/v1/metrics")
+
   transform:
     log_statements:
       - context: log
@@ -61,9 +69,11 @@ service:
   pipelines:
     traces:
       receivers: [otlp]
-      exporters: [elasticsearch]
+      processors: [filter/spans-to-drop]
+      exporters: [otlp/jaeger,elasticsearch]
     metrics:
       receivers: [otlp]
+      processors: [resource]
       exporters: [prometheus]
     logs: # https://www.elastic.co/observability-labs/blog/logstash-to-otel
       receivers: [otlp]
