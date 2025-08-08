@@ -2,6 +2,7 @@ package com.kaua.events.platform;
 
 import com.kaua.events.platform.infrastructure.configurations.WebServerConfig;
 import com.kaua.events.platform.infrastructure.configurations.properties.OAuthClients;
+import com.kaua.events.platform.infrastructure.wrapper.TracerWrapperOtel;
 import org.junit.jupiter.api.Tag;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
@@ -15,7 +16,9 @@ import java.lang.annotation.*;
 @SpringBootTest(classes = {
         WebServerConfig.class,
         IntegrationTestConfig.class,
-        OAuthClients.class
+        OAuthClients.class,
+        ObservationTest.OpenTelemetryTestConfig.class,
+        TracerWrapperOtel.class
 })
 @Tag("integrationTest")
 public @interface IntegrationTest {

@@ -13,6 +13,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 import java.util.Objects;
+import java.util.Optional;
 
 @Component
 public class RequestMdcInterceptor implements HandlerInterceptor {
@@ -43,11 +44,15 @@ public class RequestMdcInterceptor implements HandlerInterceptor {
         MDC.put("userAgent", request.getHeader("User-Agent"));
         MDC.put("requestUri", request.getRequestURI());
         MDC.put("clientIp", request.getRemoteAddr());
-        if (request.getHeader("b3") != null) {
-            MDC.put("b3", request.getHeader("b3"));
-        } else {
-            MDC.put("b3", " ");
-        }
+
+
+        final var aTraceparent = Optional.ofNullable(request.getHeader("traceparent"))
+                .orElse(" ");
+        final var aTracestate = Optional.ofNullable(request.getHeader("tracestate"))
+                .orElse(" ");
+
+        MDC.put("traceparent", aTraceparent);
+        MDC.put("tracestate", aTracestate);
 
         log.debug("Request: {}", MDC.getCopyOfContextMap());
 

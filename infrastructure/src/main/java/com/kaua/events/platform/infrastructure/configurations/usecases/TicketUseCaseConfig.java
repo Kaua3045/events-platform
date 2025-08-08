@@ -13,6 +13,7 @@ import com.kaua.events.platform.application.usecases.ticket.retrieve.list.Defaul
 import com.kaua.events.platform.application.usecases.ticket.retrieve.list.ListTicketsUseCase;
 import com.kaua.events.platform.application.usecases.ticket.update.DefaultUpdateTicketUseCase;
 import com.kaua.events.platform.application.usecases.ticket.update.UpdateTicketUseCase;
+import com.kaua.events.platform.application.wrapper.TracerWrapper;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -23,12 +24,13 @@ public class TicketUseCaseConfig {
     public CreateTicketUseCase createTicketUseCase(
             final TicketRepository ticketRepository,
             final OrganizationMemberRepository organizationMemberRepository,
-            final EventRepository eventRepository
+            final EventRepository eventRepository,
+            final TracerWrapper tracerWrapper
     ) {
         return new DefaultCreateTicketUseCase(
                 ticketRepository,
                 organizationMemberRepository,
-                eventRepository
+                eventRepository, tracerWrapper
         );
     }
 
@@ -43,12 +45,14 @@ public class TicketUseCaseConfig {
     public UpdateTicketUseCase updateTicketUseCase(
             final TicketRepository ticketRepository,
             final OrganizationMemberRepository organizationMemberRepository,
-            final EventRepository eventRepository
+            final EventRepository eventRepository,
+            final TracerWrapper tracerWrapper
     ) {
         return new DefaultUpdateTicketUseCase(
                 ticketRepository,
                 eventRepository,
-                organizationMemberRepository
+                organizationMemberRepository,
+                tracerWrapper
         );
     }
 
@@ -63,12 +67,14 @@ public class TicketUseCaseConfig {
     public SoftDeleteTicketUseCase softDeleteTicketUseCase(
             final TicketRepository ticketRepository,
             final EventRepository eventRepository,
-            final OrganizationMemberRepository organizationMemberRepository
+            final OrganizationMemberRepository organizationMemberRepository,
+            final TracerWrapper tracerWrapper
     ) {
         return new DefaultSoftDeleteTicketUseCase(
                 ticketRepository,
                 eventRepository,
-                organizationMemberRepository
+                organizationMemberRepository,
+                tracerWrapper
         );
     }
 }

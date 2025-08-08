@@ -5,6 +5,7 @@ import com.kaua.events.platform.application.usecases.users.create.CreateUserUseC
 import com.kaua.events.platform.application.usecases.users.create.DefaultCreateUserUseCase;
 import com.kaua.events.platform.application.usecases.users.retrive.get.DefaultGetUserByIdUseCase;
 import com.kaua.events.platform.application.usecases.users.retrive.get.GetUserByIdUseCase;
+import com.kaua.events.platform.application.wrapper.TracerWrapper;
 import com.kaua.events.platform.domain.users.PasswordEncryption;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -15,9 +16,10 @@ public class UserUseCaseConfig {
     @Bean
     public CreateUserUseCase createUserUseCase(
             final PasswordEncryption passwordEncryption,
-            final UserRepository userRepository
+            final UserRepository userRepository,
+            final TracerWrapper tracerWrapper
     ) {
-        return new DefaultCreateUserUseCase(userRepository, passwordEncryption);
+        return new DefaultCreateUserUseCase(userRepository, passwordEncryption, tracerWrapper);
     }
 
     @Bean

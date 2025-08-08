@@ -9,6 +9,7 @@ import com.kaua.events.platform.application.usecases.auth.code.create.CreateAuth
 import com.kaua.events.platform.application.usecases.auth.code.create.DefaultCreateAuthorizationCodeUseCase;
 import com.kaua.events.platform.application.usecases.auth.token.create.CreateAuthorizationTokenUseCase;
 import com.kaua.events.platform.application.usecases.auth.token.create.DefaultCreateAuthorizationTokenUseCase;
+import com.kaua.events.platform.application.wrapper.TracerWrapper;
 import com.kaua.events.platform.domain.users.PasswordEncryption;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -20,27 +21,31 @@ public class AuthorizationUseCaseConfig {
     public CreateAuthorizationCodeUseCase createAuthorizationCodeUseCase(
             final AuthorizationCodeRepository authorizationCodeRepository,
             final UserRepository userRepository,
-            final PasswordEncryption passwordEncryption
+            final PasswordEncryption passwordEncryption,
+            final TracerWrapper tracerWrapper
     ) {
         return new DefaultCreateAuthorizationCodeUseCase(
                 authorizationCodeRepository,
                 userRepository,
-                passwordEncryption
+                passwordEncryption,
+                tracerWrapper
         );
     }
 
     @Bean
     public CreateAuthorizationTokenUseCase createAuthorizationTokenUseCase(
-            AuthorizationTokenRepository authorizationTokenRepository,
-            AuthorizationCodeRepository authorizationCodeRepository,
-            OAuthClientRepository oAuthClientRepository,
-            TokenGeneratorGateway tokenGeneratorGateway
+            final AuthorizationTokenRepository authorizationTokenRepository,
+            final AuthorizationCodeRepository authorizationCodeRepository,
+            final OAuthClientRepository oAuthClientRepository,
+            final TokenGeneratorGateway tokenGeneratorGateway,
+            final TracerWrapper tracerWrapper
     ) {
         return new DefaultCreateAuthorizationTokenUseCase(
                 authorizationTokenRepository,
                 authorizationCodeRepository,
                 oAuthClientRepository,
-                tokenGeneratorGateway
+                tokenGeneratorGateway,
+                tracerWrapper
         );
     }
 }
