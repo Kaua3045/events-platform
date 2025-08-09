@@ -29,10 +29,12 @@ public final class Fixture {
         }
 
         public static User newUser() {
-            final var aFirstName = faker.name().firstName().length() < 3 ? "TESSSSSS"
-                    : faker.name().firstName();
-            final var aLastName = faker.name().lastName().length() < 3 ? "TESSSSSSLAST"
-                    : faker.name().lastName();
+            final var aFakerFirstName = faker.name().firstName();
+            final var aFirstName = aFakerFirstName.length() < 3 || aFakerFirstName.length() > 99 ? "TESSSSS"
+                    : aFakerFirstName;
+            final var aFakerLastName = faker.name().lastName();
+            final var aLastName = aFakerLastName.length() < 3 || aFakerLastName.length() > 99 ?
+                    "TESTESSSSS" : aFakerLastName;
             return User.newUser(
                     new Name(aFirstName, aLastName),
                     new Email(faker.internet().safeEmailAddress()),
