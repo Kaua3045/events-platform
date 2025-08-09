@@ -5,6 +5,8 @@ import com.kaua.events.platform.application.gateways.TokenGeneratorGateway;
 import com.kaua.events.platform.application.repositories.AuthorizationCodeRepository;
 import com.kaua.events.platform.application.repositories.AuthorizationTokenRepository;
 import com.kaua.events.platform.application.repositories.OAuthClientRepository;
+import com.kaua.events.platform.application.wrapper.ObservationContext;
+import com.kaua.events.platform.application.wrapper.TracerWrapper;
 import com.kaua.events.platform.domain.auth.code.AuthorizationCode;
 import com.kaua.events.platform.domain.auth.token.AuthorizationToken;
 import com.kaua.events.platform.domain.auth.token.AuthorizationTokenType;
@@ -20,37 +22,55 @@ public class DefaultCreateAuthorizationTokenUseCase extends CreateAuthorizationT
     private final AuthorizationCodeRepository authorizationCodeRepository;
     private final OAuthClientRepository oAuthClientRepository;
     private final TokenGeneratorGateway tokenGeneratorGateway;
+    private final TracerWrapper tracerWrapper;
 
     public DefaultCreateAuthorizationTokenUseCase(
             final AuthorizationTokenRepository authorizationTokenRepository,
             final AuthorizationCodeRepository authorizationCodeRepository,
             final OAuthClientRepository oAuthClientRepository,
-            final TokenGeneratorGateway tokenGeneratorGateway
+            final TokenGeneratorGateway tokenGeneratorGateway,
+            final TracerWrapper tracerWrapper
     ) {
         this.authorizationTokenRepository = Objects.requireNonNull(authorizationTokenRepository);
         this.authorizationCodeRepository = Objects.requireNonNull(authorizationCodeRepository);
         this.oAuthClientRepository = Objects.requireNonNull(oAuthClientRepository);
         this.tokenGeneratorGateway = Objects.requireNonNull(tokenGeneratorGateway);
+        this.tracerWrapper = Objects.requireNonNull(tracerWrapper);
     }
 
     @Override
     public CreateAuthorizationTokenOutput execute(final CreateAuthorizationTokenInput input) {
-        if (input == null) throw new UseCaseInputCannotBeNullException(CreateAuthorizationTokenUseCase.class);
+        return this.tracerWrapper.traceWithReturn(
+                "createAuthorizationToken",
+                span -> {
+                    if (input == null)
+                        throw new UseCaseInputCannotBeNullException(CreateAuthorizationTokenUseCase.class);
 
-        return switch (input) {
-            case AuthorizationCodeGrantInput codeGrantInput -> handleAuthorizationCodeGrantType(codeGrantInput);
-            case RefreshTokenGrantInput refreshTokenGrantInput -> handleRefreshTokenGrantType(refreshTokenGrantInput);
-            case ClientSecretGrantInput clientSecretGrantInput -> handleClientSecretGrantType(clientSecretGrantInput);
-            default -> throw DomainException.with("The grant type is not supported in this endpoint");
-        };
+                    return switch (input) {
+                        case AuthorizationCodeGrantInput codeGrantInput ->
+                                handleAuthorizationCodeGrantType(codeGrantInput, span);
+                        case RefreshTokenGrantInput refreshTokenGrantInput ->
+                                handleRefreshTokenGrantType(refreshTokenGrantInput, span);
+                        case ClientSecretGrantInput clientSecretGrantInput ->
+                                handleClientSecretGrantType(clientSecretGrantInput, span);
+                        default -> throw DomainException.with("The grant type is not supported in this endpoint");
+                    };
+                }
+        );
     }
 
-    private CreateAuthorizationTokenOutput handleAuthorizationCodeGrantType(final AuthorizationCodeGrantInput codeGrantInput) {
-        final var aAuthorizationCode = this.authorizationCodeRepository
-                .authorizationCodeOfCode(codeGrantInput.code())
-                .orElseThrow(NotFoundException.with(AuthorizationCode.class, "code", codeGrantInput.code()));
+    private CreateAuthorizationTokenOutput handleAuthorizationCodeGrantType(final AuthorizationCodeGrantInput codeGrantInput, final ObservationContext trace) {
+        final var aAuthorizationCode = trace.runInSpan(
+                "authorization-code.retrieve",
+                () -> this.authorizationCodeRepository
+                        .authorizationCodeOfCode(codeGrantInput.code())
+                        .orElseThrow(NotFoundException.with(AuthorizationCode.class, "code", codeGrantInput.code()))
+        );
 
-        validateAuthorizationCodeGrantType(codeGrantInput, aAuthorizationCode);
+        trace.runInSpan(
+                "authorization-code.validate",
+                () -> validateAuthorizationCodeGrantType(codeGrantInput, aAuthorizationCode)
+        );
 
         final var aReceivedCodeChallenge = PKCEUtils.generateCodeChallenge(codeGrantInput.codeVerifier());
 
@@ -60,15 +80,27 @@ public class DefaultCreateAuthorizationTokenUseCase extends CreateAuthorizationT
 
         // TODO o access token jti devia ser hashed
 
-        final var aAccessToken = generateToken(codeGrantInput.clientId(),
-                aAuthorizationCode.getUserId().value().toString(), AuthorizationTokenType.ACCESS_TOKEN);
-        final var aRefreshToken = generateToken(codeGrantInput.clientId(),
-                aAuthorizationCode.getUserId().value().toString(), AuthorizationTokenType.REFRESH_TOKEN);
+        final var aAccessToken = trace.runInSpan(
+                "token.generate.access-token",
+                () -> generateToken(codeGrantInput.clientId(),
+                        aAuthorizationCode.getUserId().value().toString(), AuthorizationTokenType.ACCESS_TOKEN)
+        );
+        final var aRefreshToken = trace.runInSpan(
+                "token.generate.refresh-token",
+                () -> generateToken(codeGrantInput.clientId(),
+                        aAuthorizationCode.getUserId().value().toString(), AuthorizationTokenType.REFRESH_TOKEN)
+        );
 
-        saveTokens(aAccessToken, aRefreshToken);
+        trace.runInSpan(
+                "token.save",
+                () -> saveTokens(aAccessToken, aRefreshToken)
+        );
 
         aAuthorizationCode.markAsUsed();
-        this.authorizationCodeRepository.save(aAuthorizationCode);
+        trace.runInSpan(
+                "authorization-code.mark-used",
+                () -> this.authorizationCodeRepository.save(aAuthorizationCode)
+        );
 
         return CreateAuthorizationTokenOutput.with(
                 aAccessToken,
@@ -76,22 +108,40 @@ public class DefaultCreateAuthorizationTokenUseCase extends CreateAuthorizationT
         );
     }
 
-    private CreateAuthorizationTokenOutput handleRefreshTokenGrantType(final RefreshTokenGrantInput refreshTokenGrantInput) {
+    private CreateAuthorizationTokenOutput handleRefreshTokenGrantType(final RefreshTokenGrantInput refreshTokenGrantInput, final ObservationContext trace) {
         final var aRefreshHashed = PKCEUtils.generateCodeChallenge(refreshTokenGrantInput.refreshToken());
-        final var aRefreshTokenStored = this.authorizationTokenRepository.tokenOfJti(aRefreshHashed)
-                .orElseThrow(NotFoundException.with(AuthorizationToken.class, "jti", aRefreshHashed));
+        final var aRefreshTokenStored = trace.runInSpan(
+                "refresh-token.retrieve-by-jti",
+                () -> this.authorizationTokenRepository.tokenOfJti(aRefreshHashed)
+                        .orElseThrow(NotFoundException.with(AuthorizationToken.class, "jti", aRefreshHashed))
+        );
 
-        validateRefreshTokenGrantType(refreshTokenGrantInput, aRefreshTokenStored);
+        trace.runInSpan(
+                "refresh-token.validate",
+                () -> validateRefreshTokenGrantType(refreshTokenGrantInput, aRefreshTokenStored)
+        );
 
-        this.authorizationTokenRepository.save(aRefreshTokenStored.revoke()); // TODO check this
+        trace.runInSpan(
+                "refresh-token.revoke",
+                () -> this.authorizationTokenRepository.save(aRefreshTokenStored.revoke())
+        ); // TODO check this
 
-        final var aAccessToken = generateToken(refreshTokenGrantInput.clientId(),
-                aRefreshTokenStored.getUserId().orElse(refreshTokenGrantInput.clientId()), AuthorizationTokenType.ACCESS_TOKEN);
+        final var aAccessToken = trace.runInSpan(
+                "token.generate.access-token",
+                () -> generateToken(refreshTokenGrantInput.clientId(),
+                        aRefreshTokenStored.getUserId().orElse(refreshTokenGrantInput.clientId()), AuthorizationTokenType.ACCESS_TOKEN)
+        );
 
-        final var aRefreshToken = generateToken(refreshTokenGrantInput.clientId(),
-                aRefreshTokenStored.getUserId().orElse(refreshTokenGrantInput.clientId()), AuthorizationTokenType.REFRESH_TOKEN);
+        final var aRefreshToken = trace.runInSpan(
+                "token.generate.refresh-token",
+                () -> generateToken(refreshTokenGrantInput.clientId(),
+                        aRefreshTokenStored.getUserId().orElse(refreshTokenGrantInput.clientId()), AuthorizationTokenType.REFRESH_TOKEN)
+        );
 
-        saveTokens(aAccessToken, aRefreshToken);
+        trace.runInSpan(
+                "token.save",
+                () -> saveTokens(aAccessToken, aRefreshToken)
+        );
 
         return CreateAuthorizationTokenOutput.with(
                 aAccessToken,
@@ -99,23 +149,35 @@ public class DefaultCreateAuthorizationTokenUseCase extends CreateAuthorizationT
         );
     }
 
-    private CreateAuthorizationTokenOutput handleClientSecretGrantType(final ClientSecretGrantInput clientSecretGrantInput) {
+    private CreateAuthorizationTokenOutput handleClientSecretGrantType(final ClientSecretGrantInput clientSecretGrantInput, final ObservationContext trace) {
         final var aClientId = clientSecretGrantInput.clientId();
         final var aClientSecret = clientSecretGrantInput.clientSecret();
 
         // TODO in future call the client repository to get client by clientId and check if clientId and secret match
-        final var aOAuthClient = this.oAuthClientRepository
-                .clientOfClientId(aClientId)
-                .orElseThrow(() -> NotFoundException.with("Client not found"));
+        final var aOAuthClient = trace.runInSpan(
+                "oauth-client.retrieve-by-client-id",
+                () -> this.oAuthClientRepository
+                        .clientOfClientId(aClientId)
+                        .orElseThrow(() -> NotFoundException.with("Client not found"))
+        );
 
         if (!aOAuthClient.clientSecret().equalsIgnoreCase(aClientSecret)) {
             throw DomainException.with("The client secret does not belong to the client");
         }
 
-        final var aAccessToken = generateToken(aClientId, aClientId, AuthorizationTokenType.ACCESS_TOKEN);
-        final var aRefreshToken = generateToken(aClientId, aClientId, AuthorizationTokenType.REFRESH_TOKEN);
+        final var aAccessToken = trace.runInSpan(
+                "token.generate.access-token",
+                () -> generateToken(aClientId, aClientId, AuthorizationTokenType.ACCESS_TOKEN)
+        );
+        final var aRefreshToken = trace.runInSpan(
+                "token.generate.refresh-token",
+                () -> generateToken(aClientId, aClientId, AuthorizationTokenType.REFRESH_TOKEN)
+        );
 
-        saveTokens(aAccessToken, aRefreshToken);
+        trace.runInSpan(
+                "token.save",
+                () -> saveTokens(aAccessToken, aRefreshToken)
+        );
 
         return new CreateAuthorizationTokenOutput(
                 aAccessToken,

@@ -16,6 +16,7 @@ import com.kaua.events.platform.application.usecases.organizations.retrieve.memb
 import com.kaua.events.platform.application.usecases.organizations.update.member.DefaultUpdateMemberUseCase;
 import com.kaua.events.platform.application.usecases.organizations.update.member.UpdateMemberUseCase;
 import com.kaua.events.platform.application.usecases.users.create.CreateUserUseCase;
+import com.kaua.events.platform.application.wrapper.TracerWrapper;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -26,12 +27,14 @@ public class OrganizationUseCaseConfig {
     public CreateOrganizationUseCase createOrganizationUseCase(
             final OrganizationRepository organizationRepository,
             final OrganizationMemberRepository organizationMemberRepository,
-            final CreateUserUseCase createUserUseCase
+            final CreateUserUseCase createUserUseCase,
+            final TracerWrapper tracerWrapper
     ) {
         return new DefaultCreateOrganizationUseCase(
                 organizationRepository,
                 organizationMemberRepository,
-                createUserUseCase
+                createUserUseCase,
+                tracerWrapper
         );
     }
 
@@ -57,9 +60,13 @@ public class OrganizationUseCaseConfig {
 
     @Bean
     public UpdateMemberUseCase updateMemberUseCase(
-            final OrganizationMemberRepository organizationMemberRepository
+            final OrganizationMemberRepository organizationMemberRepository,
+            final TracerWrapper tracerWrapper
     ) {
-        return new DefaultUpdateMemberUseCase(organizationMemberRepository);
+        return new DefaultUpdateMemberUseCase(
+                organizationMemberRepository,
+                tracerWrapper
+        );
     }
 
     @Bean

@@ -490,7 +490,8 @@ class CreateAuthorizationTokenUseCaseTest extends UseCaseTest {
                 authorizationTokenRepository,
                 authorizationCodeRepository,
                 oAuthClientRepository,
-                tokenGeneratorGateway
+                tokenGeneratorGateway,
+                tracerWrapper
         );
 
         final var aException = Assertions.assertThrows(DomainException.class, () -> authorizationTokenUseCase.execute(aInput));

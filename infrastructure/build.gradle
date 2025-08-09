@@ -26,54 +26,51 @@ repositories {
     mavenCentral()
 }
 
+var opentelemetryVersion = "1.52.0"
+
 dependencies {
     implementation(project(":application"))
     implementation(project(":domain"))
 
     // On undertow fix virtual threads leaked memory, uncomment the line below
-    implementation('org.springframework.boot:spring-boot-starter-web') {
-//        exclude module: 'spring-boot-starter-tomcat'
+    implementation("org.springframework.boot:spring-boot-starter-web") {
+//        exclude module: "spring-boot-starter-tomcat"
     }
-//    implementation 'org.springframework.boot:spring-boot-starter-undertow'
-    implementation 'org.springframework.boot:spring-boot-starter-actuator'
-    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
-    implementation 'org.springframework.boot:spring-boot-starter-data-jdbc'
-    implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
+//    implementation "org.springframework.boot:spring-boot-starter-undertow"
+    implementation "org.springframework.boot:spring-boot-starter-actuator"
+    implementation "org.springframework.boot:spring-boot-starter-data-redis"
+    implementation "org.springframework.boot:spring-boot-starter-data-jdbc"
+    implementation "org.springframework.boot:spring-boot-starter-oauth2-resource-server"
 
-    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.2.0'
+    implementation "org.springdoc:springdoc-openapi-starter-webmvc-ui:2.2.0"
 
-    implementation 'io.opentelemetry.instrumentation:opentelemetry-spring-boot-starter'
+    implementation "io.opentelemetry:opentelemetry-api:$opentelemetryVersion"
+    implementation "io.opentelemetry:opentelemetry-sdk:$opentelemetryVersion"
+    implementation "io.opentelemetry:opentelemetry-sdk-testing:$opentelemetryVersion"
 
-    implementation 'io.micrometer:micrometer-tracing-bridge-otel'
-    runtimeOnly 'io.micrometer:micrometer-registry-otlp'
-    implementation 'io.opentelemetry:opentelemetry-exporter-otlp'
-    implementation 'io.opentelemetry:opentelemetry-sdk-testing'
+    implementation "io.micrometer:micrometer-core"
+    implementation "io.micrometer:micrometer-registry-prometheus"
+    implementation "io.micrometer:micrometer-registry-otlp"
 
-    implementation 'ch.qos.logback:logback-core:1.5.15'
-    implementation 'ch.qos.logback:logback-classic:1.5.15'
+    implementation "ch.qos.logback:logback-core:1.5.15"
+    implementation "ch.qos.logback:logback-classic:1.5.15"
 
-    implementation 'com.fasterxml.jackson.module:jackson-module-blackbird'
+    implementation "com.fasterxml.jackson.module:jackson-module-blackbird"
 
-    implementation 'org.flywaydb:flyway-core'
-    implementation 'org.postgresql:postgresql'
+    implementation "org.flywaydb:flyway-core"
+    implementation "org.postgresql:postgresql"
 
-    implementation 'org.owasp.encoder:encoder:1.2.3'
+    implementation "org.owasp.encoder:encoder:1.2.3"
 
-    testImplementation 'org.springframework.boot:spring-boot-starter-test'
-    testImplementation 'org.springframework.security:spring-security-test'
-    testImplementation 'org.springframework.boot:spring-boot-testcontainers'
-    runtimeOnly 'com.h2database:h2'
+    testImplementation "org.springframework.boot:spring-boot-starter-test"
+    testImplementation "org.springframework.security:spring-security-test"
+    testImplementation "org.springframework.boot:spring-boot-testcontainers"
+    runtimeOnly "com.h2database:h2"
 
-    testImplementation(project(path: ':domain', configuration: 'testClasses'))
+    testImplementation(project(path: ":domain", configuration: "testClasses"))
 
-    testImplementation 'org.testcontainers:testcontainers'
-    testImplementation 'org.testcontainers:junit-jupiter'
-}
-
-dependencyManagement {
-    imports {
-        mavenBom("io.opentelemetry.instrumentation:opentelemetry-instrumentation-bom:2.11.0")
-    }
+    testImplementation "org.testcontainers:testcontainers"
+    testImplementation "org.testcontainers:junit-jupiter"
 }
 
 flyway { // Flyway configuration change this to match your database

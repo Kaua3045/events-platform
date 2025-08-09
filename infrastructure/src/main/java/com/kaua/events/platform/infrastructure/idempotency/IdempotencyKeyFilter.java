@@ -1,10 +1,10 @@
 package com.kaua.events.platform.infrastructure.idempotency;
 
+import com.kaua.events.platform.application.wrapper.TracerWrapper;
 import com.kaua.events.platform.infrastructure.configurations.xss.XSSRequestWrapper;
 import com.kaua.events.platform.infrastructure.exceptions.IdempotencyKeyRequiredException;
 import com.kaua.events.platform.infrastructure.exceptions.IdempotencyKeyUnsupportedMethodException;
 import com.kaua.events.platform.infrastructure.idempotency.gateways.IdempotencyKeyGateway;
-import com.kaua.events.platform.infrastructure.utils.ObservationHelper;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -34,18 +34,18 @@ public class IdempotencyKeyFilter extends OncePerRequestFilter {
     private final IdempotencyKeyGateway idempotencyKeyGateway;
     private final RequestMappingHandlerMapping requestMappingHandlerMapping;
     private final HandlerExceptionResolver resolver;
-    private final ObservationHelper observationHelper;
+    private final TracerWrapper tracerWrapper;
 
     public IdempotencyKeyFilter(
             final IdempotencyKeyGateway idempotencyKeyGateway,
             final RequestMappingHandlerMapping requestMappingHandlerMapping,
             final @Qualifier("handlerExceptionResolver") HandlerExceptionResolver resolver,
-            final ObservationHelper observationHelper
+            final TracerWrapper tracerWrapper
     ) {
         this.idempotencyKeyGateway = Objects.requireNonNull(idempotencyKeyGateway);
         this.requestMappingHandlerMapping = Objects.requireNonNull(requestMappingHandlerMapping);
         this.resolver = Objects.requireNonNull(resolver);
-        this.observationHelper = Objects.requireNonNull(observationHelper);
+        this.tracerWrapper = Objects.requireNonNull(tracerWrapper);
     }
 
     @Override
@@ -57,7 +57,7 @@ public class IdempotencyKeyFilter extends OncePerRequestFilter {
         log.debug("Processing the idempotency key filter");
         XSSRequestWrapper sanitizedRequest = new XSSRequestWrapper(request);
 
-        this.observationHelper.observation(
+        this.tracerWrapper.trace(
                 "http.filter.idempotency_key_filter",
                 span -> {
                     span.setAttribute("http.method", request.getMethod());

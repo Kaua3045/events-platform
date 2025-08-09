@@ -12,6 +12,7 @@ import com.kaua.events.platform.application.usecases.eventmanagement.retrieve.li
 import com.kaua.events.platform.application.usecases.eventmanagement.retrieve.list.ListEventsUseCase;
 import com.kaua.events.platform.application.usecases.eventmanagement.update.DefaultUpdateEventUseCase;
 import com.kaua.events.platform.application.usecases.eventmanagement.update.UpdateEventUseCase;
+import com.kaua.events.platform.application.wrapper.TracerWrapper;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -20,9 +21,10 @@ public class EventUseCaseConfig {
 
     @Bean
     public CreateEventUseCase createEventUseCase(
-            final EventRepository eventRepository
+            final EventRepository eventRepository,
+            final TracerWrapper traceWrapper
     ) {
-        return new DefaultCreateEventUseCase(eventRepository);
+        return new DefaultCreateEventUseCase(eventRepository, traceWrapper);
     }
 
     @Bean
@@ -35,9 +37,14 @@ public class EventUseCaseConfig {
     @Bean
     public SoftDeleteEventUseCase softDeleteEventUseCase(
             final EventRepository eventRepository,
-            final OrganizationMemberRepository organizationMemberRepository
+            final OrganizationMemberRepository organizationMemberRepository,
+            final TracerWrapper tracerWrapper
     ) {
-        return new DefaultSoftDeleteEventUseCase(eventRepository, organizationMemberRepository);
+        return new DefaultSoftDeleteEventUseCase(
+                eventRepository,
+                organizationMemberRepository,
+                tracerWrapper
+        );
     }
 
     @Bean
@@ -50,11 +57,13 @@ public class EventUseCaseConfig {
     @Bean
     public UpdateEventUseCase updateEventUseCase(
             final EventRepository eventRepository,
-            final OrganizationMemberRepository organizationMemberRepository
+            final OrganizationMemberRepository organizationMemberRepository,
+            final TracerWrapper tracerWrapper
     ) {
         return new DefaultUpdateEventUseCase(
                 eventRepository,
-                organizationMemberRepository
+                organizationMemberRepository,
+                tracerWrapper
         );
     }
 }

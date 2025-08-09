@@ -5,7 +5,7 @@ import com.kaua.events.platform.infrastructure.configurations.SecurityConfig;
 import com.kaua.events.platform.infrastructure.configurations.properties.CorsProperties;
 import com.kaua.events.platform.infrastructure.configurations.properties.OAuthClients;
 import com.kaua.events.platform.infrastructure.idempotency.gateways.InMemoryIdempotencyKeyGateway;
-import com.kaua.events.platform.infrastructure.utils.ObservationHelper;
+import com.kaua.events.platform.infrastructure.wrapper.TracerWrapperOtel;
 import org.junit.jupiter.api.Tag;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
@@ -21,7 +21,7 @@ import java.lang.annotation.*;
 @ActiveProfiles("test-integration")
 @WebMvcTest
 @TestPropertySource(properties = "application.otel.memory-exporter=true")
-@Import({SecurityConfig.class, IntegrationTestConfig.class, OAuthClients.class, OtelConfig.class, CorsProperties.class, InMemoryIdempotencyKeyGateway.class, ObservationHelper.class})
+@Import({SecurityConfig.class, IntegrationTestConfig.class, OAuthClients.class, OtelConfig.class, CorsProperties.class, InMemoryIdempotencyKeyGateway.class, ObservationTest.OpenTelemetryTestConfig.class, TracerWrapperOtel.class})
 @Tag("integrationTest")
 public @interface ControllerTest {
 

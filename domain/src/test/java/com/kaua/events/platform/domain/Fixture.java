@@ -29,9 +29,15 @@ public final class Fixture {
         }
 
         public static User newUser() {
+            final var aFakerFirstName = faker.name().firstName();
+            final var aFirstName = aFakerFirstName.length() < 3 || aFakerFirstName.length() > 99 ? "TESSSSS"
+                    : aFakerFirstName;
+            final var aFakerLastName = faker.name().lastName();
+            final var aLastName = aFakerLastName.length() < 3 || aFakerLastName.length() > 99 ?
+                    "TESTESSSSS" : aFakerLastName;
             return User.newUser(
-                    new Name(faker.name().firstName(), faker.name().lastName()),
-                    new Email(faker.internet().emailAddress()),
+                    new Name(aFirstName, aLastName),
+                    new Email(faker.internet().safeEmailAddress()),
                     Password.of("12345678Am*"),
                     UserRole.USER
             );
