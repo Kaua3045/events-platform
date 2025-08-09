@@ -35,7 +35,7 @@ public final class Fixture {
                     : faker.name().lastName();
             return User.newUser(
                     new Name(aFirstName, aLastName),
-                    new Email(faker.internet().emailAddress()),
+                    new Email(faker.internet().safeEmailAddress()),
                     Password.of("12345678Am*"),
                     UserRole.USER
             );
