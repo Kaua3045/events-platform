@@ -1,6 +1,9 @@
 package com.kaua.events.platform.infrastructure.jdbc;
 
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcOperations;
+import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 
@@ -12,9 +15,14 @@ import java.util.Optional;
 public class JdbcClientAdapter implements DatabaseClient {
 
     private final JdbcClient jdbcClient;
+    private final NamedParameterJdbcOperations namedParameterJdbcTemplate;
 
-    public JdbcClientAdapter(final JdbcClient jdbcClient) {
+    public JdbcClientAdapter(
+            final JdbcClient jdbcClient,
+            final NamedParameterJdbcOperations namedParameterJdbcTemplate
+    ) {
         this.jdbcClient = Objects.requireNonNull(jdbcClient);
+        this.namedParameterJdbcTemplate = Objects.requireNonNull(namedParameterJdbcTemplate);
     }
 
     @Override
@@ -73,5 +81,16 @@ public class JdbcClientAdapter implements DatabaseClient {
         } catch (final DataIntegrityViolationException ex) {
             throw ex;
         }
+    }
+
+    @Override
+    public int[] batchUpdate(String sql, List<Map<String, Object>> batchParams) {
+        if (batchParams.isEmpty()) return new int[0];
+
+        SqlParameterSource[] paramSources = batchParams.stream()
+                .map(MapSqlParameterSource::new)
+                .toArray(SqlParameterSource[]::new);
+
+        return this.namedParameterJdbcTemplate.batchUpdate(sql, paramSources);
     }
 }
