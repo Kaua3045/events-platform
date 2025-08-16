@@ -159,6 +159,24 @@ public class Ticket extends AggregateRoot<TicketID> {
                 InstantUtils.now()
         );
     }
+    
+    public Ticket updateSold(final int aSold) {
+        return new Ticket(
+                getId(),
+                getVersion(),
+                getName(),
+                getDescription().orElse(null),
+                getEventId(),
+                getPrice(),
+                getQuantity(),
+                aSold,
+                getType(),
+                getStatus(),
+                getCreatedAt(),
+                getUpdatedAt(),
+                getDeletedAt().orElse(null)
+        );
+    }
 
     public String getName() {
         return name;
