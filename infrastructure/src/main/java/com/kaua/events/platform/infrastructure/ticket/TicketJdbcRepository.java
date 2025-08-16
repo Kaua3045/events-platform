@@ -114,6 +114,69 @@ public class TicketJdbcRepository implements TicketRepository {
         return ticket;
     }
 
+    @Override
+    @Transactional(propagation = Propagation.REQUIRED)
+    public List<Ticket> saveAll(final List<Ticket> tickets) {
+        if (tickets == null || tickets.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        final var sql = """
+                UPDATE tickets
+                SET
+                    version = (:version + 1),
+                    event_id = :eventId,
+                    name = :name,
+                    description = :description,
+                    price = :price,
+                    quantity = :quantity,
+                    sold = :sold,
+                    type = :type,
+                    status = :status,
+                    created_at = :createdAt,
+                    updated_at = :updatedAt,
+                    deleted_at = :deletedAt
+                WHERE id = :id AND version = :version
+                """;
+
+        var batchParams = tickets.stream().map(aTicket -> {
+            Map<String, Object> aParams = new HashMap<>();
+            aParams.put("id", aTicket.getId().value().toString());
+            aParams.put("version", aTicket.getVersion());
+            aParams.put("eventId", aTicket.getEventId().value().toString());
+            aParams.put("name", aTicket.getName());
+            aParams.put("description", aTicket.getDescription().orElse(null));
+            aParams.put("price", aTicket.getPrice());
+            aParams.put("quantity", aTicket.getQuantity());
+            aParams.put("sold", aTicket.getSold());
+            aParams.put("type", aTicket.getType().name());
+            aParams.put("status", aTicket.getStatus().name());
+            aParams.put("createdAt", aTicket.getCreatedAt());
+            aParams.put("updatedAt", aTicket.getUpdatedAt());
+            aParams.put("deletedAt", aTicket.getDeletedAt().orElse(null));
+            return aParams;
+        }).toList();
+
+        log.debug("Updating {} tickets", tickets.size());
+
+        int[] updateResults = this.databaseClient.batchUpdate(sql, batchParams);
+
+        // Verifica se algum update falhou
+        for (int i = 0; i < updateResults.length; i++) {
+            if (updateResults[i] == 0) {
+                var ticket = tickets.get(i);
+                throw ConflictException.with(
+                        "Ticket with identifier %s and version %d does not match, ticket was updated by another transaction"
+                                .formatted(ticket.getId().value(), ticket.getVersion())
+                );
+            }
+        }
+
+        tickets.forEach(Ticket::incrementVersion); // TODO in future change this to use in update method in aggregaste
+
+        return tickets;
+    }
+
     private DynamicQueryListBuilder.Specification assembleSpecification(final String terms) {
         return DynamicQueryListBuilder.like("name", "terms_name", terms)
                 .or(DynamicQueryListBuilder.like("description", "terms_description", terms));

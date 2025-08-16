@@ -5,11 +5,14 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.fasterxml.jackson.databind.util.StdDateFormat;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.module.blackbird.BlackbirdModule;
+import com.kaua.events.platform.application.usecases.orders.create.payment.CreateCheckoutPaymentDetailsInput;
+import com.kaua.events.platform.infrastructure.configurations.deserializer.PaymentDetailsDeserializer;
 import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
 
 import java.util.concurrent.Callable;
@@ -52,17 +55,28 @@ public enum Json {
         });
     }
 
-    private final ObjectMapper mapper = new Jackson2ObjectMapperBuilder()
-            .dateFormat(new StdDateFormat())
-            .featuresToDisable(
-                    DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES,
-                    DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES,
-                    DeserializationFeature.FAIL_ON_NULL_CREATOR_PROPERTIES,
-                    SerializationFeature.WRITE_DATES_AS_TIMESTAMPS
-            )
-            .modules(new JavaTimeModule(), new Jdk8Module(), new BlackbirdModule())
-            .propertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE)
-            .build();
+    private final ObjectMapper mapper;
+
+    Json() {
+        ObjectMapper baseMapper = new Jackson2ObjectMapperBuilder()
+                .dateFormat(new StdDateFormat())
+                .featuresToDisable(
+                        DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES,
+                        DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES,
+                        DeserializationFeature.FAIL_ON_NULL_CREATOR_PROPERTIES,
+                        SerializationFeature.WRITE_DATES_AS_TIMESTAMPS
+                )
+                .modules(new JavaTimeModule(), new Jdk8Module(), new BlackbirdModule())
+                .propertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE)
+                .build();
+
+        // registrar o deserializer customizado
+        SimpleModule paymentModule = new SimpleModule("PaymentDetailsModule");
+        paymentModule.addDeserializer(CreateCheckoutPaymentDetailsInput.class, new PaymentDetailsDeserializer());
+        baseMapper.registerModule(paymentModule);
+
+        this.mapper = baseMapper;
+    }
 
     private static <T> T invoke(final Callable<T> callable) {
         try {

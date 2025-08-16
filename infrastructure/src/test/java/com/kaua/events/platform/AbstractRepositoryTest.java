@@ -5,6 +5,7 @@ import com.kaua.events.platform.infrastructure.eventmanagement.EventJdbcReposito
 import com.kaua.events.platform.infrastructure.jdbc.JdbcClientAdapter;
 import com.kaua.events.platform.infrastructure.oauth.code.AuthorizationCodeJdbcRepository;
 import com.kaua.events.platform.infrastructure.oauth.token.AuthorizationTokenJdbcRepository;
+import com.kaua.events.platform.infrastructure.orders.OrderJdbcRepository;
 import com.kaua.events.platform.infrastructure.organizations.OrganizationJdbcRepository;
 import com.kaua.events.platform.infrastructure.organizations.OrganizationMemberJdbcRepository;
 import com.kaua.events.platform.infrastructure.ticket.TicketJdbcRepository;
@@ -13,6 +14,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.data.jdbc.DataJdbcTest;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcOperations;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.jdbc.JdbcTestUtils;
@@ -29,9 +31,14 @@ public abstract class AbstractRepositoryTest {
     private static final String ORGANIZATION_MEMBERS_TABLE = "organization_members";
     private static final String EVENTS_TABLE = "events";
     private static final String TICKETS_TABLE = "tickets";
+    private static final String ORDERS_TABLE = "orders";
+    private static final String ORDER_ITEMS_TABLE = "order_items";
 
     @Autowired
     private JdbcClient jdbcClient;
+
+    @Autowired
+    private NamedParameterJdbcOperations operations;
 
     private UserJdbcRepository userJdbcRepository;
     private AuthorizationCodeRepository authorizationCodeRepository;
@@ -40,16 +47,18 @@ public abstract class AbstractRepositoryTest {
     private OrganizationMemberRepository organizationMemberRepository;
     private EventRepository eventRepository;
     private TicketRepository ticketRepository;
+    private OrderRepository orderRepository;
 
     @BeforeEach
     void setUp() {
-        this.userJdbcRepository = new UserJdbcRepository(new JdbcClientAdapter(jdbcClient));
-        this.authorizationCodeRepository = new AuthorizationCodeJdbcRepository(new JdbcClientAdapter(jdbcClient));
-        this.authorizationTokenRepository = new AuthorizationTokenJdbcRepository(new JdbcClientAdapter(jdbcClient));
-        this.organizationRepository = new OrganizationJdbcRepository(new JdbcClientAdapter(jdbcClient));
-        this.organizationMemberRepository = new OrganizationMemberJdbcRepository(new JdbcClientAdapter(jdbcClient));
-        this.eventRepository = new EventJdbcRepository(new JdbcClientAdapter(jdbcClient));
-        this.ticketRepository = new TicketJdbcRepository(new JdbcClientAdapter(jdbcClient));
+        this.userJdbcRepository = new UserJdbcRepository(new JdbcClientAdapter(jdbcClient, operations));
+        this.authorizationCodeRepository = new AuthorizationCodeJdbcRepository(new JdbcClientAdapter(jdbcClient, operations));
+        this.authorizationTokenRepository = new AuthorizationTokenJdbcRepository(new JdbcClientAdapter(jdbcClient, operations));
+        this.organizationRepository = new OrganizationJdbcRepository(new JdbcClientAdapter(jdbcClient, operations));
+        this.organizationMemberRepository = new OrganizationMemberJdbcRepository(new JdbcClientAdapter(jdbcClient, operations));
+        this.eventRepository = new EventJdbcRepository(new JdbcClientAdapter(jdbcClient, operations));
+        this.ticketRepository = new TicketJdbcRepository(new JdbcClientAdapter(jdbcClient, operations));
+        this.orderRepository = new OrderJdbcRepository(new JdbcClientAdapter(jdbcClient, operations));
     }
 
     protected int countUsers() {
@@ -80,6 +89,14 @@ public abstract class AbstractRepositoryTest {
         return JdbcTestUtils.countRowsInTable(jdbcClient, TICKETS_TABLE);
     }
 
+    protected int countOrders() {
+        return JdbcTestUtils.countRowsInTable(jdbcClient, ORDERS_TABLE);
+    }
+
+    protected int countOrderItems() {
+        return JdbcTestUtils.countRowsInTable(jdbcClient, ORDER_ITEMS_TABLE);
+    }
+
     public UserJdbcRepository userRepository() {
         return userJdbcRepository;
     }
@@ -106,5 +123,9 @@ public abstract class AbstractRepositoryTest {
 
     public TicketRepository ticketRepository() {
         return ticketRepository;
+    }
+
+    public OrderRepository orderRepository() {
+        return orderRepository;
     }
 }

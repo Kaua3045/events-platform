@@ -17,4 +17,6 @@ public interface DatabaseClient {
     int update(String sql, Map<String, Object> params);
 
     Number insert(String sql, Map<String, Object> params);
+
+    int[] batchUpdate(String sql, List<Map<String, Object>> batchParams);
 }
