@@ -113,8 +113,7 @@ public class IdempotencyKeyFilter extends OncePerRequestFilter {
                             final var aHeaders = aResponseWrapper.getHeaderNames().stream()
                                     .collect(Collectors.toMap(
                                             headerName -> headerName,
-                                            headerName -> String.join(", ", aResponseWrapper.getHeaders(headerName)),
-                                            (existingValue, newValue) -> existingValue
+                                            headerName -> String.join(", ", aResponseWrapper.getHeaders(headerName))
                                     ));
 
                             final var aInput = new IdempotencyKeyInput(
