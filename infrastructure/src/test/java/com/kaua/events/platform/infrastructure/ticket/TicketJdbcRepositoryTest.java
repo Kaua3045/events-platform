@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.test.context.jdbc.Sql;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Map;
 
 class TicketJdbcRepositoryTest extends AbstractRepositoryTest {
@@ -530,5 +531,101 @@ class TicketJdbcRepositoryTest extends AbstractRepositoryTest {
 
         Assertions.assertEquals(1, response.metadata().totalItems());
         Assertions.assertEquals(aTicketOne.getId(), response.items().getFirst().getId());
+    }
+
+    @Test
+    void givenMultipleValidTickets_whenCallSaveAll_thenAllTicketsAreUpdated() {
+        final var aEventId = new EventID(ULID.random());
+
+        final var ticketOne = Fixture.TicketFixture.newTicket(aEventId);
+        final var ticketTwo = Fixture.TicketFixture.newTicket(aEventId);
+
+        this.ticketRepository().save(ticketOne);
+        this.ticketRepository().save(ticketTwo);
+
+        final var updatedTicketOne = ticketOne.update(
+                "updated-name-1",
+                "updated-description-1",
+                BigDecimal.valueOf(120.0),
+                15,
+                TicketType.VIP,
+                TicketStatus.INACTIVE
+        );
+
+        final var updatedTicketTwo = ticketTwo.update(
+                "updated-name-2",
+                "updated-description-2",
+                BigDecimal.valueOf(150.0),
+                25,
+                TicketType.STANDARD,
+                TicketStatus.AVAILABLE
+        );
+
+        final var ticketsToUpdate = List.of(updatedTicketOne, updatedTicketTwo);
+
+        final var updatedTickets = this.ticketRepository().saveAll(ticketsToUpdate);
+
+        Assertions.assertEquals(2, updatedTickets.size());
+
+        final var ticketOneFromDb = this.ticketRepository()
+                .ticketOfId(updatedTicketOne.getId().value().toString())
+                .orElseThrow();
+        final var ticketTwoFromDb = this.ticketRepository()
+                .ticketOfId(updatedTicketTwo.getId().value().toString())
+                .orElseThrow();
+
+        Assertions.assertEquals(updatedTicketOne.getName(), ticketOneFromDb.getName());
+        Assertions.assertEquals(updatedTicketTwo.getName(), ticketTwoFromDb.getName());
+        Assertions.assertEquals(updatedTicketOne.getVersion(), ticketOneFromDb.getVersion());
+        Assertions.assertEquals(updatedTicketTwo.getVersion(), ticketTwoFromDb.getVersion());
+    }
+
+    @Test
+    void givenMultipleTickets_whenOneHasVersionMismatch_thenThrowsConflictException() {
+        final var aEventId = new EventID(ULID.random());
+
+        final var ticketOne = Fixture.TicketFixture.newTicket(aEventId);
+        final var ticketTwo = Fixture.TicketFixture.newTicket(aEventId);
+
+        this.ticketRepository().save(ticketOne);
+        this.ticketRepository().save(ticketTwo);
+
+        final var updatedTicketOne = ticketOne.update(
+                "updated-name-1",
+                "updated-description-1",
+                BigDecimal.valueOf(120.0),
+                15,
+                TicketType.VIP,
+                TicketStatus.INACTIVE
+        );
+
+        final var updatedTicketTwo = ticketTwo.update(
+                "updated-name-2",
+                "updated-description-2",
+                BigDecimal.valueOf(150.0),
+                25,
+                TicketType.STANDARD,
+                TicketStatus.AVAILABLE
+        );
+        updatedTicketTwo.incrementVersion();
+
+        final var ticketsToUpdate = List.of(updatedTicketOne, updatedTicketTwo);
+
+        final var exception = Assertions.assertThrows(ConflictException.class,
+                () -> this.ticketRepository().saveAll(ticketsToUpdate));
+
+        Assertions.assertTrue(exception.getMessage().contains(ticketTwo.getId().value().toString()));
+    }
+
+    @Test
+    void givenEmptyList_whenCallSaveAll_thenReturnEmptyList() {
+        final var result = this.ticketRepository().saveAll(List.of());
+        Assertions.assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void givenNullList_whenCallSaveAll_thenReturnEmptyList() {
+        final var result = this.ticketRepository().saveAll(null);
+        Assertions.assertTrue(result.isEmpty());
     }
 }
