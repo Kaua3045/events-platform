@@ -312,4 +312,41 @@ class TicketTest extends UnitTest {
         Assertions.assertEquals(TicketStatus.DELETED, aDeletedTicket.getStatus());
         Assertions.assertTrue(aDeletedTicket.getDeletedAt().isPresent());
     }
+
+    @Test
+    void givenAValidTicket_whenCallUpdateSold_ThenReturnUpdatedTicketSold() {
+        final var aTicketID = new TicketID(ULID.random());
+        final var aVersion = 1;
+        final var aEventId = new EventID(ULID.random());
+        final var aName = "VIP Access";
+        final var aDescription = "Access to VIP area";
+        final var aPrice = BigDecimal.valueOf(100.00);
+        final var aQuantity = 50;
+        final var aSold = 0;
+        final var aType = TicketType.VIP;
+        final var aStatus = TicketStatus.AVAILABLE;
+        final var aNow = InstantUtils.now();
+
+        final var aNewSold = 10;
+
+        final var aTicket = Ticket.with(
+                aTicketID,
+                aVersion,
+                aName,
+                aDescription,
+                aEventId,
+                aPrice,
+                aQuantity,
+                aSold,
+                aType,
+                aStatus,
+                aNow,
+                aNow,
+                null
+        );
+
+        final var aUpdatedSold = aTicket.updateSold(aNewSold);
+
+        Assertions.assertEquals(aNewSold, aUpdatedSold.getSold());
+    }
 }
