@@ -131,7 +131,7 @@ class OrderAPITest {
                 .thenReturn(new Pagination<>(aMetadata, aItems));
 
         var aRequest = MockMvcRequestBuilders.get("/v1/orders")
-                .with(ApiTest.admin(ULID.random().toString()))
+                .with(ApiTest.admin(aUserId.toString()))
                 .queryParam("filters.status", "CREATED")
                 .queryParam("page", String.valueOf(aPage))
                 .queryParam("perPage", String.valueOf(aPerPage))
