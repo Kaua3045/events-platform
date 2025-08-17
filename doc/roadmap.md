@@ -17,3 +17,4 @@
 - [X] Buscar um Ticket por ID
 - [X] Soft Delete do Ticket
 - [X] Criar uma Order
+- [X] Listar Orders (Por Usuario)
