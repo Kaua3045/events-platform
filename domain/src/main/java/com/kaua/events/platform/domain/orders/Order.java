@@ -3,6 +3,7 @@ package com.kaua.events.platform.domain.orders;
 import com.kaua.events.platform.domain.AggregateRoot;
 import com.kaua.events.platform.domain.payments.PaymentID;
 import com.kaua.events.platform.domain.users.UserID;
+import com.kaua.events.platform.domain.utils.Generated;
 import com.kaua.events.platform.domain.utils.IdentifierUtils;
 import com.kaua.events.platform.domain.utils.InstantUtils;
 import com.kaua.events.platform.domain.validation.ValidationHandler;
@@ -94,6 +95,13 @@ public class Order extends AggregateRoot<OrderID> {
                 aUpdatedAt,
                 aFailedAt
         );
+    }
+
+    @Generated
+    // TODO use this to ignore in coverage, but in future remove new order and with receive items, and use this method or add
+    // if to check total is 0 or null, on is 0 or null throws exception
+    public void addAllItem(final List<OrderItem> aItem) {
+        this.items.addAll(aItem);
     }
 
     public UserID getUserId() {
