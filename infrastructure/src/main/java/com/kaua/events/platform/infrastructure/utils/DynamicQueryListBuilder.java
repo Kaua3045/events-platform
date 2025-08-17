@@ -38,6 +38,43 @@ public final class DynamicQueryListBuilder {
         return new SqlQuery(sql.toString(), params);
     }
 
+    public static SqlQuery build(
+            final String table,
+            final SearchQuery query,
+            final Specification specification,
+            final List<String> allowedSortFields,
+            final List<String> selectColumns
+    ) {
+        Objects.requireNonNull(table, "table must not be null");
+        Objects.requireNonNull(query, "query must not be null");
+        Objects.requireNonNull(allowedSortFields, "allowedSortFields must not be null");
+
+        final var sql = new StringBuilder("SELECT ");
+        if (selectColumns != null && !selectColumns.isEmpty()) {
+            sql.append(String.join(", ", selectColumns));
+        } else {
+            sql.append("*");
+        }
+        sql.append(" FROM ").append(table).append(" ");
+
+        final Map<String, Object> params = new HashMap<>();
+
+        if (specification != null) {
+            specification.applyJoins(sql);
+        }
+
+        sql.append("WHERE 1=1");
+
+        if (specification != null) {
+            specification.apply(sql, params);
+        }
+
+        appendOrderBy(sql, query, allowedSortFields);
+        appendPagination(sql, params, query);
+
+        return new SqlQuery(sql.toString(), params);
+    }
+
     private static void appendOrderBy(
             final StringBuilder sql,
             final SearchQuery query,
