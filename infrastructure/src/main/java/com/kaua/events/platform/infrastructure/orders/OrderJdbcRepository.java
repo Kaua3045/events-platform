@@ -80,29 +80,16 @@ public class OrderJdbcRepository implements OrderRepository {
                 "userId", "user_id"
         );
 
-        List<String> columns = List.of(
-                "o.id AS order_id",
-                "o.version AS order_version",
-                "o.user_id AS order_user_id",
-                "o.total_amount AS order_total_amount",
-                "o.payment_id AS order_payment_id",
-                "o.status AS order_status",
-                "o.created_at AS order_created_at",
-                "o.updated_at AS order_updated_at",
-                "o.failed_at AS order_failed_at"
-        );
-
-        final var allowedSortFields = List.of("o.created_at", "o.updated_at", "o.total_amount");
+        final var allowedSortFields = List.of("created_at", "updated_at", "total_amount");
 
         var spec = buildFiltersSpecification(query.filters(), allowedFilters)
                 .orElse(DynamicQueryListBuilder.Specification.where(null));
 
         final var dynamicQuery = DynamicQueryListBuilder.build(
-                "orders o",
+                "orders",
                 query,
                 spec,
-                allowedSortFields,
-                columns
+                allowedSortFields
         );
 
         final var countSql = new StringBuilder("SELECT COUNT(*) FROM orders WHERE 1=1");
@@ -279,18 +266,18 @@ public class OrderJdbcRepository implements OrderRepository {
 
     private RowMap<Order> orderRowMap() {
         return rs -> Order.with(
-                new OrderID(ULID.fromString(rs.getString("order_id"))),
-                rs.getLong("order_version"),
-                new UserID(ULID.fromString(rs.getString("order_user_id"))),
+                new OrderID(ULID.fromString(rs.getString("id"))),
+                rs.getLong("version"),
+                new UserID(ULID.fromString(rs.getString("user_id"))),
                 new ArrayList<>(),
-                rs.getBigDecimal("order_total_amount"),
-                rs.getString("order_payment_id") != null
-                        ? new PaymentID(ULID.fromString(rs.getString("order_payment_id")))
+                rs.getBigDecimal("total_amount"),
+                rs.getString("payment_id") != null
+                        ? new PaymentID(ULID.fromString(rs.getString("payment_id")))
                         : null,
-                OrderStatus.from(rs.getString("order_status")).orElse(null),
-                JdbcUtils.getInstant(rs, "order_created_at"),
-                JdbcUtils.getInstant(rs, "order_updated_at"),
-                JdbcUtils.getInstant(rs, "order_failed_at")
+                OrderStatus.from(rs.getString("status")).orElse(null),
+                JdbcUtils.getInstant(rs, "created_at"),
+                JdbcUtils.getInstant(rs, "updated_at"),
+                JdbcUtils.getInstant(rs, "failed_at")
         );
     }
 
