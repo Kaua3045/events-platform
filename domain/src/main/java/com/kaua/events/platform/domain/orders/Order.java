@@ -142,7 +142,6 @@ public class Order extends AggregateRoot<OrderID> {
     }
 
     private void setItems(final List<OrderItem> items) {
-        this.assertArgumentNotEmpty(items, "items", "should not be empty");
         this.items = items;
     }
 
