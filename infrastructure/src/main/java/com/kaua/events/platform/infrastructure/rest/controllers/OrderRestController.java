@@ -1,6 +1,8 @@
 package com.kaua.events.platform.infrastructure.rest.controllers;
 
 import com.kaua.events.platform.application.usecases.orders.create.CreateCheckoutUseCase;
+import com.kaua.events.platform.application.usecases.orders.retrieve.get.GetOrderByIdInput;
+import com.kaua.events.platform.application.usecases.orders.retrieve.get.GetOrderByIdUseCase;
 import com.kaua.events.platform.application.usecases.orders.retrieve.list.ListOrdersByUserIdUseCase;
 import com.kaua.events.platform.domain.pagination.Pagination;
 import com.kaua.events.platform.domain.pagination.SearchQuery;
@@ -9,6 +11,7 @@ import com.kaua.events.platform.infrastructure.configurations.authentication.Aut
 import com.kaua.events.platform.infrastructure.idempotency.IdempotencyKey;
 import com.kaua.events.platform.infrastructure.orders.req.CreateCheckoutRequest;
 import com.kaua.events.platform.infrastructure.orders.res.CreateCheckoutResponse;
+import com.kaua.events.platform.infrastructure.orders.res.GetOrderByIdResponse;
 import com.kaua.events.platform.infrastructure.orders.res.ListOrdersByUserIdResponse;
 import com.kaua.events.platform.infrastructure.rest.OrderAPI;
 import org.springframework.http.HttpStatus;
@@ -24,13 +27,16 @@ public class OrderRestController implements OrderAPI {
 
     private final CreateCheckoutUseCase createCheckoutUseCase;
     private final ListOrdersByUserIdUseCase listOrdersByUserIdUseCase;
+    private final GetOrderByIdUseCase getOrderByIdUseCase;
 
     public OrderRestController(
             final CreateCheckoutUseCase createCheckoutUseCase,
-            final ListOrdersByUserIdUseCase listOrdersByUserIdUseCase
+            final ListOrdersByUserIdUseCase listOrdersByUserIdUseCase,
+            final GetOrderByIdUseCase getOrderByIdUseCase
     ) {
         this.createCheckoutUseCase = Objects.requireNonNull(createCheckoutUseCase);
         this.listOrdersByUserIdUseCase = Objects.requireNonNull(listOrdersByUserIdUseCase);
+        this.getOrderByIdUseCase = Objects.requireNonNull(getOrderByIdUseCase);
     }
 
     @IdempotencyKey
@@ -82,5 +88,16 @@ public class OrderRestController implements OrderAPI {
         final var aOutput = this.listOrdersByUserIdUseCase.execute(aQuery);
 
         return aOutput.map(ListOrdersByUserIdResponse::from);
+    }
+
+    @Override
+    public ResponseEntity<GetOrderByIdResponse> getOrderById(final String orderId) {
+        final var aInput = GetOrderByIdInput.with(orderId);
+
+        final var aOutput = this.getOrderByIdUseCase.execute(aInput);
+
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(GetOrderByIdResponse.from(aOutput));
     }
 }
