@@ -38,6 +38,41 @@ public class OrderJdbcRepository implements OrderRepository {
         this.databaseClient = Objects.requireNonNull(databaseClient);
     }
 
+    @Transactional(readOnly = true)
+    @Override
+    public Optional<Order> orderOfId(final String id) {
+        final var aOrderSql = "SELECT * FROM orders WHERE id = :id";
+
+        final var aOrder = this.databaseClient.queryOne(
+                aOrderSql,
+                Map.of("id", id),
+                orderRowMap()
+        );
+
+        if (aOrder.isEmpty()) {
+            return Optional.empty();
+        }
+
+        final var aOrderItemsSql = "SELECT * FROM order_items WHERE order_id = :orderId";
+
+        final var aOrderItems = this.databaseClient.query(
+                aOrderItemsSql,
+                Map.of("orderId", id),
+                orderItemRowMap()
+        ).stream().map(it -> OrderItem.with(
+                it.orderItemId(),
+                it.eventId(),
+                it.ticketId(),
+                it.quantity(),
+                it.unitPrice(),
+                it.totalPrice()
+        )).toList();
+
+        aOrder.get().addAllItem(aOrderItems);
+
+        return aOrder;
+    }
+
     @Override
     public Pagination<Order> listAll(final SearchQuery query) {
         final var allowedFilters = Map.of(

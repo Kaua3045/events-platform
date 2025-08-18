@@ -2,12 +2,14 @@ package com.kaua.events.platform.domain.orders;
 
 import com.kaua.events.platform.domain.eventmanagement.EventID;
 import com.kaua.events.platform.domain.ticket.TicketID;
+import com.kaua.events.platform.domain.utils.Generated;
 import com.kaua.events.platform.domain.utils.IdentifierUtils;
 import com.kaua.events.platform.domain.utils.ULID;
 import com.kaua.events.platform.domain.validation.AssertionConcern;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.Objects;
 
 // TODO change BigDecimal to Money value object and setScale default to 2 half up
 public class OrderItem implements AssertionConcern {
@@ -132,5 +134,18 @@ public class OrderItem implements AssertionConcern {
                 ", unitPrice=" + unitPrice +
                 ", totalPrice=" + totalPrice +
                 ')';
+    }
+
+    @Generated
+    @Override
+    public boolean equals(final Object object) {
+        if (!(object instanceof OrderItem orderItem)) return false;
+        return Objects.equals(id, orderItem.id);
+    }
+
+    @Generated
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(id);
     }
 }
