@@ -6,6 +6,8 @@ import com.kaua.events.platform.ControllerTest;
 import com.kaua.events.platform.application.usecases.orders.create.CreateCheckoutInput;
 import com.kaua.events.platform.application.usecases.orders.create.CreateCheckoutOutput;
 import com.kaua.events.platform.application.usecases.orders.create.CreateCheckoutUseCase;
+import com.kaua.events.platform.application.usecases.orders.retrieve.get.GetOrderByIdOutput;
+import com.kaua.events.platform.application.usecases.orders.retrieve.get.GetOrderByIdUseCase;
 import com.kaua.events.platform.application.usecases.orders.retrieve.list.ListOrdersByUserIdOutput;
 import com.kaua.events.platform.application.usecases.orders.retrieve.list.ListOrdersByUserIdUseCase;
 import com.kaua.events.platform.domain.Fixture;
@@ -25,6 +27,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultHandlers;
 
+import java.math.RoundingMode;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -44,6 +47,9 @@ class OrderAPITest {
 
     @MockitoBean
     private ListOrdersByUserIdUseCase listOrdersByUserIdUseCase;
+
+    @MockitoBean
+    private GetOrderByIdUseCase getOrderByIdUseCase;
 
     @Captor
     private ArgumentCaptor<CreateCheckoutInput> createCheckoutInputCaptor;
@@ -161,5 +167,39 @@ class OrderAPITest {
                 .andExpect(jsonPath("$.items[0].updated_at").value(aOrderOne.getUpdatedAt().toString()));
 
         Mockito.verify(listOrdersByUserIdUseCase, Mockito.times(1)).execute(any());
+    }
+
+    @Test
+    void givenAValidOrderId_whenCallGetOrderById_thenReturnOrder() throws Exception {
+        final var aOrder = Fixture.OrderFixture.newOrder(
+                List.of(Fixture.OrderFixture.newOrderItem(ULID.random(), ULID.random()))
+        );
+        final var aOrderId = aOrder.getId().value().toString();
+
+        Mockito.when(getOrderByIdUseCase.execute(any()))
+                .thenReturn(GetOrderByIdOutput.from(aOrder));
+
+        final var aRequest = MockMvcRequestBuilders.get("/v1/orders/%s".formatted(aOrderId))
+                .with(ApiTest.admin(ULID.random().toString()))
+                .accept(MediaType.APPLICATION_JSON_VALUE)
+                .contentType(MediaType.APPLICATION_JSON_VALUE);
+
+        final var aResponse = this.mvc.perform(aRequest);
+
+        aResponse
+                .andDo(MockMvcResultHandlers.print())
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Type", MediaType.APPLICATION_JSON_VALUE))
+                .andExpect(jsonPath("$.order_id").value(aOrder.getId().value().toString()))
+                .andExpect(jsonPath("$.user_id").value(aOrder.getUserId().value().toString()))
+                .andExpect(jsonPath("$.items[0].item_id").value(aOrder.getItems().getFirst().getId().toString()))
+                .andExpect(jsonPath("$.total_amount").value(aOrder.getTotalAmount().setScale(1, RoundingMode.HALF_UP)))
+                .andExpect(jsonPath("$.payment_id").value(aOrder.getPaymentId().map(it -> it.value().toString()).orElse(null)))
+                .andExpect(jsonPath("$.status").value(aOrder.getStatus().name()))
+                .andExpect(jsonPath("$.created_at").value(aOrder.getCreatedAt().toString()))
+                .andExpect(jsonPath("$.updated_at").value(aOrder.getUpdatedAt().toString()))
+                .andExpect(jsonPath("$.failed_at").value(aOrder.getFailedAt().orElse(null)));
+
+        Mockito.verify(getOrderByIdUseCase, Mockito.times(1)).execute(any());
     }
 }
