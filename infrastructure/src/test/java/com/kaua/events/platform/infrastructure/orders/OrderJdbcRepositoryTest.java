@@ -270,4 +270,54 @@ class OrderJdbcRepositoryTest extends AbstractRepositoryTest {
 
         Assertions.assertEquals(2, response.metadata().totalItems());
     }
+
+    @Test
+    void givenAValidOrderId_whenCallOrderOfId_thenOrderAndItemsAreReturned() {
+        Assertions.assertEquals(0, countOrders());
+        Assertions.assertEquals(0, countOrderItems());
+
+        final var aUserId = new UserID(ULID.random());
+
+        final var itemOne = OrderItem.newItem(
+                new EventID(ULID.random()),
+                new TicketID(ULID.random()),
+                2,
+                BigDecimal.valueOf(100)
+        );
+        final var itemTwo = OrderItem.newItem(
+                new EventID(ULID.random()),
+                new TicketID(ULID.random()),
+                1,
+                BigDecimal.valueOf(50)
+        );
+
+        final var aOrder = Order.newOrder(aUserId, List.of(itemOne, itemTwo));
+        orderRepository().save(aOrder);
+
+        final var aRetrievedOrder = orderRepository().orderOfId(aOrder.getId().value().toString())
+                .orElseThrow();
+
+        Assertions.assertEquals(1, countOrders());
+        Assertions.assertEquals(aOrder.getId(), aRetrievedOrder.getId());
+        Assertions.assertEquals(1, aRetrievedOrder.getVersion());
+        Assertions.assertEquals(aUserId, aRetrievedOrder.getUserId());
+        Assertions.assertEquals(OrderStatus.CREATED, aRetrievedOrder.getStatus());
+        Assertions.assertTrue(aOrder.getItems().containsAll(aRetrievedOrder.getItems()));
+
+        Assertions.assertEquals(2, countOrderItems());
+    }
+
+    @Test
+    void givenAnInvalidOrderId_whenCallOrderOfId_thenReturnedEmpty() {
+        Assertions.assertEquals(0, countOrders());
+        Assertions.assertEquals(0, countOrderItems());
+
+        final var aOrderId = ULID.random().toString();
+
+        final var aRetrievedOrder = orderRepository().orderOfId(aOrderId);
+
+        Assertions.assertTrue(aRetrievedOrder.isEmpty());
+        Assertions.assertEquals(0, countOrders());
+        Assertions.assertEquals(0, countOrderItems());
+    }
 }
