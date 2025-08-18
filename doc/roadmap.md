@@ -18,3 +18,4 @@
 - [X] Soft Delete do Ticket
 - [X] Criar uma Order
 - [X] Listar Orders (Por Usuario)
+- [X] Get order by id (Por usuario?)
