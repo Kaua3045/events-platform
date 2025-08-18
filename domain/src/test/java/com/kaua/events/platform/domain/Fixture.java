@@ -1,11 +1,16 @@
 package com.kaua.events.platform.domain;
 
 import com.kaua.events.platform.domain.eventmanagement.*;
+import com.kaua.events.platform.domain.orders.Order;
+import com.kaua.events.platform.domain.orders.OrderID;
+import com.kaua.events.platform.domain.orders.OrderItem;
+import com.kaua.events.platform.domain.orders.OrderStatus;
 import com.kaua.events.platform.domain.organizations.Organization;
 import com.kaua.events.platform.domain.organizations.OrganizationID;
 import com.kaua.events.platform.domain.organizations.OrganizationMember;
 import com.kaua.events.platform.domain.organizations.OrganizationMemberRole;
 import com.kaua.events.platform.domain.ticket.Ticket;
+import com.kaua.events.platform.domain.ticket.TicketID;
 import com.kaua.events.platform.domain.ticket.TicketStatus;
 import com.kaua.events.platform.domain.ticket.TicketType;
 import com.kaua.events.platform.domain.users.*;
@@ -15,6 +20,7 @@ import net.datafaker.Faker;
 
 import java.math.BigDecimal;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 
 public final class Fixture {
 
@@ -235,6 +241,55 @@ public final class Fixture {
                     aQuantity,
                     TicketType.STANDARD,
                     TicketStatus.AVAILABLE
+            );
+        }
+    }
+
+    public static final class OrderFixture {
+        private OrderFixture() {
+        }
+
+        public static OrderItem newOrderItem(final ULID eventId, final ULID ticketId) {
+            return OrderItem.newItem(
+                    new EventID(eventId),
+                    new TicketID(ticketId),
+                    5,
+                    BigDecimal.valueOf(10)
+            );
+        }
+
+        public static Order newOrder(final List<OrderItem> items) {
+            return Order.newOrder(
+                    new UserID(ULID.random()),
+                    items
+            );
+        }
+
+        public static Order newOrder(final UserID userID, final List<OrderItem> items) {
+            return Order.newOrder(
+                    userID,
+                    items
+            );
+        }
+
+        public static Order withStatus(final UserID userID, OrderStatus status) {
+            final var aItem = OrderFixture.newOrderItem(
+                    ULID.random(),
+                    ULID.random()
+            );
+            final var aNow = InstantUtils.now();
+
+            return Order.with(
+                    new OrderID(ULID.random()),
+                    0L,
+                    userID,
+                    List.of(aItem),
+                    aItem.getTotalPrice(),
+                    null,
+                    status,
+                    aNow,
+                    aNow,
+                    null
             );
         }
     }

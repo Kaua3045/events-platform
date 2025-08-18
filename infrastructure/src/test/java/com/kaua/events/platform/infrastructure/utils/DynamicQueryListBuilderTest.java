@@ -632,4 +632,142 @@ class DynamicQueryListBuilderTest extends UnitTest {
         // Then
         assertTrue(sqlQuery.sql().contains("ORDER BY id ASC"));
     }
+
+    @Test
+    void givenNullSelectColumns_whenBuild_thenSelectAllColumns() {
+        final var query = SearchQuery.newSearchQuery(1, 10, null, "id", "ASC");
+        final var spec = com.kaua.events.platform.infrastructure.utils.DynamicQueryListBuilder.equal("active", "active", true);
+
+        final var sqlQuery = com.kaua.events.platform.infrastructure.utils.DynamicQueryListBuilder.build(
+                "users",
+                query,
+                spec,
+                List.of("id", "name"),
+                null
+        );
+
+        assertTrue(sqlQuery.sql().startsWith("SELECT * FROM users"));
+        assertTrue(sqlQuery.sql().contains("AND active = :active"));
+        assertEquals(true, sqlQuery.params().get("active"));
+    }
+
+    @Test
+    void givenEmptySelectColumns_whenBuild_thenSelectAllColumns() {
+        final var query = SearchQuery.newSearchQuery(1, 10, null, "id", "ASC");
+        final var spec = com.kaua.events.platform.infrastructure.utils.DynamicQueryListBuilder.equal("active", "active", true);
+
+        final var sqlQuery = com.kaua.events.platform.infrastructure.utils.DynamicQueryListBuilder.build(
+                "users",
+                query,
+                spec,
+                List.of("id", "name"),
+                List.of()
+        );
+
+        assertTrue(sqlQuery.sql().startsWith("SELECT * FROM users"));
+        assertTrue(sqlQuery.sql().contains("AND active = :active"));
+        assertEquals(true, sqlQuery.params().get("active"));
+    }
+
+    @Test
+    void givenSelectColumns_whenBuild_thenSelectOnlyThoseColumns() {
+        final var query = SearchQuery.newSearchQuery(1, 10, null, "id", "ASC");
+        final var spec = com.kaua.events.platform.infrastructure.utils.DynamicQueryListBuilder.equal("active", "active", true);
+
+        final var sqlQuery = com.kaua.events.platform.infrastructure.utils.DynamicQueryListBuilder.build(
+                "users",
+                query,
+                spec,
+                List.of("id", "name"),
+                List.of("id", "name", "email")
+        );
+
+        assertTrue(sqlQuery.sql().startsWith("SELECT id, name, email FROM users"));
+        assertTrue(sqlQuery.sql().contains("AND active = :active"));
+        assertEquals(true, sqlQuery.params().get("active"));
+    }
+
+    @Test
+    void givenSelectColumnsWithJoins_whenBuild_thenSelectRespected() {
+        final var query = SearchQuery.newSearchQuery(1, 10, null, "id", "ASC");
+        final var join = com.kaua.events.platform.infrastructure.utils.DynamicQueryListBuilder.leftJoin("profiles", "p", "p.user_id = users.id");
+
+        final var sqlQuery = com.kaua.events.platform.infrastructure.utils.DynamicQueryListBuilder.build(
+                "users",
+                query,
+                join,
+                List.of("id"),
+                List.of("users.id", "p.bio")
+        );
+
+        assertTrue(sqlQuery.sql().startsWith("SELECT users.id, p.bio FROM users"));
+        assertTrue(sqlQuery.sql().contains("LEFT JOIN profiles p ON p.user_id = users.id"));
+    }
+
+    @Test
+    void givenSelectColumnsAndSpec_whenBuild_thenSelectAndFiltersApplied() {
+        final var query = SearchQuery.newSearchQuery(1, 10, null, "name", "ASC");
+        final var spec = com.kaua.events.platform.infrastructure.utils.DynamicQueryListBuilder.equal("active", "active", true)
+                .and(com.kaua.events.platform.infrastructure.utils.DynamicQueryListBuilder.like("name", "nameParam", "John"));
+
+        final var sqlQuery = com.kaua.events.platform.infrastructure.utils.DynamicQueryListBuilder.build(
+                "users",
+                query,
+                spec,
+                List.of("name"),               // allowedSortFields
+                List.of("id", "name", "email") // selectColumns
+        );
+
+        assertTrue(sqlQuery.sql().startsWith("SELECT id, name, email FROM users"));
+
+        assertTrue(sqlQuery.sql().contains("AND active = :active"));
+        assertTrue(sqlQuery.sql().contains("AND LOWER(name) LIKE :nameParam"));
+
+        assertEquals(true, sqlQuery.params().get("active"));
+        assertEquals("%john%", sqlQuery.params().get("nameParam"));
+    }
+
+    @Test
+    void givenSelectColumnsWithJoinAndSpec_whenBuild_thenQueryCorrect() {
+        final var query = SearchQuery.newSearchQuery(1, 10, null, "created_at", "DESC");
+        final var join = com.kaua.events.platform.infrastructure.utils.DynamicQueryListBuilder.leftJoin("profiles", "p", "p.user_id = users.id");
+        final var spec = join.and(com.kaua.events.platform.infrastructure.utils.DynamicQueryListBuilder.notEqual("deleted", "deleted", true));
+
+        final var sqlQuery = com.kaua.events.platform.infrastructure.utils.DynamicQueryListBuilder.build(
+                "users",
+                query,
+                spec,
+                List.of("created_at"),           // allowedSortFields
+                List.of("users.id", "users.name", "p.bio") // selectColumns
+        );
+
+        assertTrue(sqlQuery.sql().startsWith("SELECT users.id, users.name, p.bio FROM users"));
+
+        assertTrue(sqlQuery.sql().contains("LEFT JOIN profiles p ON p.user_id = users.id"));
+
+        assertTrue(sqlQuery.sql().contains("AND deleted != :deleted"));
+        assertEquals(true, sqlQuery.params().get("deleted"));
+    }
+
+    @Test
+    void givenNullSpecification_whenBuild_thenQueryWithoutSpecApplied() {
+        final var query = SearchQuery.newSearchQuery(1, 10, null, "id", "ASC");
+
+        final var sqlQuery = com.kaua.events.platform.infrastructure.utils.DynamicQueryListBuilder.build(
+                "users",
+                query,
+                null,                     // specification nulo
+                List.of("id", "name"),    // allowedSortFields
+                List.of("id", "name")     // selectColumns
+        );
+
+        assertTrue(sqlQuery.sql().startsWith("SELECT id, name FROM users"));
+
+        assertFalse(sqlQuery.sql().contains("JOIN"));
+        assertFalse(sqlQuery.sql().contains("AND"));
+
+        assertTrue(sqlQuery.sql().contains("ORDER BY id ASC"));
+        assertEquals(10, sqlQuery.params().get("limit"));
+        assertEquals(0, sqlQuery.params().get("offset"));
+    }
 }

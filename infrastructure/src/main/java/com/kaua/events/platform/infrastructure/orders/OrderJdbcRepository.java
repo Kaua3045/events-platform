@@ -1,19 +1,31 @@
 package com.kaua.events.platform.infrastructure.orders;
 
 import com.kaua.events.platform.application.repositories.OrderRepository;
+import com.kaua.events.platform.domain.eventmanagement.EventID;
 import com.kaua.events.platform.domain.orders.Order;
+import com.kaua.events.platform.domain.orders.OrderID;
 import com.kaua.events.platform.domain.orders.OrderItem;
+import com.kaua.events.platform.domain.orders.OrderStatus;
+import com.kaua.events.platform.domain.pagination.Pagination;
+import com.kaua.events.platform.domain.pagination.PaginationMetadata;
+import com.kaua.events.platform.domain.pagination.SearchQuery;
+import com.kaua.events.platform.domain.payments.PaymentID;
+import com.kaua.events.platform.domain.ticket.TicketID;
+import com.kaua.events.platform.domain.users.UserID;
+import com.kaua.events.platform.domain.utils.ULID;
 import com.kaua.events.platform.infrastructure.jdbc.DatabaseClient;
+import com.kaua.events.platform.infrastructure.jdbc.JdbcUtils;
+import com.kaua.events.platform.infrastructure.jdbc.RowMap;
+import com.kaua.events.platform.infrastructure.utils.DynamicQueryListBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.math.BigDecimal;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Component
 public class OrderJdbcRepository implements OrderRepository {
@@ -24,6 +36,92 @@ public class OrderJdbcRepository implements OrderRepository {
 
     public OrderJdbcRepository(final DatabaseClient databaseClient) {
         this.databaseClient = Objects.requireNonNull(databaseClient);
+    }
+
+    @Override
+    public Pagination<Order> listAll(final SearchQuery query) {
+        final var allowedFilters = Map.of(
+                "status", "status",
+                "userId", "user_id"
+        );
+
+        List<String> columns = List.of(
+                "o.id AS order_id",
+                "o.version AS order_version",
+                "o.user_id AS order_user_id",
+                "o.total_amount AS order_total_amount",
+                "o.payment_id AS order_payment_id",
+                "o.status AS order_status",
+                "o.created_at AS order_created_at",
+                "o.updated_at AS order_updated_at",
+                "o.failed_at AS order_failed_at"
+        );
+
+        final var allowedSortFields = List.of("o.created_at", "o.updated_at", "o.total_amount");
+
+        var spec = buildFiltersSpecification(query.filters(), allowedFilters)
+                .orElse(DynamicQueryListBuilder.Specification.where(null));
+
+        final var dynamicQuery = DynamicQueryListBuilder.build(
+                "orders o",
+                query,
+                spec,
+                allowedSortFields,
+                columns
+        );
+
+        final var countSql = new StringBuilder("SELECT COUNT(*) FROM orders WHERE 1=1");
+        final Map<String, Object> countParams = new HashMap<>();
+        spec.apply(countSql, countParams);
+
+        final var itemsCount = this.databaseClient.count(countSql.toString(), countParams);
+        final var totalPages = (int) Math.ceil((double) itemsCount / query.perPage());
+
+        final var aOrders = this.databaseClient.query(dynamicQuery.sql(), dynamicQuery.params(), orderRowMap());
+
+        final var metadata = new PaginationMetadata(
+                query.page(),
+                query.perPage(),
+                totalPages,
+                itemsCount
+        );
+
+        if (aOrders.isEmpty()) {
+            return new Pagination<>(metadata, List.of());
+        }
+
+        final var aOrderIds = aOrders.stream().map(it -> it.getId().value().toString())
+                .toList();
+
+        final var itemsSql = "SELECT * FROM order_items WHERE order_id IN (:order_ids)";
+
+        Map<String, Object> params = Map.of("order_ids", aOrderIds);
+
+        final var aItems = this.databaseClient.query(
+                itemsSql,
+                params,
+                orderItemRowMap()
+        );
+
+        final var aItemsByOrder = aItems.stream()
+                .collect(Collectors.groupingBy(
+                        OrderItemDTO::orderId,
+                        Collectors.mapping(dto -> OrderItem.with(
+                                dto.orderItemId,
+                                dto.eventId,
+                                dto.ticketId,
+                                dto.quantity,
+                                dto.unitPrice,
+                                dto.totalPrice
+                        ), Collectors.toList())
+                ));
+
+        aOrders.forEach(order -> {
+            var its = aItemsByOrder.getOrDefault(order.getId(), List.of());
+            order.addAllItem(its);
+        });
+
+        return new Pagination<>(metadata, aOrders);
     }
 
     @Override
@@ -121,5 +219,66 @@ public class OrderJdbcRepository implements OrderRepository {
         log.debug("Creating {} items", items.size());
 
         this.databaseClient.batchUpdate(sql, batchParams);
+    }
+
+    private Optional<DynamicQueryListBuilder.Specification> buildFiltersSpecification(
+            Map<String, String> filters,
+            Map<String, String> allowedFilters
+    ) {
+        if (filters.isEmpty()) {
+            return Optional.empty();
+        }
+
+        return filters.entrySet().stream()
+                .filter(entry -> {
+                    var value = entry.getValue();
+                    return allowedFilters.containsKey(entry.getKey()) && !value.isBlank();
+                })
+                .map(entry -> DynamicQueryListBuilder.equal(
+                        allowedFilters.get(entry.getKey()),
+                        entry.getKey().replace(".", "_"),
+                        entry.getValue()
+                ))
+                .reduce(DynamicQueryListBuilder.Specification::and);
+    }
+
+    private RowMap<Order> orderRowMap() {
+        return rs -> Order.with(
+                new OrderID(ULID.fromString(rs.getString("order_id"))),
+                rs.getLong("order_version"),
+                new UserID(ULID.fromString(rs.getString("order_user_id"))),
+                new ArrayList<>(),
+                rs.getBigDecimal("order_total_amount"),
+                rs.getString("order_payment_id") != null
+                        ? new PaymentID(ULID.fromString(rs.getString("order_payment_id")))
+                        : null,
+                OrderStatus.from(rs.getString("order_status")).orElse(null),
+                JdbcUtils.getInstant(rs, "order_created_at"),
+                JdbcUtils.getInstant(rs, "order_updated_at"),
+                JdbcUtils.getInstant(rs, "order_failed_at")
+        );
+    }
+
+    private RowMap<OrderItemDTO> orderItemRowMap() {
+        return rs -> new OrderItemDTO(
+                new OrderID(ULID.fromString(rs.getString("order_id"))),
+                ULID.fromString(rs.getString("id")),
+                new EventID(ULID.fromString(rs.getString("event_id"))),
+                new TicketID(ULID.fromString(rs.getString("ticket_id"))),
+                rs.getInt("quantity"),
+                rs.getBigDecimal("unit_price"),
+                rs.getBigDecimal("total_price")
+        );
+    }
+
+    public record OrderItemDTO(
+            OrderID orderId,
+            ULID orderItemId,
+            EventID eventId,
+            TicketID ticketId,
+            int quantity,
+            BigDecimal unitPrice,
+            BigDecimal totalPrice
+    ) {
     }
 }
