@@ -4,6 +4,7 @@ import com.kaua.events.platform.domain.pagination.Pagination;
 import com.kaua.events.platform.infrastructure.configurations.authentication.AuthenticatedUser;
 import com.kaua.events.platform.infrastructure.orders.req.CreateCheckoutRequest;
 import com.kaua.events.platform.infrastructure.orders.res.CreateCheckoutResponse;
+import com.kaua.events.platform.infrastructure.orders.res.GetOrderByIdResponse;
 import com.kaua.events.platform.infrastructure.orders.res.ListOrdersByUserIdResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -55,4 +56,17 @@ public interface OrderAPI {
             @RequestParam(name = "endDate", required = false) String endDate,
             @AuthenticationPrincipal AuthenticatedUser user
     );
+
+    @GetMapping(
+            value = "/{orderId}",
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    @Operation(summary = "Get a order by it's identifier")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Order successfully found"),
+            @ApiResponse(responseCode = "404", description = "Order not found"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    ResponseEntity<GetOrderByIdResponse> getOrderById(@PathVariable("orderId") String orderId);
+
 }
