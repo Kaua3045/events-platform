@@ -9,11 +9,15 @@ import com.kaua.events.platform.domain.exceptions.DomainException;
 import com.kaua.events.platform.domain.exceptions.NotFoundException;
 import com.kaua.events.platform.domain.orders.Order;
 import com.kaua.events.platform.domain.orders.OrderItem;
+import com.kaua.events.platform.domain.orders.events.OrderCreatedEvent;
+import com.kaua.events.platform.domain.payments.PaymentDetails;
 import com.kaua.events.platform.domain.payments.PaymentMethod;
+import com.kaua.events.platform.domain.payments.PixPaymentDetails;
 import com.kaua.events.platform.domain.ticket.Ticket;
 import com.kaua.events.platform.domain.users.UserID;
 import com.kaua.events.platform.domain.utils.ULID;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Objects;
 
@@ -80,6 +84,14 @@ public class DefaultCreateCheckoutUseCase extends CreateCheckoutUseCase {
                     );
 
                     // TODO Register OrderCreatedEvent
+                    aOrder.registerEvent(new OrderCreatedEvent(
+                            aOrder.getId().value().toString(),
+                            aOrder.getVersion(),
+                            aOrder.getStatus().name(),
+                            aOrder.getTotalAmount(),
+                            createPaymentDetails(input, aOrder.getTotalAmount()),
+                            ctx.traceId()
+                    ));
 
                     final var aTransactionResult = this.transactionManager.execute(() -> {
                         ctx.runInSpan(
@@ -112,5 +124,15 @@ public class DefaultCreateCheckoutUseCase extends CreateCheckoutUseCase {
                     return aTransactionResult.getValue();
                 }
         );
+    }
+
+    private PaymentDetails createPaymentDetails(
+            final CreateCheckoutInput aInput,
+            final BigDecimal aTotalAmount
+    ) {
+        return switch (aInput.paymentDetails().method()) {
+            case PIX -> new PixPaymentDetails(aTotalAmount);
+            default -> null;
+        };
     }
 }

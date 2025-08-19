@@ -1,6 +1,7 @@
 package com.kaua.events.platform.application;
 
 import com.kaua.events.platform.application.wrapper.ObservationContext;
+import com.kaua.events.platform.domain.utils.IdentifierUtils;
 
 import java.util.concurrent.Callable;
 
@@ -19,6 +20,11 @@ public class FakeObservationContext implements ObservationContext {
     @Override
     public void addEvent(String name) {
         // no-op
+    }
+
+    @Override
+    public String traceId() {
+        return IdentifierUtils.generateNewId();
     }
 
     @Override

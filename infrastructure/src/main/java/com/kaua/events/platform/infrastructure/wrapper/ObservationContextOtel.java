@@ -50,6 +50,18 @@ public class ObservationContextOtel implements ObservationContext {
     }
 
     @Override
+    public String traceId() {
+        Span span = Span.current();
+        if (span != null && span.getSpanContext().isValid()) {
+            return span.getSpanContext().getTraceId();
+        }
+        if (parentSpan != null && parentSpan.getSpanContext().isValid()) {
+            return parentSpan.getSpanContext().getTraceId();
+        }
+        return null;
+    }
+
+    @Override
     public <T> T runInSpanInternal(String name, Callable<T> block) {
         Span subSpan = tracer.spanBuilder(name)
                 .setParent(Context.current().with(parentSpan))

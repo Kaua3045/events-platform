@@ -25,6 +25,11 @@ class ObservationContextTest extends UseCaseTest {
             public void addEvent(String name) {
 
             }
+
+            @Override
+            public String traceId() {
+                return "";
+            }
         };
 
         UnsupportedOperationException exception = Assertions.assertThrows(
@@ -50,6 +55,11 @@ class ObservationContextTest extends UseCaseTest {
 
             @Override
             public void addEvent(String name) {
+            }
+
+            @Override
+            public String traceId() {
+                return "";
             }
 
             @Override
@@ -87,6 +97,11 @@ class ObservationContextTest extends UseCaseTest {
             }
 
             @Override
+            public String traceId() {
+                return "";
+            }
+
+            @Override
             public <T> T runInSpanInternal(String name, Callable<T> block) {
                 try {
                     return block.call();
@@ -117,6 +132,11 @@ class ObservationContextTest extends UseCaseTest {
             @Override
             public void addEvent(String name) {
 
+            }
+
+            @Override
+            public String traceId() {
+                return "";
             }
 
             @Override
@@ -151,6 +171,11 @@ class ObservationContextTest extends UseCaseTest {
             @Override
             public void addEvent(String name) {
                 Assertions.assertEquals("test-event", name);
+            }
+
+            @Override
+            public String traceId() {
+                return "";
             }
         };
 

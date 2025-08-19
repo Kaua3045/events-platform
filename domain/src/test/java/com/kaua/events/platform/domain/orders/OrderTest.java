@@ -3,7 +3,9 @@ package com.kaua.events.platform.domain.orders;
 import com.kaua.events.platform.domain.UnitTest;
 import com.kaua.events.platform.domain.eventmanagement.EventID;
 import com.kaua.events.platform.domain.exceptions.ValidationException;
+import com.kaua.events.platform.domain.orders.events.OrderCreatedEvent;
 import com.kaua.events.platform.domain.payments.PaymentID;
+import com.kaua.events.platform.domain.payments.PixPaymentDetails;
 import com.kaua.events.platform.domain.ticket.TicketID;
 import com.kaua.events.platform.domain.users.UserID;
 import com.kaua.events.platform.domain.utils.InstantUtils;
@@ -49,6 +51,7 @@ class OrderTest extends UnitTest {
         Assertions.assertNotNull(aOrder);
         Assertions.assertNotNull(aOrder.getId());
         Assertions.assertEquals(aUserId, aOrder.getUserId());
+        Assertions.assertTrue(aOrder.getItems().containsAll(aItems));
         Assertions.assertEquals(BigDecimal.valueOf(133.25), aOrder.getTotalAmount());
         Assertions.assertTrue(aOrder.getPaymentId().isEmpty());
         Assertions.assertEquals(OrderStatus.CREATED, aOrder.getStatus());
@@ -262,5 +265,48 @@ class OrderTest extends UnitTest {
         Assertions.assertEquals(aEventId, aItem.getEventId());
         Assertions.assertEquals(aTicketId, aItem.getTicketId());
         Assertions.assertEquals(aQuantity, aItem.getQuantity());
+    }
+
+    @Test
+    void givenAValidOrderCreatedEvent_whenCallRegisterEvent_thenReturnOrderWithEvents() {
+        final var aEventId = new EventID(ULID.random());
+        final var aTicketId = new TicketID(ULID.random());
+        final var aUserId = new UserID(ULID.random());
+        final var aUnitPriceItem = BigDecimal.valueOf(10.55);
+        final var aTotalPriceItem = BigDecimal.valueOf(105.50);
+        final var aQuantity = 10;
+
+        final var aOrderItemOne = OrderItem.newItem(
+                aEventId,
+                aTicketId,
+                aQuantity,
+                aUnitPriceItem
+        );
+
+        final var aItems = List.of(aOrderItemOne, OrderItem.newItem(
+                aEventId,
+                new TicketID(ULID.random()),
+                5,
+                BigDecimal.valueOf(5.55)
+        ));
+
+        final var aOrder = Order.newOrder(
+                aUserId,
+                aItems
+        );
+
+        final var aEvent = new OrderCreatedEvent(
+                aOrder.getId().value().toString(),
+                aOrder.getVersion(),
+                aOrder.getStatus().name(),
+                aOrder.getTotalAmount(),
+                new PixPaymentDetails(aOrder.getTotalAmount()),
+                "1234-traceId"
+        );
+
+        aOrder.registerEvent(aEvent);
+
+        Assertions.assertEquals(1, aOrder.getDomainEvents().size());
+        Assertions.assertTrue(aOrder.getDomainEvents().contains(aEvent));
     }
 }
