@@ -57,6 +57,8 @@ class OrderAPITest {
     @Test
     void givenAValidRequest_whenCallCreateCheckout_thenReturnCreatedOrder() throws Exception {
         final var aUserId = "user-123";
+        final var aDocumentNumber = "448.370.900-36";
+        final var aDocumentType = "cpf";
         final var anOrderId = "order-456";
         final var paymentMethod = "PIX";
         final var qrCodeUrl = "http://qr-code-url";
@@ -70,6 +72,8 @@ class OrderAPITest {
 
         var json = """
                 {
+                    "document_number": "%s",
+                    "document_type": "%s",
                     "items": [
                         {
                             "event_id": "%s",
@@ -81,7 +85,7 @@ class OrderAPITest {
                         "method": "PIX"
                     }
                 }
-                """.formatted(aEventId, aTicketId, aQuantity);
+                """.formatted(aDocumentNumber, aDocumentType, aEventId, aTicketId, aQuantity);
 
         var mvcRequest = MockMvcRequestBuilders.post("/v1/orders")
                 .with(ApiTest.admin(aUserId))
