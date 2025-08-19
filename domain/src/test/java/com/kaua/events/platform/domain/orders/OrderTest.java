@@ -49,6 +49,7 @@ class OrderTest extends UnitTest {
         Assertions.assertNotNull(aOrder);
         Assertions.assertNotNull(aOrder.getId());
         Assertions.assertEquals(aUserId, aOrder.getUserId());
+        Assertions.assertTrue(aOrder.getItems().containsAll(aItems));
         Assertions.assertEquals(BigDecimal.valueOf(133.25), aOrder.getTotalAmount());
         Assertions.assertTrue(aOrder.getPaymentId().isEmpty());
         Assertions.assertEquals(OrderStatus.CREATED, aOrder.getStatus());
