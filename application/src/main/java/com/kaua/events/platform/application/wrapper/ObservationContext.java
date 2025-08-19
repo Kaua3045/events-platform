@@ -10,6 +10,8 @@ public interface ObservationContext {
 
     void addEvent(String name);
 
+    String traceId();
+
     default void runInSpan(final String name, Runnable block) {
         runInSpanInternal(name, () -> {
             block.run();
