@@ -7,6 +7,12 @@ import com.kaua.events.platform.application.usecases.orders.retrieve.get.Default
 import com.kaua.events.platform.application.usecases.orders.retrieve.get.GetOrderByIdInput;
 import com.kaua.events.platform.domain.Fixture;
 import com.kaua.events.platform.domain.exceptions.NotFoundException;
+import com.kaua.events.platform.domain.orders.Order;
+import com.kaua.events.platform.domain.orders.OrderID;
+import com.kaua.events.platform.domain.orders.OrderStatus;
+import com.kaua.events.platform.domain.payments.PaymentID;
+import com.kaua.events.platform.domain.users.UserID;
+import com.kaua.events.platform.domain.utils.InstantUtils;
 import com.kaua.events.platform.domain.utils.ULID;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -14,6 +20,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
@@ -47,6 +54,43 @@ class GetOrderByIdUseCaseTest extends UseCaseTest {
         Assertions.assertEquals(aOrder.getItems().getFirst().getId().toString(), aOutput.items().getFirst().itemId());
         Assertions.assertEquals(aOrder.getTotalAmount(), aOutput.totalAmount());
         Assertions.assertNull(aOutput.paymentId());
+        Assertions.assertEquals(aOrder.getStatus().name(), aOutput.status());
+        Assertions.assertEquals(aOrder.getCreatedAt(), aOutput.createdAt());
+        Assertions.assertEquals(aOrder.getUpdatedAt(), aOutput.updatedAt());
+        Assertions.assertNull(aOutput.failedAt());
+
+        Mockito.verify(orderRepository, Mockito.times(1)).orderOfId(any());
+    }
+
+    @Test
+    void givenAValidInput_whenCallsGetOrderById_thenReturnOrderWithPaymentId() {
+        final var aOrder = Order.with(
+                new OrderID(ULID.random()),
+                0L,
+                new UserID(ULID.random()),
+                List.of(Fixture.OrderFixture.newOrderItem(ULID.random(), ULID.random())),
+                BigDecimal.valueOf(50),
+                new PaymentID(ULID.random()),
+                OrderStatus.PAID,
+                InstantUtils.now(),
+                InstantUtils.now(),
+                null
+        );
+        final var aOrderId = aOrder.getId().value().toString();
+
+        final var aInput = GetOrderByIdInput.with(aOrderId);
+
+        Mockito.when(orderRepository.orderOfId(any()))
+                .thenReturn(Optional.of(aOrder));
+
+        final var aOutput = Assertions.assertDoesNotThrow(() -> this.useCase.execute(aInput));
+
+        Assertions.assertNotNull(aOutput);
+        Assertions.assertEquals(aOrderId, aOutput.orderId());
+        Assertions.assertEquals(aOrder.getUserId().value().toString(), aOutput.userId());
+        Assertions.assertEquals(aOrder.getItems().getFirst().getId().toString(), aOutput.items().getFirst().itemId());
+        Assertions.assertEquals(aOrder.getTotalAmount(), aOutput.totalAmount());
+        Assertions.assertEquals(aOrder.getPaymentId().get().value().toString(), aOutput.paymentId());
         Assertions.assertEquals(aOrder.getStatus().name(), aOutput.status());
         Assertions.assertEquals(aOrder.getCreatedAt(), aOutput.createdAt());
         Assertions.assertEquals(aOrder.getUpdatedAt(), aOutput.updatedAt());
