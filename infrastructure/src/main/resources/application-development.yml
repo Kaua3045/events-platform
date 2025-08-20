@@ -5,6 +5,17 @@ application:
   environment: ${DEPLOYMENT_ENVIRONMENT_NAME:dev}
   instance: events-platform-01
 
+efi:
+  pix:
+    base-url: http://localhost:8081/api/mock-efi
+    oauth-token-path: /oauth/token
+    oauth-scopes: "cob.write cob.read pix.write pix.read pix.send webhook.write webhook.read"
+    client-id: ${PIX_CLIENT_ID:""}
+    client-secret: ${PIX_CLIENT_SECRET:""}
+    p12-password: ${PIX_P12_PASSWORD:""}
+    p12-local-path: ./certificates
+    p12-source: local
+
 redis:
   host: localhost
   port: 6379
