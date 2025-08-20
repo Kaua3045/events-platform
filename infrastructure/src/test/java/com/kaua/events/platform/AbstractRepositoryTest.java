@@ -8,6 +8,7 @@ import com.kaua.events.platform.infrastructure.oauth.token.AuthorizationTokenJdb
 import com.kaua.events.platform.infrastructure.orders.OrderJdbcRepository;
 import com.kaua.events.platform.infrastructure.organizations.OrganizationJdbcRepository;
 import com.kaua.events.platform.infrastructure.organizations.OrganizationMemberJdbcRepository;
+import com.kaua.events.platform.infrastructure.payments.PaymentJdbcRepository;
 import com.kaua.events.platform.infrastructure.ticket.TicketJdbcRepository;
 import com.kaua.events.platform.infrastructure.users.UserJdbcRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,6 +34,7 @@ public abstract class AbstractRepositoryTest {
     private static final String TICKETS_TABLE = "tickets";
     private static final String ORDERS_TABLE = "orders";
     private static final String ORDER_ITEMS_TABLE = "order_items";
+    private static final String PAYMENTS_TABLE = "payments";
 
     @Autowired
     private JdbcClient jdbcClient;
@@ -48,6 +50,7 @@ public abstract class AbstractRepositoryTest {
     private EventRepository eventRepository;
     private TicketRepository ticketRepository;
     private OrderRepository orderRepository;
+    private PaymentRepository paymentRepository;
 
     @BeforeEach
     void setUp() {
@@ -59,6 +62,7 @@ public abstract class AbstractRepositoryTest {
         this.eventRepository = new EventJdbcRepository(new JdbcClientAdapter(jdbcClient, operations));
         this.ticketRepository = new TicketJdbcRepository(new JdbcClientAdapter(jdbcClient, operations));
         this.orderRepository = new OrderJdbcRepository(new JdbcClientAdapter(jdbcClient, operations));
+        this.paymentRepository = new PaymentJdbcRepository(new JdbcClientAdapter(jdbcClient, operations));
     }
 
     protected int countUsers() {
@@ -97,6 +101,10 @@ public abstract class AbstractRepositoryTest {
         return JdbcTestUtils.countRowsInTable(jdbcClient, ORDER_ITEMS_TABLE);
     }
 
+    protected int countPayments() {
+        return JdbcTestUtils.countRowsInTable(jdbcClient, PAYMENTS_TABLE);
+    }
+
     public UserJdbcRepository userRepository() {
         return userJdbcRepository;
     }
@@ -127,5 +135,9 @@ public abstract class AbstractRepositoryTest {
 
     public OrderRepository orderRepository() {
         return orderRepository;
+    }
+
+    public PaymentRepository paymentRepository() {
+        return paymentRepository;
     }
 }
