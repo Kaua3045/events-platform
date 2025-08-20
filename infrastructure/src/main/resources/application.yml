@@ -32,6 +32,12 @@ idempotency-key:
   storage:
     type: in-memory
 
+jobs: # TODO revisar isso
+  efi:
+    client-credentials:
+      refresh-rate-minutes: 50
+      refresh-initial-delay-minutes: 45
+
 logging:
   level:
     org:
