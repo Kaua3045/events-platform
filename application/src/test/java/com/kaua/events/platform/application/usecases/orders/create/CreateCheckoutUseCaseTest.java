@@ -7,6 +7,8 @@ import com.kaua.events.platform.application.repositories.TicketRepository;
 import com.kaua.events.platform.application.usecases.orders.create.payment.CreateCheckoutCreditCardPaymentDetails;
 import com.kaua.events.platform.application.usecases.orders.create.payment.CreateCheckoutPaymentDetailsInput;
 import com.kaua.events.platform.application.usecases.orders.create.payment.CreateCheckoutPixPaymentDetails;
+import com.kaua.events.platform.application.usecases.payments.create.CreatePaymentOutput;
+import com.kaua.events.platform.application.usecases.payments.create.CreatePaymentUseCase;
 import com.kaua.events.platform.application.wrapper.TransactionManager;
 import com.kaua.events.platform.application.wrapper.TransactionResult;
 import com.kaua.events.platform.domain.eventmanagement.EventID;
@@ -44,6 +46,9 @@ class CreateCheckoutUseCaseTest extends UseCaseTest {
     @Mock
     private TransactionManager transactionManager;
 
+    @Mock
+    private CreatePaymentUseCase createPaymentUseCase;
+
     @InjectMocks
     private DefaultCreateCheckoutUseCase useCase;
 
@@ -71,6 +76,12 @@ class CreateCheckoutUseCaseTest extends UseCaseTest {
 
         mockTicketFound(ticket);
         mockOrderSave();
+        Mockito.when(createPaymentUseCase.execute(Mockito.any()))
+                .thenReturn(new CreatePaymentOutput(
+                        ULID.random().toString(),
+                        "qrCode",
+                        "qrCodeImage")
+                );
 
         final var output = Assertions.assertDoesNotThrow(() -> useCase.execute(input));
 
