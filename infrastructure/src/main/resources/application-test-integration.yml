@@ -17,7 +17,7 @@ application:
 
 efi:
   pix:
-    base-url: http://localhost:8081/api/mock-efi
+    base-url: http://localhost:${wiremock.server.port:8001}
     oauth-token-path: /oauth/token
     oauth-scopes: "cob.write cob.read pix.write pix.read pix.send webhook.write webhook.read"
     client-id: ${PIX_CLIENT_ID:""}
