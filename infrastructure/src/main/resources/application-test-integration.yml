@@ -15,6 +15,17 @@ application:
           - "read"
           - "write"
 
+efi:
+  pix:
+    base-url: http://localhost:8081/api/mock-efi
+    oauth-token-path: /oauth/token
+    oauth-scopes: "cob.write cob.read pix.write pix.read pix.send webhook.write webhook.read"
+    client-id: ${PIX_CLIENT_ID:""}
+    client-secret: ${PIX_CLIENT_SECRET:""}
+    p12-password: "test123"
+    p12-local-path: certificates/test/test_cert.p12
+    p12-source: local
+
 redis:
   host: ${redis.hosts:localhost}
   port: ${redis.ports:6390}
