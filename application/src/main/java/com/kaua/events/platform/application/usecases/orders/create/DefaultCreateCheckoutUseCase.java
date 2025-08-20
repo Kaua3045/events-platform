@@ -3,6 +3,8 @@ package com.kaua.events.platform.application.usecases.orders.create;
 import com.kaua.events.platform.application.exceptions.UseCaseInputCannotBeNullException;
 import com.kaua.events.platform.application.repositories.OrderRepository;
 import com.kaua.events.platform.application.repositories.TicketRepository;
+import com.kaua.events.platform.application.usecases.payments.create.CreatePaymentInput;
+import com.kaua.events.platform.application.usecases.payments.create.CreatePaymentUseCase;
 import com.kaua.events.platform.application.wrapper.TracerWrapper;
 import com.kaua.events.platform.application.wrapper.TransactionManager;
 import com.kaua.events.platform.domain.exceptions.DomainException;
@@ -27,17 +29,20 @@ public class DefaultCreateCheckoutUseCase extends CreateCheckoutUseCase {
     private final TicketRepository ticketRepository;
     private final TracerWrapper tracerWrapper;
     private final TransactionManager transactionManager;
+    private final CreatePaymentUseCase createPaymentUseCase;
 
     public DefaultCreateCheckoutUseCase(
             final OrderRepository orderRepository,
             final TicketRepository ticketRepository,
             final TracerWrapper tracerWrapper,
-            final TransactionManager transactionManager
+            final TransactionManager transactionManager,
+            final CreatePaymentUseCase createPaymentUseCase
     ) {
         this.orderRepository = Objects.requireNonNull(orderRepository);
         this.ticketRepository = Objects.requireNonNull(ticketRepository);
         this.tracerWrapper = Objects.requireNonNull(tracerWrapper);
         this.transactionManager = Objects.requireNonNull(transactionManager);
+        this.createPaymentUseCase = Objects.requireNonNull(createPaymentUseCase);
     }
 
     @Override
@@ -101,8 +106,14 @@ public class DefaultCreateCheckoutUseCase extends CreateCheckoutUseCase {
 
                         String qrCodeUrl = null;
                         if (input.paymentDetails().method() == PaymentMethod.PIX) {
-                            System.out.println("PaymentMethod is PIX, sending request to process");
-                            qrCodeUrl = "HTTPS://Localhstoo128318u02:8080";
+//                            System.out.println("PaymentMethod is PIX, sending request to process");
+//                            qrCodeUrl = "HTTPS://Localhstoo128318u02:8080";
+                            qrCodeUrl = this.createPaymentUseCase.execute(CreatePaymentInput.with(
+                                    createPaymentDetails(input, aOrder.getTotalAmount()),
+                                    aOrder.getId().value().toString(),
+                                    ctx.traceId()
+                            )).qrCode();
+                            // TODO need return all qrCode info and update PaymentId order
                         }
 
                         ctx.runInSpan(
