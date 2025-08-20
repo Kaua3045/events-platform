@@ -8,6 +8,7 @@ import com.kaua.events.platform.application.usecases.orders.retrieve.get.Default
 import com.kaua.events.platform.application.usecases.orders.retrieve.get.GetOrderByIdUseCase;
 import com.kaua.events.platform.application.usecases.orders.retrieve.list.DefaultListOrdersByUserIdUseCase;
 import com.kaua.events.platform.application.usecases.orders.retrieve.list.ListOrdersByUserIdUseCase;
+import com.kaua.events.platform.application.usecases.payments.create.CreatePaymentUseCase;
 import com.kaua.events.platform.application.wrapper.TracerWrapper;
 import com.kaua.events.platform.application.wrapper.TransactionManager;
 import org.springframework.context.annotation.Bean;
@@ -21,13 +22,15 @@ public class OrderUseCaseConfig {
             final OrderRepository orderRepository,
             final TicketRepository ticketRepository,
             final TracerWrapper tracerWrapper,
-            final TransactionManager transactionManager
+            final TransactionManager transactionManager,
+            final CreatePaymentUseCase createPaymentUseCase
     ) {
         return new DefaultCreateCheckoutUseCase(
                 orderRepository,
                 ticketRepository,
                 tracerWrapper,
-                transactionManager
+                transactionManager,
+                createPaymentUseCase
         );
     }
 
