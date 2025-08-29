@@ -42,13 +42,19 @@ public class DefaultCreatePaymentUseCase extends CreatePaymentUseCase {
                             input.paymentDetails().amount()
                     );
 
-                    this.paymentRepository.save(aPayment);
+                    ctx.runInSpan(
+                            "payment.save",
+                            () -> this.paymentRepository.save(aPayment)
+                    );
 
-                    final var aOutput = this.paymentGateway.process(new PaymentProcessRequest(
-                            aPayment.getTransactionId(),
-                            aPayment.getOrderId().value().toString(),
-                            input.paymentDetails()
-                    ));
+                    final var aOutput = ctx.runInSpan(
+                            "payment.process",
+                            () -> this.paymentGateway.process(new PaymentProcessRequest(
+                                    aPayment.getTransactionId(),
+                                    aPayment.getOrderId().value().toString(),
+                                    input.paymentDetails()
+                            ))
+                    );
 
                     if (aPayment.getMethod().equals(PaymentMethod.PIX) && aOutput.status().equals(PaymentProcessStatus.ACTIVE)) {
                         final var aPendingPayment = aPayment.markAsPending(
@@ -57,9 +63,12 @@ public class DefaultCreatePaymentUseCase extends CreatePaymentUseCase {
                                 aOutput.qrCodeImageUrl()
                         );
 
-                        this.paymentRepository.save(aPendingPayment);
+                        ctx.runInSpan(
+                                "payment.update",
+                                () -> this.paymentRepository.save(aPendingPayment)
+                        );
 
-                        return CreatePaymentOutput.from(aPayment);
+                        return CreatePaymentOutput.from(aPendingPayment);
                     }
 
                     // TODO se nao for pix, deve salvar um evento e retornar o payment ou alguma outra coisa, talvez caso seja pix criar um caso de uso a parte
