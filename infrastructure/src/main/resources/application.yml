@@ -32,7 +32,7 @@ idempotency-key:
   storage:
     type: in-memory
 
-jobs: # TODO revisar isso
+jobs:
   efi:
     client-credentials:
       refresh-rate-minutes: 50
@@ -130,3 +130,72 @@ management:
   endpoint:
     prometheus:
       enabled: true
+
+resilience4j.bulkhead:
+  configs:
+    default:
+      maxConcurrentCalls: 25
+      maxWaitDuration: 100 # Caso tenha 25 request já com permissão no método, o 26º request vai esperar 100ms para tentar ter permissão, se não conseguir lança uma exception
+  instances:
+    payments:
+      baseConfig: default
+
+resilience4j.circuitbreaker: # https://resilience4j.readme.io/docs/circuitbreaker
+  configs:
+    default: # Ele pega uma quantia de request ou um periodo de tempo, e se a quantidade de falhas / slow call for maior que o limite, ele abre o circuito
+      registerHealthIndicator: true # Se ele deve registrar um indicador de saúde
+      slidingWindowType: COUNT_BASED # COUNT_BASED ou TIME_BASED - COUNT_BASED é baseado no número de chamadas, TIME_BASED é baseado no tempo de chamada. COUNT_BASED faz a contagem das chamadas e abre o circuito quando atinge o limite de falhas
+      slidingWindowSize: 100 # Número de chamadas que ele vai fazer para verificar se o circuito deve ser aberto
+      minimumNumberOfCalls: 20 # Número mínimo de chamadas para verificar se o circuito deve ser aberto aqui é em porcentagem, ele abre o circuito quando 20% das chamadas falham
+      permittedNumberOfCallsInHalfOpenState: 10 # Número de chamadas permitidas no estado de meio aberto, então em meio aberto ele permite 10 chamadas para ver se o circuito está funcionando e se ele deve fechar ou abrir novamente
+      automaticTransitionFromOpenToHalfOpenEnabled: false # Se ele deve fazer a transição automática do estado aberto para o meio aberto, ele cria um thread só pra verificar isso, mas como sempre vai vir mais 1 request, não é necessário
+      waitDurationInOpenState: 30s # Tempo que ele vai esperar para fazer a transição do estado aberto para o meio aberto
+      failureRateThreshold: 50 # 50% configura o limte de falhas para abrir o circuito em porcentagem, deve ser igual ou maior, ele abre o circuito quando 50% das chamadas falham
+      slowCallRateThreshold: 70 # 70% configura o limte de chamadas lentas para abrir o circuito em porcentagem, deve ser igual ou maior, ele abre o circuito quando 50% das chamadas são lentas
+      slowCallDurationThreshold: 1s # 1 segundos configura o tempo de chamada lenta, ele abre o circuito quando 50% das chamadas são lentas, aqui configuramos o tempo máximo que uma chamada pode demorar para ser considerada lenta
+      recordExceptions: # Aqui configuramos as exceptions que ele vai considerar como falha
+        - com.kaua.events.platform.domain.exceptions.InternalErrorException
+        - com.kaua.events.platform.domain.exceptions.DomainException
+        - com.kaua.events.platform.domain.exceptions.ValidationException
+        - com.kaua.events.platform.domain.exceptions.NotFoundException
+#        - com.kaua.events.platform.infrastructure.exceptions.ForbiddenException
+#        - com.kaua.events.platform.infrastructure.exceptions.UnauthorizedException
+        - com.kaua.events.platform.infrastructure.exceptions.ConflictException
+        - org.springframework.web.reactive.function.client.WebClientRequestException
+        - org.springframework.web.reactive.function.client.WebClientResponseException
+        - org.springframework.web.reactive.function.client.WebClientException
+        - org.springframework.web.reactive.function.client.WebClientResponseException.BadGateway
+        - org.springframework.web.reactive.function.client.WebClientResponseException.GatewayTimeout
+        - org.springframework.web.reactive.function.client.WebClientResponseException.InternalServerError
+        - org.springframework.web.reactive.function.client.WebClientResponseException.ServiceUnavailable
+        - java.io.IOException
+        - java.net.SocketTimeoutException
+  instances:
+    payments:
+      baseConfig: default
+
+resilience4j.retry:
+  configs:
+    default:
+      maxAttempts: 3
+      waitDuration: 250
+      retryExceptions:
+        - com.kaua.events.platform.domain.exceptions.InternalErrorException
+        - com.kaua.events.platform.domain.exceptions.DomainException
+        - com.kaua.events.platform.domain.exceptions.ValidationException
+        - com.kaua.events.platform.domain.exceptions.NotFoundException
+#        - com.kaua.events.platform.infrastructure.exceptions.ForbiddenException
+#        - com.kaua.events.platform.infrastructure.exceptions.UnauthorizedException
+        - com.kaua.events.platform.infrastructure.exceptions.ConflictException
+        - org.springframework.web.reactive.function.client.WebClientRequestException
+        - org.springframework.web.reactive.function.client.WebClientResponseException
+        - org.springframework.web.reactive.function.client.WebClientException
+        - org.springframework.web.reactive.function.client.WebClientResponseException.BadGateway
+        - org.springframework.web.reactive.function.client.WebClientResponseException.GatewayTimeout
+        - org.springframework.web.reactive.function.client.WebClientResponseException.InternalServerError
+        - org.springframework.web.reactive.function.client.WebClientResponseException.ServiceUnavailable
+        - java.io.IOException
+        - java.net.SocketTimeoutException
+  instances:
+    payments:
+      baseConfig: default
