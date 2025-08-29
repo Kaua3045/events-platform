@@ -23,9 +23,9 @@ public class PaymentDetailsDeserializer extends StdDeserializer<CreateCheckoutPa
     ) throws IOException {
         JsonNode node = p.getCodec().readTree(p);
         String method = node.get("method").asText();
-        if ("PIX".equals(method)) {
+        if ("PIX".equalsIgnoreCase(method)) {
             return new CreateCheckoutPixPaymentDetails();
-        } else if ("CREDIT_CARD".equals(method)) {
+        } else if ("CREDIT_CARD".equalsIgnoreCase(method)) {
             return new CreateCheckoutCreditCardPaymentDetails();
         }
         throw new IllegalArgumentException("Unknown payment method: " + method);
