@@ -1,6 +1,6 @@
 package com.kaua.events.platform.infrastructure.configurations.authentication.client;
 
-import com.kaua.events.platform.infrastructure.configurations.properties.EfiPixProperties;
+import com.kaua.events.platform.infrastructure.configurations.properties.payments.EfiPixProperties;
 import org.springframework.stereotype.Component;
 
 import java.util.Objects;

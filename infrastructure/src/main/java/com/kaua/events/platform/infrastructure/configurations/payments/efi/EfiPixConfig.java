@@ -47,11 +47,13 @@ public class EfiPixConfig {
     @Bean
     public PaymentGateway paymentGateway(
             @EfiClient final WebClient webClient,
-            final GetClientCredentials getClientCredentials
+            final GetClientCredentials getClientCredentials,
+            final EfiPixProperties efiPixProperties
     ) {
         return new EfiPaymentGateway(
                 webClient,
-                getClientCredentials
+                getClientCredentials,
+                efiPixProperties
         );
     }
 }

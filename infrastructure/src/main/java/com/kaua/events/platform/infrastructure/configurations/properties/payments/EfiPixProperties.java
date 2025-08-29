@@ -6,6 +6,8 @@ import org.springframework.beans.factory.InitializingBean;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 
+import java.util.List;
+
 @Configuration(proxyBeanMethods = false)
 @ConfigurationProperties(prefix = "efi.pix")
 public class EfiPixProperties implements InitializingBean {
@@ -14,17 +16,22 @@ public class EfiPixProperties implements InitializingBean {
 
     private String baseUrl;
     private String oauthTokenPath;
-    private String oauthScopes;
+    private boolean skipMtlsChecking;
 
     private String clientId;
     private String clientSecret;
-    private String p12Password;
 
+    private List<String> pixKeys;
+
+    private String p12Password;
     private String p12Source;
     private String p12LocalPath;
 
     @Override
     public void afterPropertiesSet() {
+        if (this.getPixKeys().isEmpty()) {
+            throw new RuntimeException("At least one pix key must be defined");
+        }
         log.debug("Efi pix properties initialized {}", this);
     }
 
@@ -42,14 +49,6 @@ public class EfiPixProperties implements InitializingBean {
 
     public void setOauthTokenPath(String oauthTokenPath) {
         this.oauthTokenPath = oauthTokenPath;
-    }
-
-    public String getOauthScopes() {
-        return oauthScopes;
-    }
-
-    public void setOauthScopes(String oauthScopes) {
-        this.oauthScopes = oauthScopes;
     }
 
     public String getClientId() {
@@ -92,12 +91,32 @@ public class EfiPixProperties implements InitializingBean {
         this.p12LocalPath = p12LocalPath;
     }
 
+    public List<String> getPixKeys() {
+        return pixKeys;
+    }
+
+    public void setPixKeys(List<String> pixKeys) {
+        this.pixKeys = pixKeys;
+    }
+
+    public boolean isSkipMtlsChecking() {
+        return skipMtlsChecking;
+    }
+
+    public void setSkipMtlsChecking(boolean skipMtlsChecking) {
+        this.skipMtlsChecking = skipMtlsChecking;
+    }
+
     @Override
     public String toString() {
         return "EfiPixProperties(" +
                 "baseUrl='" + baseUrl + '\'' +
                 ", oauthTokenPath='" + oauthTokenPath + '\'' +
-                ", oauthScopes='" + oauthScopes + '\'' +
+                ", skipMtlsChecking=" + skipMtlsChecking +
+                ", clientId='" + clientId + '\'' +
+                ", clientSecret='" + clientSecret + '\'' +
+                ", pixKeys=" + pixKeys +
+                ", p12Password='" + p12Password + '\'' +
                 ", p12Source='" + p12Source + '\'' +
                 ", p12LocalPath='" + p12LocalPath + '\'' +
                 ')';
