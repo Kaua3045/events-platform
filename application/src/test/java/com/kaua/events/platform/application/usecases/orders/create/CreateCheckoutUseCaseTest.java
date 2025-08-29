@@ -53,12 +53,12 @@ class CreateCheckoutUseCaseTest extends UseCaseTest {
     private DefaultCreateCheckoutUseCase useCase;
 
     @BeforeEach
-    void setupTransactionManager() {
+    void setup() {
         Mockito.when(transactionManager.execute(Mockito.any()))
                 .thenAnswer(invocation -> {
-                    Supplier<?> action = invocation.getArgument(0);
+                    final var supplier = invocation.getArgument(0, Supplier.class);
                     try {
-                        Object result = action.get();
+                        Object result = supplier.get();
                         return TransactionResult.success(result);
                     } catch (RuntimeException e) {
                         return TransactionResult.failure(e);
@@ -87,12 +87,14 @@ class CreateCheckoutUseCaseTest extends UseCaseTest {
 
         Assertions.assertNotNull(output);
         Assertions.assertNotNull(output.getOrderId());
+        Assertions.assertTrue(output.getQrCodeUrl().isPresent());
+        Assertions.assertTrue(output.getQrCodeImageUrl().isPresent());
         Assertions.assertEquals(PaymentMethod.PIX.name(), output.getPaymentMethod());
         Assertions.assertNotNull(output.getOrderId());
 
         Mockito.verify(tracerWrapper).traceWithReturn(Mockito.eq("createCheckoutUseCase"), Mockito.any());
-        Mockito.verify(ticketRepository).saveAll(Mockito.anyList());
-        Mockito.verify(orderRepository).save(argThat(o -> o.getItems().size() == 1));
+        Mockito.verify(ticketRepository, Mockito.times(1)).saveAll(Mockito.anyList());
+        Mockito.verify(orderRepository, Mockito.times(2)).save(argThat(o -> o.getItems().size() == 1));
     }
 
     @Test
@@ -169,23 +171,44 @@ class CreateCheckoutUseCaseTest extends UseCaseTest {
     }
 
     @Test
-    void givenTransactionFails_whenExecute_thenThrowRuntimeException() {
+    void givenTransactionFailure_whenExecute_thenThrowDomainException() {
         final var userId = randomId();
         final var eventId = randomId();
-        final var document = "448.370.900-36";
-        final var ticket = newTicket("VIP Ticket", BigDecimal.valueOf(100), 2, TicketType.PROMOTIONAL);
-        final var input = createCheckoutInput(document, eventId.toString(), userId.toString(), ticket, 2, new CreateCheckoutPixPaymentDetails());
+        final var ticket = newTicket("VIP standard", BigDecimal.valueOf(100), 2, TicketType.STANDARD);
+        final var input = createCheckoutInput("448.370.900-36", eventId.toString(), userId.toString(), ticket, 1, new CreateCheckoutPixPaymentDetails());
+
+        mockTicketFound(ticket);
+
+        Mockito.when(transactionManager.execute(Mockito.any()))
+                .thenReturn(TransactionResult.failure(new RuntimeException("DB error")));
+
+        Assertions.assertThrows(RuntimeException.class, () -> useCase.execute(input));
+
+        Mockito.verify(orderRepository, Mockito.never()).save(Mockito.any());
+    }
+
+    @Test
+    void givenPixPaymentFails_whenExecute_thenThrowDomainException() {
+        final var userId = randomId();
+        final var eventId = randomId();
+        final var ticket = newTicket("VIP pista", BigDecimal.valueOf(100), 2, TicketType.STANDARD);
+        final var input = createCheckoutInput("448.370.900-36", eventId.toString(), userId.toString(), ticket, 1, new CreateCheckoutPixPaymentDetails());
 
         mockTicketFound(ticket);
         mockOrderSave();
 
-        mockTransactionFailure(new RuntimeException("DB failure"));
+        Mockito.when(createPaymentUseCase.execute(Mockito.any()))
+                .thenThrow(new RuntimeException("Payment service down"));
+        Mockito.when(orderRepository.save(Mockito.any(Order.class)))
+                .thenAnswer(returnsFirstArg());
+        Mockito.when(ticketRepository.saveAll(Mockito.anyList()))
+                .thenAnswer(returnsFirstArg());
 
-        RuntimeException ex = Assertions.assertThrows(RuntimeException.class, () -> useCase.execute(input));
-        Assertions.assertEquals("DB failure", ex.getMessage());
+        final var ex = Assertions.assertThrows(DomainException.class, () -> useCase.execute(input));
+        Assertions.assertTrue(ex.getMessage().contains("There was an error processing the payment"));
 
-        Mockito.verify(ticketRepository, Mockito.never()).saveAll(Mockito.anyList());
-        Mockito.verify(orderRepository, Mockito.never()).save(Mockito.any());
+        Mockito.verify(orderRepository, Mockito.times(2)).save(Mockito.any(Order.class));
+        Mockito.verify(ticketRepository, Mockito.times(2)).saveAll(Mockito.anyList());
     }
 
     private ULID randomId() {
@@ -222,10 +245,5 @@ class CreateCheckoutUseCaseTest extends UseCaseTest {
 
     private void mockOrderSave() {
         Mockito.when(orderRepository.save(Mockito.any(Order.class))).thenAnswer(returnsFirstArg());
-    }
-
-    private <T> void mockTransactionFailure(RuntimeException e) {
-        Mockito.when(transactionManager.execute(Mockito.any()))
-                .thenReturn(TransactionResult.failure(e));
     }
 }
