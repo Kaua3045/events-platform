@@ -1,4 +1,4 @@
-package com.kaua.events.platform.infrastructure.configurations.properties;
+package com.kaua.events.platform.infrastructure.configurations.properties.payments;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -9,7 +9,7 @@ import org.springframework.context.annotation.Configuration;
 import java.util.List;
 
 @Configuration(proxyBeanMethods = false)
-@ConfigurationProperties(prefix = "efi.pix")
+@ConfigurationProperties(prefix = "payments.efi.pix")
 public class EfiPixProperties implements InitializingBean {
 
     private static final Logger log = LoggerFactory.getLogger(EfiPixProperties.class);
@@ -17,6 +17,7 @@ public class EfiPixProperties implements InitializingBean {
     private String baseUrl;
     private String oauthTokenPath;
     private boolean skipMtlsChecking;
+    private boolean enabled;
 
     private String clientId;
     private String clientSecret;
@@ -29,7 +30,7 @@ public class EfiPixProperties implements InitializingBean {
 
     @Override
     public void afterPropertiesSet() {
-        if (this.getPixKeys().isEmpty()) {
+        if (this.isEnabled() && this.getPixKeys().isEmpty()) {
             throw new RuntimeException("At least one pix key must be defined");
         }
         log.debug("Efi pix properties initialized {}", this);
@@ -107,12 +108,21 @@ public class EfiPixProperties implements InitializingBean {
         this.skipMtlsChecking = skipMtlsChecking;
     }
 
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+    }
+
     @Override
     public String toString() {
         return "EfiPixProperties(" +
                 "baseUrl='" + baseUrl + '\'' +
                 ", oauthTokenPath='" + oauthTokenPath + '\'' +
                 ", skipMtlsChecking=" + skipMtlsChecking +
+                ", enabled=" + enabled +
                 ", clientId='" + clientId + '\'' +
                 ", clientSecret='" + clientSecret + '\'' +
                 ", pixKeys=" + pixKeys +
