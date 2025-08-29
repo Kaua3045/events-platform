@@ -17,10 +17,8 @@ exporters:
     endpoint: http://elasticsearch:9200
     tls:
       insecure_skip_verify: true
-    logs_index: "observability-logs"
-    traces_index: "observability-traces"
-#    mapping: # default is none
-#      mode: ecs
+    mapping: # default is none
+      mode: none
 #    user: "elastic"
 #    password: "elastic"
   prometheus:
@@ -34,6 +32,7 @@ processors:
     traces:
       span:
         - IsMatch(attributes["url.full"], "http://otel-collector:4318/v1/metrics")
+        - IsMatch(attributes["url.path"], "/api/actuator/health")
 
   transform:
     log_statements:
@@ -61,6 +60,25 @@ processors:
 
   batch: {}
 
+  transform/logs:
+    log_statements:
+      - context: log
+        statements:
+          - delete_key(attributes, "code.function")
+          - delete_key(attributes, "code.lineno")
+      - context: resource
+        statements:
+          - set(attributes["elasticsearch.index"], Concat(["logs", attributes["service.name"], attributes["deployment.environment"]], "-"))
+
+  transform/traces:
+    trace_statements:
+      - context: spanevent
+        statements:
+          - set(attributes["elasticsearch.index"], Concat(["traces", attributes["service.name"], attributes["deployment.environment"]], "-"))
+      - context: resource
+        statements:
+          - set(attributes["elasticsearch.index"], Concat(["traces", attributes["service.name"], attributes["deployment.environment"]], "-"))
+
 extensions:
   health_check: {}
 
@@ -69,13 +87,13 @@ service:
   pipelines:
     traces:
       receivers: [otlp]
-      processors: [filter/spans-to-drop]
-      exporters: [otlp/jaeger,elasticsearch]
+      processors: [filter/spans-to-drop, transform/traces]
+      exporters: [debug, elasticsearch]
     metrics:
       receivers: [otlp]
-      processors: [resource]
+      processors: [batch, resource]
       exporters: [prometheus]
     logs: # https://www.elastic.co/observability-labs/blog/logstash-to-otel
       receivers: [otlp]
-      processors: [transform, resource]
+      processors: [transform, transform/logs, resource]
       exporters: [elasticsearch]
