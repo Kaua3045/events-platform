@@ -13,6 +13,7 @@ import com.kaua.events.platform.domain.orders.Order;
 import com.kaua.events.platform.domain.orders.OrderItem;
 import com.kaua.events.platform.domain.orders.events.OrderCreatedEvent;
 import com.kaua.events.platform.domain.payments.PaymentDetails;
+import com.kaua.events.platform.domain.payments.PaymentID;
 import com.kaua.events.platform.domain.payments.PaymentMethod;
 import com.kaua.events.platform.domain.payments.PixPaymentDetails;
 import com.kaua.events.platform.domain.ticket.Ticket;
@@ -21,7 +22,10 @@ import com.kaua.events.platform.domain.utils.ULID;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 public class DefaultCreateCheckoutUseCase extends CreateCheckoutUseCase {
 
@@ -52,35 +56,26 @@ public class DefaultCreateCheckoutUseCase extends CreateCheckoutUseCase {
                 ctx -> {
                     if (input == null) throw new UseCaseInputCannotBeNullException(CreateCheckoutUseCase.class);
 
-                    final var aTickets = ctx.runInSpan(
-                            "ticket.retrieves",
-                            () -> input.items().stream().map(
-                                    it -> this.ticketRepository.ticketOfId(it.ticketId())
-                                            .orElseThrow(NotFoundException.with(Ticket.class, it.ticketId()))
-                            ).toList()
+                    final Map<String, Integer> ticketQuantities = input.items().stream()
+                            .collect(Collectors.toMap(CreateCheckoutItemsInput::ticketId, CreateCheckoutItemsInput::quantity));
+
+                    final List<Ticket> aTickets = ctx.runInSpan("ticket.retrieves", () ->
+                            ticketQuantities.keySet().stream()
+                                    .map(id -> ticketRepository.ticketOfId(id)
+                                            .orElseThrow(NotFoundException.with(Ticket.class, id)))
+                                    .toList()
                     );
 
                     final var orderItems = new ArrayList<OrderItem>();
-
-                    for (var inputItem : input.items()) {
-                        final var ticket = aTickets.stream()
-                                .filter(t -> t.getId().value().toString().equals(inputItem.ticketId()))
-                                .findFirst()
-                                .orElseThrow(NotFoundException.with(Ticket.class, inputItem.ticketId()));
-
-                        final int aAvailable = ticket.getQuantity() - ticket.getSold();
-                        if (aAvailable < inputItem.quantity()) {
+                    final var aUpdatedTickets = new ArrayList<Ticket>();
+                    for (Ticket ticket : aTickets) {
+                        final int requestedQty = ticketQuantities.get(ticket.getId().value().toString());
+                        if (ticket.getQuantity() - ticket.getSold() < requestedQty) {
                             throw DomainException.with("Ticket %s is sold out or does not have enough quantity".formatted(ticket.getId()));
                         }
 
-                        ticket.updateSold(ticket.getSold() + inputItem.quantity());
-
-                        orderItems.add(OrderItem.newItem(
-                                ticket.getEventId(),
-                                ticket.getId(),
-                                inputItem.quantity(),
-                                ticket.getPrice()
-                        ));
+                        aUpdatedTickets.add(ticket.updateSold(ticket.getSold() + requestedQty));
+                        orderItems.add(OrderItem.newItem(ticket.getEventId(), ticket.getId(), requestedQty, ticket.getPrice()));
                     }
 
                     final var aOrder = Order.newOrder(
@@ -98,41 +93,71 @@ public class DefaultCreateCheckoutUseCase extends CreateCheckoutUseCase {
                             ctx.traceId()
                     ));
 
+                    ctx.setAttribute("orderId", aOrder.getId().value().toString());
+                    ctx.setAttribute("order.totalAmount", aOrder.getTotalAmount());
+                    ctx.setAttribute("order.itemsCount", aOrder.getItems().size());
+                    ctx.setAttribute("userId", aOrder.getUserId().value().toString());
+                    ctx.setAttribute("payment.method", input.paymentDetails().method().name());
+
+                    // TODO in future use events to notify other systems
                     final var aTransactionResult = this.transactionManager.execute(() -> {
                         ctx.runInSpan(
                                 "ticket.saveAll",
-                                () -> this.ticketRepository.saveAll(aTickets)
+                                () -> this.ticketRepository.saveAll(aUpdatedTickets)
                         );
-
-                        String qrCodeUrl = null;
-                        if (input.paymentDetails().method() == PaymentMethod.PIX) {
-//                            System.out.println("PaymentMethod is PIX, sending request to process");
-//                            qrCodeUrl = "HTTPS://Localhstoo128318u02:8080";
-                            qrCodeUrl = this.createPaymentUseCase.execute(CreatePaymentInput.with(
-                                    createPaymentDetails(input, aOrder.getTotalAmount()),
-                                    aOrder.getId().value().toString(),
-                                    ctx.traceId()
-                            )).qrCode();
-                            // TODO need return all qrCode info and update PaymentId order
-                        }
 
                         ctx.runInSpan(
                                 "order.save",
                                 () -> this.orderRepository.save(aOrder)
                         );
-
-                        return CreateCheckoutOutput.from(
-                                aOrder,
-                                input.paymentDetails().method().name(),
-                                qrCodeUrl
-                        );
+                        return true;
                     });
 
                     if (aTransactionResult.isFailure()) {
                         throw aTransactionResult.getException();
                     }
 
-                    return aTransactionResult.getValue();
+                    if (input.paymentDetails().method() != PaymentMethod.PIX) {
+                        return CreateCheckoutOutput.from(
+                                aOrder,
+                                input.paymentDetails().method().name(),
+                                null,
+                                null
+                        );
+                    }
+
+                    try {
+                        final var aPaymentResponse = ctx.runInSpan(
+                                "payment.create",
+                                () -> this.createPaymentUseCase.execute(CreatePaymentInput.with(
+                                        createPaymentDetails(input, aOrder.getTotalAmount()),
+                                        aOrder.getId().value().toString(),
+                                        ctx.traceId()
+                                ))
+                        );
+                        final var aOrderWithPaymentId = aOrder.updatePaymentId(new PaymentID(ULID.fromString(aPaymentResponse.paymentId())));
+
+                        ctx.runInSpan(
+                                "order.save",
+                                () -> this.orderRepository.save(aOrderWithPaymentId)
+                        );
+
+                        return CreateCheckoutOutput.from(
+                                aOrderWithPaymentId,
+                                input.paymentDetails().method().name(),
+                                aPaymentResponse.qrCode(),
+                                aPaymentResponse.qrCodeImageUrl()
+                        );
+                    } catch (Exception ex) {
+                        ctx.runInSpan("order.saveFailed", () -> this.orderRepository.save(aOrder.markAsFailed()));
+                        ctx.runInSpan("ticket.rollbackSold", () -> {
+                            final var aRollbackTickets = aUpdatedTickets.stream()
+                                    .map(t -> t.updateSold(t.getSold() - ticketQuantities.get(t.getId().value().toString())))
+                                    .toList();
+                            this.ticketRepository.saveAll(aRollbackTickets);
+                        });
+                        throw DomainException.with("There was an error processing the payment: %s".formatted(ex.getMessage()));
+                    }
                 }
         );
     }
