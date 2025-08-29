@@ -1,4 +1,4 @@
-package com.kaua.events.platform.infrastructure.configurations.efi;
+package com.kaua.events.platform.infrastructure.configurations.payments.efi;
 
 import com.kaua.events.platform.domain.exceptions.InternalErrorException;
 import io.netty.handler.ssl.SslContext;
