@@ -1,7 +1,7 @@
 CREATE TABLE payments (
     id VARCHAR(26) PRIMARY KEY,
     version BIGINT NOT NULL DEFAULT 0,
-    order_id VARCHAR(26) NOT NULL,
+    order_id VARCHAR(26) UNIQUE NOT NULL,
     transaction_id VARCHAR(32) NOT NULL,
     status VARCHAR(20) NOT NULL,
     method VARCHAR(30) NOT NULL,
