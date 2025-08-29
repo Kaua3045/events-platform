@@ -15,20 +15,53 @@ application:
           - "read"
           - "write"
 
-efi:
-  pix:
-    base-url: http://localhost:${wiremock.server.port:8001}
-    oauth-token-path: /oauth/token
-    oauth-scopes: "cob.write cob.read pix.write pix.read pix.send webhook.write webhook.read"
-    client-id: ${PIX_CLIENT_ID:""}
-    client-secret: ${PIX_CLIENT_SECRET:""}
-    p12-password: "test123"
-    p12-local-path: certificates/test/test_cert.p12
-    p12-source: local
+payments:
+  efi:
+    pix:
+      enabled: true
+      ngrok: false
+      base-url: http://localhost:${wiremock.server.port:8001}
+      oauth-token-path: /oauth/token
+      skip-mtls-checking: true
+      client-id: ${PIX_CLIENT_ID:""}
+      client-secret: ${PIX_CLIENT_SECRET:""}
+      pix-keys:
+        - "71cdf9ba-c695-4e3c-b010-abb521a3f1be" # Test only
+      p12-password: "test123"
+      p12-local-path: certificates/test/test_cert.p12
+      p12-source: local
+
+web-client:
+  payments:
+    read-timeout: 1_000
+    connect-timeout: 1_000
 
 redis:
   host: ${redis.hosts:localhost}
   port: ${redis.ports:6390}
+
+resilience4j.bulkhead:
+  configs:
+    default:
+      maxConcurrentCalls: 1
+  instances:
+    payments:
+      baseConfig: default
+
+resilience4j.circuitbreaker:
+  configs:
+    default:
+      minimumNumberOfCalls: 3
+      permittedNumberOfFailuresInHalfOpenState: 1
+      failureRateThreshold: 50
+      slowCallRateThreshold: 50
+      slowCallDurationThreshold: 300
+
+resilience4j.retry:
+  configs:
+    default:
+      maxAttempts: 2
+      waitDuration: 100
 
 spring:
   datasource:
