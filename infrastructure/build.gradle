@@ -43,6 +43,7 @@ dependencies {
     implementation "org.springframework.boot:spring-boot-starter-oauth2-resource-server"
     implementation "org.springframework.boot:spring-boot-starter-webflux"
     implementation "org.springframework.cloud:spring-cloud-contract-wiremock"
+    implementation 'org.springframework.boot:spring-boot-starter-aop'
 
     implementation "org.springdoc:springdoc-openapi-starter-webmvc-ui:2.2.0"
 
@@ -59,12 +60,15 @@ dependencies {
 
     implementation "com.fasterxml.jackson.module:jackson-module-blackbird"
 
-    implementation 'br.com.efipay.efisdk:sdk-java-apis-efi:1.2.2'
-
     implementation "org.flywaydb:flyway-core"
     implementation "org.postgresql:postgresql"
 
     implementation "org.owasp.encoder:encoder:1.2.3"
+
+    implementation "io.github.resilience4j:resilience4j-spring-boot3"
+    implementation "io.github.resilience4j:resilience4j-retry"
+    implementation "io.github.resilience4j:resilience4j-bulkhead"
+    implementation "io.github.resilience4j:resilience4j-circuitbreaker"
 
     testImplementation "org.springframework.boot:spring-boot-starter-test"
     testImplementation "org.springframework.security:spring-security-test"
@@ -80,6 +84,7 @@ dependencies {
 
 dependencyManagement {
     imports {
+        mavenBom 'io.github.resilience4j:resilience4j-bom:2.2.0'
         mavenBom 'org.springframework.cloud:spring-cloud-dependencies:2023.0.1'
     }
 }
