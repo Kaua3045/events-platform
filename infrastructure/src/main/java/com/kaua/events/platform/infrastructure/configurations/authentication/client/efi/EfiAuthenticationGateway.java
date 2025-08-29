@@ -3,9 +3,10 @@ package com.kaua.events.platform.infrastructure.configurations.authentication.cl
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.kaua.events.platform.infrastructure.configurations.annotations.EfiClient;
 import com.kaua.events.platform.infrastructure.configurations.authentication.client.AuthenticationGateway;
-import com.kaua.events.platform.infrastructure.configurations.properties.EfiPixProperties;
+import com.kaua.events.platform.infrastructure.configurations.properties.payments.EfiPixProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
@@ -16,6 +17,7 @@ import java.util.Map;
 import java.util.Objects;
 
 @Component
+@ConditionalOnProperty(prefix = "payments.efi.pix", name = "enabled", havingValue = "true")
 public class EfiAuthenticationGateway implements AuthenticationGateway {
 
     private static final Logger log = LoggerFactory.getLogger(EfiAuthenticationGateway.class);
@@ -31,25 +33,13 @@ public class EfiAuthenticationGateway implements AuthenticationGateway {
         this.tokenUri = Objects.requireNonNull(efiPixProperties.getOauthTokenPath());
     }
 
-    //    @Retry(name = NAMESPACE_NAME)
+    // TODO    @Retry(name = NAMESPACE_NAME)
     @Override
     public AuthenticationResult login(final ClientCredentialsInput input) {
         log.debug("Creating efi client credentials");
 
         final var aCredentials = input.clientId() + ":" + input.clientSecret();
         final var aEncodedCredentials = Base64.getEncoder().encodeToString(aCredentials.getBytes());
-
-//        final var aOutput = doPost(() -> webClient.post()
-//                .uri(this.tokenUri)
-//                .accept(MediaType.APPLICATION_JSON)
-//                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-//                .header(HttpHeaders.AUTHORIZATION, "Basic " + aEncodedCredentials)
-//                .body(BodyInserters.fromFormData("grant_type", "client_credentials"))
-//                .retrieve()
-//                .onStatus(isBadRequest, badRequestHandler(input.clientId()))
-//                .onStatus(is5xx, a5xxHandler(input.clientId()))
-//                .bodyToMono(AuthServerAuthenticationResult.class)
-//                .block());
 
         final var aOutput = this.webClient.post()
                 .uri(tokenUri)
@@ -67,6 +57,6 @@ public class EfiAuthenticationGateway implements AuthenticationGateway {
         return new AuthenticationResult(aOutput.accessToken);
     }
 
-    record AuthServerAuthenticationResult(@JsonProperty("access_token") String accessToken) {
+    record AuthServerAuthenticationResult(@JsonProperty("access_token") String accessToken, @JsonProperty("scope") String scope) {
     }
 }
