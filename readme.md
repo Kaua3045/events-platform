@@ -49,29 +49,43 @@ Uma plataforma muito parecida com a Sympla. Criar e gerenciar eventos e tickets.
 
 ## Instruções para executar o projeto
 
-1. Baixe a aplicação e instale as dependências:
-```bash
-# Baixando o projeto e acessando o diretorio
-git clone https://github.com/Kaua3045/events-platform.git cd events-platform
+### 1. Rodando localmente (modo dev)
 
-# Baixando as dependências
-./gradlew dependencies  
+1. Baixe o projeto e instale as dependências:
+```bash
+git clone https://github.com/Kaua3045/events-platform.git
+cd events-platform
+./gradlew build
 ```
 
-2. Antes de executar a aplicação, você precisa configurar o arquivo .env.example, depois renomeie ele para .env
-
-3. Agora inicie o container do banco de dados:
+2. Configure o ambiente:
 ```bash
-# Execute o container do banco de dados
-docker-compose -f docker-compose-dev.yml up -d
+   cp .env.example .env
 ```
 
-4. Agora inicie a aplicação:
+3. Inicie a aplicação:
 ```bash
-# Iniciando a aplicação
 ./gradlew bootRun
 ```
-5. A url base da aplicação é: *localhost:8080/*
+- URL base: http://localhost:8081/
+- Modo sandbox sem EFI (pagamentos em memória): no arquivo de configuração payments, habilite:
+```yaml
+in-memory:
+  pix:
+    enabled: true
+    base-url: http://localhost:8081/api
+```
+
+### Rodando com Docker + EFI (sandbox)
+1. Configure o .env como no passo anterior.
+2. Coloque o certificado de homologação EFI em: `infrastructure/src/main/resources/certificates/homolog`
+3. Rode os containers:
+```bash
+  docker-compose -f docker/sandbox/observability/docker-compose.yml up -d
+  docker-compose -f docker-compose-dev.yml up -d
+```
+- URL base: http://localhost:8081/api/
+- Dica: NGROK pode ser usado para expor o sandbox local e permitir que a EFI se comunique com sua aplicação sem deploy.
 
 ## Contribuindo com o projeto
 
