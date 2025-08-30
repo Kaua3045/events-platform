@@ -57,6 +57,7 @@ public abstract class AbstractRepositoryTest {
 
     @BeforeEach
     void setUp() {
+        this.outboxJdbcRepository = new OutboxJdbcRepository(new JdbcClientAdapter(jdbcClient, operations));
         this.userJdbcRepository = new UserJdbcRepository(new JdbcClientAdapter(jdbcClient, operations));
         this.authorizationCodeRepository = new AuthorizationCodeJdbcRepository(new JdbcClientAdapter(jdbcClient, operations));
         this.authorizationTokenRepository = new AuthorizationTokenJdbcRepository(new JdbcClientAdapter(jdbcClient, operations));
@@ -64,9 +65,8 @@ public abstract class AbstractRepositoryTest {
         this.organizationMemberRepository = new OrganizationMemberJdbcRepository(new JdbcClientAdapter(jdbcClient, operations));
         this.eventRepository = new EventJdbcRepository(new JdbcClientAdapter(jdbcClient, operations));
         this.ticketRepository = new TicketJdbcRepository(new JdbcClientAdapter(jdbcClient, operations));
-        this.orderRepository = new OrderJdbcRepository(new JdbcClientAdapter(jdbcClient, operations));
+        this.orderRepository = new OrderJdbcRepository(new JdbcClientAdapter(jdbcClient, operations), outboxJdbcRepository);
         this.paymentRepository = new PaymentJdbcRepository(new JdbcClientAdapter(jdbcClient, operations));
-        this.outboxJdbcRepository = new OutboxJdbcRepository(new JdbcClientAdapter(jdbcClient, operations));
     }
 
     protected int countUsers() {
