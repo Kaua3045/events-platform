@@ -23,6 +23,7 @@ public interface PaymentGateway {
 
     enum PaymentProcessStatus {
         ACTIVE,
+        WAITING,
         COMPLETED,
         FAILED,
         EXPIRED
