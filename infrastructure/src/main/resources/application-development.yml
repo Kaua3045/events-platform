@@ -7,12 +7,23 @@ application:
 
 payments:
 #  efi:
+#    charges:
+#      enabled: true
+#      ngrok: true
+#      ngrok-url: http://ngrok:4040 # Only for dev with docker
+#      base-url: https://cobrancas-h.api.efipay.com.br
+#      notification-url: http://ngrok:8081/api/webhooks
+#      oauth-token-path: /v1/authorize
+#      skip-mtls-checking: true
+#      client-id: ${PIX_CLIENT_ID:""}
+#      client-secret: ${PIX_CLIENT_SECRET:""}
 #    pix:
 #      enabled: true
 #      ngrok: true
 ##      ngrok-url: ${PIX_WEBHOOK_URL} # Only for dev with docker
 #      ngrok-url: http://localhost:4040 # Only for dev without docker
 #      base-url: https://pix-h.api.efipay.com.br
+#      notification-url: ${PIX_WEBHOOK_URL:http://localhost:8081/api/webhooks}
 #      oauth-token-path: /oauth/token
 #      skip-mtls-checking: true
 #      client-id: ${PIX_CLIENT_ID:""}

@@ -7,6 +7,16 @@ application:
 
 payments:
   efi:
+    charges:
+      enabled: true
+      ngrok: true
+      ngrok-url: http://ngrok:4040 # Only for dev with docker
+      base-url: https://cobrancas-h.api.efipay.com.br
+      notification-url: http://ngrok:8081/api/webhooks
+      oauth-token-path: /v1/authorize
+      skip-mtls-checking: true
+      client-id: ${PIX_CLIENT_ID:""}
+      client-secret: ${PIX_CLIENT_SECRET:""}
     pix:
       enabled: true
       ngrok: true
@@ -44,6 +54,14 @@ server:
       worker: 10
       io: 2
 
+logging:
+  level:
+    org:
+      springframework:
+        jdbc:
+          core:
+            JdbcTemplate: INFO
+
 spring:
   datasource:
     driver-class-name: org.h2.Driver
@@ -62,7 +80,7 @@ spring:
   #    username: postgres
   #    password: 123456
   jpa:
-    show-sql: true
+    show-sql: false
   flyway:
     enabled: true
     locations: classpath:db/migration
