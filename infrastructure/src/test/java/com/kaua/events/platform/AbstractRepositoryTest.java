@@ -66,7 +66,7 @@ public abstract class AbstractRepositoryTest {
         this.eventRepository = new EventJdbcRepository(new JdbcClientAdapter(jdbcClient, operations));
         this.ticketRepository = new TicketJdbcRepository(new JdbcClientAdapter(jdbcClient, operations));
         this.orderRepository = new OrderJdbcRepository(new JdbcClientAdapter(jdbcClient, operations), outboxJdbcRepository);
-        this.paymentRepository = new PaymentJdbcRepository(new JdbcClientAdapter(jdbcClient, operations));
+        this.paymentRepository = new PaymentJdbcRepository(new JdbcClientAdapter(jdbcClient, operations), outboxJdbcRepository);
     }
 
     protected int countUsers() {
