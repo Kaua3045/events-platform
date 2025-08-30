@@ -61,14 +61,15 @@ class OrderAPITest {
         final var aDocumentType = "cpf";
         final var anOrderId = "order-456";
         final var paymentMethod = "PIX";
-        final var qrCodeUrl = "http://qr-code-url";
+        final var qrCodeUrl = "1231082e8u1289";
+        final var qrCodeImageUrl = "http://qr-code-url";
 
         final var aEventId = ULID.random().toString();
         final var aTicketId = ULID.random().toString();
         final var aQuantity = 2;
 
         Mockito.when(createCheckoutUseCase.execute(any()))
-                .thenReturn(new CreateCheckoutOutput(anOrderId, paymentMethod, qrCodeUrl));
+                .thenReturn(new CreateCheckoutOutput(anOrderId, paymentMethod, qrCodeUrl, qrCodeImageUrl));
 
         var json = """
                 {
@@ -102,7 +103,8 @@ class OrderAPITest {
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.order_id").value(anOrderId))
                 .andExpect(jsonPath("$.payment_method").value(paymentMethod))
-                .andExpect(jsonPath("$.qr_code_url").value(qrCodeUrl));
+                .andExpect(jsonPath("$.pix").value(qrCodeUrl))
+                .andExpect(jsonPath("$.qr_code_image_url").value(qrCodeImageUrl));
 
         Mockito.verify(createCheckoutUseCase, Mockito.times(1)).execute(createCheckoutInputCaptor.capture());
         var capturedInput = createCheckoutInputCaptor.getValue();

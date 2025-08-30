@@ -37,7 +37,7 @@ public class OtelConfig {
     }
 
     @Bean
-    @Profile({"prod", "development"})
+    @Profile({"prod", "development", "sandbox-local"})
     public Tracer tracer(final BuildProperties buildProperties) {
         return GlobalOpenTelemetry.getTracer(buildProperties.getName());
     }

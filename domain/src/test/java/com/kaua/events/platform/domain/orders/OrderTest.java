@@ -273,7 +273,6 @@ class OrderTest extends UnitTest {
         final var aTicketId = new TicketID(ULID.random());
         final var aUserId = new UserID(ULID.random());
         final var aUnitPriceItem = BigDecimal.valueOf(10.55);
-        final var aTotalPriceItem = BigDecimal.valueOf(105.50);
         final var aQuantity = 10;
 
         final var aOrderItemOne = OrderItem.newItem(
@@ -308,5 +307,92 @@ class OrderTest extends UnitTest {
 
         Assertions.assertEquals(1, aOrder.getDomainEvents().size());
         Assertions.assertTrue(aOrder.getDomainEvents().contains(aEvent));
+    }
+
+    @Test
+    void givenAValidPaymentId_whenCallUpdatePaymentId_thenReturnOrderUpdated() {
+        final var aEventId = new EventID(ULID.random());
+        final var aTicketId = new TicketID(ULID.random());
+        final var aUserId = new UserID(ULID.random());
+        final var aUnitPriceItem = BigDecimal.valueOf(10.55);
+        final var aQuantity = 10;
+
+        final var aOrderItemOne = OrderItem.newItem(
+                aEventId,
+                aTicketId,
+                aQuantity,
+                aUnitPriceItem
+        );
+
+        final var aItems = List.of(aOrderItemOne, OrderItem.newItem(
+                aEventId,
+                new TicketID(ULID.random()),
+                5,
+                BigDecimal.valueOf(5.55)
+        ));
+
+        final var aOrder = Order.newOrder(
+                aUserId,
+                aItems
+        );
+
+        final var aPaymentId = new PaymentID(ULID.random());
+        final var anUpdatedAt = aOrder.getUpdatedAt();
+
+        final var anOrderUpdated = aOrder.updatePaymentId(aPaymentId);
+
+        Assertions.assertNotNull(anOrderUpdated);
+        Assertions.assertEquals(aOrder.getId(), anOrderUpdated.getId());
+        Assertions.assertEquals(aOrder.getUserId(), anOrderUpdated.getUserId());
+        Assertions.assertEquals(aOrder.getItems(), anOrderUpdated.getItems());
+        Assertions.assertEquals(aOrder.getTotalAmount(), anOrderUpdated.getTotalAmount());
+        Assertions.assertEquals(aPaymentId, anOrderUpdated.getPaymentId().get());
+        Assertions.assertEquals(aOrder.getStatus(), anOrderUpdated.getStatus());
+        Assertions.assertEquals(aOrder.getCreatedAt(), anOrderUpdated.getCreatedAt());
+        Assertions.assertTrue(anUpdatedAt.isBefore(anOrderUpdated.getUpdatedAt()));
+        Assertions.assertEquals(aOrder.getFailedAt(), anOrderUpdated.getFailedAt());
+    }
+
+    @Test
+    void givenAValidOrder_whenCallMarkAsFailed_thenReturnOrderFailed() {
+        final var aEventId = new EventID(ULID.random());
+        final var aTicketId = new TicketID(ULID.random());
+        final var aUserId = new UserID(ULID.random());
+        final var aUnitPriceItem = BigDecimal.valueOf(10.55);
+        final var aQuantity = 10;
+
+        final var aOrderItemOne = OrderItem.newItem(
+                aEventId,
+                aTicketId,
+                aQuantity,
+                aUnitPriceItem
+        );
+
+        final var aItems = List.of(aOrderItemOne, OrderItem.newItem(
+                aEventId,
+                new TicketID(ULID.random()),
+                5,
+                BigDecimal.valueOf(5.55)
+        ));
+
+        final var aOrder = Order.newOrder(
+                aUserId,
+                aItems
+        );
+
+        final var anUpdatedAt = aOrder.getUpdatedAt();
+
+        final var anOrderFailed = aOrder.markAsFailed();
+
+        Assertions.assertNotNull(anOrderFailed);
+        Assertions.assertEquals(aOrder.getId(), anOrderFailed.getId());
+        Assertions.assertEquals(aOrder.getUserId(), anOrderFailed.getUserId());
+        Assertions.assertEquals(aOrder.getItems(), anOrderFailed.getItems());
+        Assertions.assertEquals(aOrder.getTotalAmount(), anOrderFailed.getTotalAmount());
+        Assertions.assertTrue(anOrderFailed.getPaymentId().isEmpty());
+        Assertions.assertEquals(OrderStatus.FAILED, anOrderFailed.getStatus());
+        Assertions.assertEquals(aOrder.getCreatedAt(), anOrderFailed.getCreatedAt());
+        Assertions.assertTrue(anUpdatedAt.isBefore(anOrderFailed.getUpdatedAt()));
+        Assertions.assertTrue(anOrderFailed.getFailedAt().isPresent());
     }
 }

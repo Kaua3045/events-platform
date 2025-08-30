@@ -9,23 +9,27 @@ public class CreateCheckoutOutput {
     private final String orderId;
     private final String paymentMethod;
     private final String qrCodeUrl;
+    private final String qrCodeImageUrl;
 
     public CreateCheckoutOutput(
             final String orderId,
             final String paymentMethod,
-            final String qrCodeUrl
+            final String qrCodeUrl,
+            final String qrCodeImageUrl
     ) {
         this.orderId = orderId;
         this.paymentMethod = paymentMethod;
         this.qrCodeUrl = qrCodeUrl;
+        this.qrCodeImageUrl = qrCodeImageUrl;
     }
 
     public static CreateCheckoutOutput from(
             final Order aOrder,
             final String paymentMethod,
-            final String qrCodeUrl
+            final String qrCodeUrl,
+            final String qrCodeImageUrl
     ) {
-        return new CreateCheckoutOutput(aOrder.getId().value().toString(), paymentMethod, qrCodeUrl);
+        return new CreateCheckoutOutput(aOrder.getId().value().toString(), paymentMethod, qrCodeUrl, qrCodeImageUrl);
     }
 
     public String getOrderId() {
@@ -38,5 +42,9 @@ public class CreateCheckoutOutput {
 
     public Optional<String> getQrCodeUrl() {
         return Optional.ofNullable(qrCodeUrl);
+    }
+
+    public Optional<String> getQrCodeImageUrl() {
+        return Optional.ofNullable(qrCodeImageUrl);
     }
 }

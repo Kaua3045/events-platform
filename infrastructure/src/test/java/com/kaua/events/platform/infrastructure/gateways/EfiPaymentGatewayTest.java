@@ -1,0 +1,414 @@
+package com.kaua.events.platform.infrastructure.gateways;
+
+import com.kaua.events.platform.AbstractRestClientTest;
+import com.kaua.events.platform.ObservationTest;
+import com.kaua.events.platform.domain.exceptions.DomainException;
+import com.kaua.events.platform.domain.exceptions.InternalErrorException;
+import com.kaua.events.platform.domain.exceptions.NotFoundException;
+import com.kaua.events.platform.domain.payments.CreditCardPaymentDetails;
+import com.kaua.events.platform.domain.payments.PixPaymentDetails;
+import com.kaua.events.platform.infrastructure.configurations.authentication.client.GetClientCredentials;
+import com.kaua.events.platform.infrastructure.configurations.properties.payments.EfiPixProperties;
+import com.kaua.events.platform.infrastructure.exceptions.ConflictException;
+import com.kaua.events.platform.infrastructure.exceptions.TooManyRequestsException;
+import io.github.resilience4j.bulkhead.BulkheadFullException;
+import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
+import io.github.resilience4j.circuitbreaker.CircuitBreaker;
+import io.opentelemetry.sdk.testing.exporter.InMemorySpanExporter;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
+
+import java.math.BigDecimal;
+import java.util.Map;
+
+import static com.github.tomakehurst.wiremock.client.WireMock.*;
+import static com.github.tomakehurst.wiremock.stubbing.Scenario.STARTED;
+
+class EfiPaymentGatewayTest extends AbstractRestClientTest implements ObservationTest {
+
+    @Autowired
+    private EfiPaymentGateway gateway;
+
+    @MockitoSpyBean
+    private GetClientCredentials getClientCredentials;
+
+    @Autowired
+    private EfiPixProperties efiPixProperties;
+
+    @Autowired
+    private InMemorySpanExporter spanExporter;
+
+    @BeforeEach
+    void setup() {
+        resetSpans();
+    }
+
+    @Test
+    void givenAValidPixRequest_whenProcess_thenShouldReturnPixResponse() {
+        final var transactionId = "tx123";
+        final var orderId = "order123";
+        final var amount = new BigDecimal("100.00");
+        final var aToken = "token123";
+        Mockito.doReturn(aToken).when(getClientCredentials).retrieve();
+
+        stubFor(put(urlPathEqualTo("/v2/cob/" + transactionId))
+                .withHeader(HttpHeaders.AUTHORIZATION, equalTo("Bearer " + aToken))
+                .withHeader("x-idempotency-key", equalTo(orderId))
+                .withRequestBody(containing("\"original\":\"100.00\""))
+                .willReturn(aResponse()
+                        .withStatus(201)
+                        .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                        .withBody("""
+                                {
+                                  "calendario": {"criacao":"2025-08-20T10:00:00Z","expiracao":3600},
+                                  "txid":"%s",
+                                  "loc":{"id":321},
+                                  "status":"ATIVA",
+                                  "pixCopiaECola":"000201...123"
+                                }
+                                """.formatted(transactionId))));
+
+        stubFor(get(urlPathEqualTo("/v2/loc/321/qrcode"))
+                .withHeader(HttpHeaders.AUTHORIZATION, equalTo("Bearer " + aToken))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                        .withBody("""
+                                {
+                                  "qrcode":"000201...123",
+                                  "imagemQrcode":"data:image/png;base64,AAA...",
+                                  "linkVisualizacao":"http://qrcode.url"
+                                }
+                                """)));
+
+        final var request = new EfiPaymentGateway.PaymentProcessRequest(transactionId, orderId, new PixPaymentDetails(amount));
+        final var response = this.gateway.process(request);
+
+        Assertions.assertNotNull(response);
+        Assertions.assertEquals("000201...123", response.qrCode());
+        Assertions.assertEquals("http://qrcode.url", response.qrCodeImageUrl());
+        Assertions.assertEquals(3600, response.expiresIn());
+        Assertions.assertEquals(EfiPaymentGateway.PaymentProcessStatus.ACTIVE, response.status());
+
+        verify(1, putRequestedFor(urlEqualTo("/v2/cob/" + transactionId))
+                .withHeader(HttpHeaders.AUTHORIZATION, equalTo("Bearer " + aToken))
+                .withHeader("x-idempotency-key", equalTo(orderId)));
+        verify(1, getRequestedFor(urlEqualTo("/v2/loc/321/qrcode"))
+                .withHeader(HttpHeaders.AUTHORIZATION, equalTo("Bearer " + aToken)));
+    }
+
+    @Test
+    void givenPixRequestButEfiReturns5xx_whenProcess_thenShouldThrowInternalErrorException() {
+        final var transactionId = "tx500";
+        final var orderId = "order500";
+        final var amount = new BigDecimal("100.00");
+        final var aToken = "token5xx";
+        Mockito.doReturn(aToken).when(getClientCredentials).retrieve();
+
+        stubFor(put(urlPathEqualTo("/v2/cob/" + transactionId))
+                .willReturn(aResponse()
+                        .withStatus(500)
+                        .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                        .withBody("{\"message\":\"Internal Server Error\"}")));
+
+        final var request = new EfiPaymentGateway.PaymentProcessRequest(transactionId, orderId, new PixPaymentDetails(amount));
+
+        final var exception = Assertions.assertThrows(InternalErrorException.class,
+                () -> this.gateway.process(request));
+        Assertions.assertTrue(exception.getMessage().contains("Error observed"));
+
+        verify(2, putRequestedFor(urlEqualTo("/v2/cob/" + transactionId))); // retry
+    }
+
+    @Test
+    void givenPixRequestButEfiReturns400_whenProcess_thenShouldThrowDomainException() {
+        final var transactionId = "tx422";
+        final var orderId = "order422";
+        final var amount = new BigDecimal("100.00");
+        final var aToken = "token422";
+        Mockito.doReturn(aToken).when(getClientCredentials).retrieve();
+
+        final var expectedErrorMessage = "A chave informada não faz referência à conta Efí autenticada";
+        final var expectedErrorProperty = "chave_invalida";
+
+        final var body = Map.of(
+                "nome", expectedErrorProperty,
+                "mensagem", expectedErrorMessage
+        );
+
+        stubFor(put(urlPathEqualTo("/v2/cob/" + transactionId))
+                .willReturn(aResponse()
+                        .withStatus(400)
+                        .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                        .withBody(writeValueAsString(body))));
+
+        final var request = new EfiPaymentGateway.PaymentProcessRequest(transactionId, orderId, new PixPaymentDetails(amount));
+
+        final var exception = Assertions.assertThrows(DomainException.class,
+                () -> this.gateway.process(request));
+
+        Assertions.assertEquals("ValidationException", exception.getMessage());
+        Assertions.assertEquals(expectedErrorMessage, exception.getErrors().getFirst().message());
+        Assertions.assertEquals(expectedErrorProperty, exception.getErrors().getFirst().property());
+
+        verify(2, putRequestedFor(urlEqualTo("/v2/cob/" + transactionId))); // TODO erro de validacao nao dar retry
+    }
+
+    @Test
+    void givenPixRequestButEfiReturns409_whenProcess_thenShouldThrowConflictException() {
+        final var transactionId = "tx422";
+        final var orderId = "order422";
+        final var amount = new BigDecimal("100.00");
+        final var aToken = "token422";
+        Mockito.doReturn(aToken).when(getClientCredentials).retrieve();
+
+        final var expectedErrorProperty = "txid_duplicado";
+        final var expectedErrorMessage = "Campo txid informado já foi utilizado em outra cobrança";
+
+        final var body = Map.of(
+                "nome", expectedErrorProperty,
+                "mensagem", expectedErrorMessage
+        );
+
+        stubFor(put(urlPathEqualTo("/v2/cob/" + transactionId))
+                .willReturn(aResponse()
+                        .withStatus(409)
+                        .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                        .withBody(writeValueAsString(body))));
+
+        final var request = new EfiPaymentGateway.PaymentProcessRequest(transactionId, orderId, new PixPaymentDetails(amount));
+
+        final var exception = Assertions.assertThrows(ConflictException.class,
+                () -> this.gateway.process(request));
+
+        Assertions.assertEquals("ConflictException", exception.getMessage());
+        Assertions.assertEquals(expectedErrorMessage, exception.getErrors().getFirst().message());
+        Assertions.assertEquals(expectedErrorProperty, exception.getErrors().getFirst().property());
+
+        verify(2, putRequestedFor(urlEqualTo("/v2/cob/" + transactionId))); // TODO erro de validacao nao dar retry
+    }
+
+    @Test
+    void givenPixRequestButEfiReturns429_whenProcess_thenShouldThrowTooManyRequestsException() {
+        final var transactionId = "tx422";
+        final var orderId = "order422";
+        final var amount = new BigDecimal("100.00");
+        final var aToken = "token422";
+        Mockito.doReturn(aToken).when(getClientCredentials).retrieve();
+
+        final var expectedErrorProperty = "Limite de Requisições Excedido";
+        final var expectedErrorMessage = "As requisições estão temporariamente limitadas. Aguarde um momento e tente novamente";
+
+        final var body = Map.of(
+                "nome", expectedErrorProperty,
+                "mensagem", expectedErrorMessage
+        );
+
+        stubFor(put(urlPathEqualTo("/v2/cob/" + transactionId))
+                .willReturn(aResponse()
+                        .withStatus(429)
+                        .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                        .withBody(writeValueAsString(body))));
+
+        final var request = new EfiPaymentGateway.PaymentProcessRequest(transactionId, orderId, new PixPaymentDetails(amount));
+
+        final var exception = Assertions.assertThrows(TooManyRequestsException.class,
+                () -> this.gateway.process(request));
+
+        Assertions.assertEquals("TooManyRequestsException", exception.getMessage());
+        Assertions.assertEquals(expectedErrorMessage, exception.getErrors().getFirst().message());
+        Assertions.assertEquals(expectedErrorProperty, exception.getErrors().getFirst().property());
+
+        verify(1, putRequestedFor(urlEqualTo("/v2/cob/" + transactionId))); // TODO erro de validacao nao dar retry
+    }
+
+    @Test
+    void givenNonPixPayment_whenProcess_thenShouldReturnNull() {
+        final var aToken = "tokenNonPix";
+        Mockito.doReturn(aToken).when(getClientCredentials).retrieve();
+
+        final var request = new EfiPaymentGateway.PaymentProcessRequest("txCard", "orderCard",
+                new CreditCardPaymentDetails(BigDecimal.TEN));
+
+        final var response = this.gateway.process(request);
+        Assertions.assertNull(response);
+
+        verify(0, putRequestedFor(urlMatching("/v2/cob/.*")));
+        verify(0, getRequestedFor(urlMatching("/v2/loc/.*")));
+    }
+
+    @Test
+    void givenTimeoutExceed_whenProcess_thenShouldThrowInternalErrorException() {
+        final var transactionId = "txTimeout";
+        final var orderId = "orderTimeout";
+        final var amount = BigDecimal.valueOf(50);
+        final var aToken = "tokenTimeout";
+        Mockito.doReturn(aToken).when(getClientCredentials).retrieve();
+
+        stubFor(put(urlPathEqualTo("/v2/cob/" + transactionId))
+                .willReturn(aResponse()
+                        .withStatus(201)
+                        .withFixedDelay(2000)));
+
+        final var request = new EfiPaymentGateway.PaymentProcessRequest(transactionId, orderId, new PixPaymentDetails(amount));
+
+        final var exception = Assertions.assertThrows(InternalErrorException.class,
+                () -> this.gateway.process(request));
+
+        Assertions.assertTrue(exception.getMessage().contains("Timeout"));
+        verify(2, putRequestedFor(urlEqualTo("/v2/cob/" + transactionId))); // retry
+    }
+
+    @Test
+    void givenBulkheadIsFull_whenProcess_thenShouldThrowBulkheadFullException() {
+        final var aToken = "tokenBulkhead";
+        Mockito.doReturn(aToken).when(getClientCredentials).retrieve();
+
+        acquireBulkheadPermission(EfiPaymentGateway.NAMESPACE_NAME);
+
+        final var request = new EfiPaymentGateway.PaymentProcessRequest("tx123", "order123", new PixPaymentDetails(BigDecimal.TEN));
+        final var exception = Assertions.assertThrows(BulkheadFullException.class,
+                () -> this.gateway.process(request));
+
+        Assertions.assertTrue(exception.getMessage().contains("is full"));
+        releaseBulkheadPermission(EfiPaymentGateway.NAMESPACE_NAME);
+    }
+
+    @Test
+    void givenCircuitBreakerIsOpen_whenProcess_thenShouldThrowCallNotPermittedException() {
+        final var aToken = "tokenCB";
+        Mockito.doReturn(aToken).when(getClientCredentials).retrieve();
+
+        transitionToOpenState(EfiPaymentGateway.NAMESPACE_NAME);
+
+        final var request = new EfiPaymentGateway.PaymentProcessRequest("tx123", "order123", new PixPaymentDetails(BigDecimal.TEN));
+        final var exception = Assertions.assertThrows(CallNotPermittedException.class,
+                () -> this.gateway.process(request));
+
+        Assertions.assertTrue(exception.getMessage().contains("OPEN"));
+        checkCircuitBreakerState(EfiPaymentGateway.NAMESPACE_NAME, CircuitBreaker.State.OPEN);
+    }
+
+    @Test
+    void givenAValidPixRequestButFailGetQrCodeLocation_whenProcess_thenShouldThrowNotFoundException() {
+        final var transactionId = "tx123";
+        final var orderId = "order123";
+        final var amount = new BigDecimal("100.00");
+        final var aToken = "token123";
+        Mockito.doReturn(aToken).when(getClientCredentials).retrieve();
+
+        final var expectedErrorMessage = "QrCode location does not found";
+
+        stubFor(put(urlPathEqualTo("/v2/cob/" + transactionId))
+                .withHeader(HttpHeaders.AUTHORIZATION, equalTo("Bearer " + aToken))
+                .withHeader("x-idempotency-key", equalTo(orderId))
+                .withRequestBody(containing("\"original\":\"100.00\""))
+                .willReturn(aResponse()
+                        .withStatus(201)
+                        .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                        .withBody("""
+                                {
+                                  "calendario": {"criacao":"2025-08-20T10:00:00Z","expiracao":3600},
+                                  "txid":"%s",
+                                  "loc":{"id":321},
+                                  "status":"ATIVA",
+                                  "pixCopiaECola":"000201...123"
+                                }
+                                """.formatted(transactionId))));
+
+        stubFor(get(urlPathEqualTo("/v2/loc/321/qrcode"))
+                .withHeader(HttpHeaders.AUTHORIZATION, equalTo("Bearer " + aToken))
+                .willReturn(aResponse()
+                        .withStatus(400)
+                        .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                        .withBody(writeValueAsString(Map.of(
+                                "nome", "location_nao_encontrada",
+                                "mensagem", "Nenhuma location encontrado para o identificador informado"
+                        )))));
+
+        final var request = new EfiPaymentGateway.PaymentProcessRequest(transactionId, orderId, new PixPaymentDetails(amount));
+
+        final var exception = Assertions.assertThrows(NotFoundException.class,
+                () -> this.gateway.process(request));
+
+        Assertions.assertEquals(expectedErrorMessage, exception.getMessage());
+
+        verify(2, putRequestedFor(urlEqualTo("/v2/cob/" + transactionId))
+                .withHeader(HttpHeaders.AUTHORIZATION, equalTo("Bearer " + aToken))
+                .withHeader("x-idempotency-key", equalTo(orderId)));
+        verify(2, getRequestedFor(urlEqualTo("/v2/loc/321/qrcode"))
+                .withHeader(HttpHeaders.AUTHORIZATION, equalTo("Bearer " + aToken)));
+    }
+
+    @Test
+    void givenPixRequestFailsInitially_whenProcess_thenRetryAndSucceed() {
+        final var transactionId = "txRetry";
+        final var orderId = "orderRetry";
+        final var amount = new BigDecimal("100.00");
+        final var aToken = "tokenRetry";
+        Mockito.doReturn(aToken).when(getClientCredentials).retrieve();
+
+        final var request = new EfiPaymentGateway.PaymentProcessRequest(transactionId, orderId, new PixPaymentDetails(amount));
+
+        stubFor(put(urlPathEqualTo("/v2/cob/" + transactionId))
+                .inScenario("RetryScenario")
+                .whenScenarioStateIs(STARTED)
+                .willSetStateTo("SecondTry")
+                .willReturn(aResponse()
+                        .withStatus(500)));
+
+        stubFor(put(urlPathEqualTo("/v2/cob/" + transactionId))
+                .inScenario("RetryScenario")
+                .whenScenarioStateIs("SecondTry")
+                .willReturn(aResponse()
+                        .withStatus(201)
+                        .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                        .withBody("""
+                                {
+                                  "calendario": {"criacao":"2025-08-20T10:00:00Z","expiracao":3600},
+                                  "txid":"%s",
+                                  "loc":{"id":321},
+                                  "status":"ATIVA",
+                                  "pixCopiaECola":"000201...retry"
+                                }
+                                """.formatted(transactionId))));
+
+        stubFor(get(urlPathEqualTo("/v2/loc/321/qrcode"))
+                .withHeader(HttpHeaders.AUTHORIZATION, equalTo("Bearer " + aToken))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                        .withBody("""
+                                {
+                                  "qrcode":"000201...retry",
+                                  "imagemQrcode":"data:image/png;base64,AAA...",
+                                  "linkVisualizacao":"http://qrcode.retry.url"
+                                }
+                                """)));
+
+        final var response = this.gateway.process(request);
+
+        Assertions.assertNotNull(response);
+        Assertions.assertEquals("000201...retry", response.qrCode());
+        Assertions.assertEquals("http://qrcode.retry.url", response.qrCodeImageUrl());
+        Assertions.assertEquals(3600, response.expiresIn());
+        Assertions.assertEquals(EfiPaymentGateway.PaymentProcessStatus.ACTIVE, response.status());
+
+        verify(2, putRequestedFor(urlEqualTo("/v2/cob/" + transactionId))
+                .withHeader(HttpHeaders.AUTHORIZATION, equalTo("Bearer " + aToken))
+                .withHeader("x-idempotency-key", equalTo(orderId)));
+        verify(1, getRequestedFor(urlEqualTo("/v2/loc/321/qrcode"))
+                .withHeader(HttpHeaders.AUTHORIZATION, equalTo("Bearer " + aToken)));
+    }
+
+    @Override
+    public InMemorySpanExporter getSpanExporter() {
+        return spanExporter;
+    }
+}

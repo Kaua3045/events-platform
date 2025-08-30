@@ -9,6 +9,8 @@ import com.kaua.events.platform.domain.organizations.Organization;
 import com.kaua.events.platform.domain.organizations.OrganizationID;
 import com.kaua.events.platform.domain.organizations.OrganizationMember;
 import com.kaua.events.platform.domain.organizations.OrganizationMemberRole;
+import com.kaua.events.platform.domain.payments.Payment;
+import com.kaua.events.platform.domain.payments.PaymentMethod;
 import com.kaua.events.platform.domain.ticket.Ticket;
 import com.kaua.events.platform.domain.ticket.TicketID;
 import com.kaua.events.platform.domain.ticket.TicketStatus;
@@ -290,6 +292,19 @@ public final class Fixture {
                     aNow,
                     aNow,
                     null
+            );
+        }
+    }
+
+    public static final class PaymentFixture {
+        private PaymentFixture() {
+        }
+
+        public static Payment newPayment() {
+            return Payment.newPayment(
+                    new OrderID(ULID.random()),
+                    PaymentMethod.PIX,
+                    BigDecimal.valueOf(10)
             );
         }
     }

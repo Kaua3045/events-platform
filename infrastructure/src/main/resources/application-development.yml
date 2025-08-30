@@ -5,6 +5,36 @@ application:
   environment: ${DEPLOYMENT_ENVIRONMENT_NAME:dev}
   instance: events-platform-01
 
+payments:
+#  efi:
+#    pix:
+#      enabled: true
+#      ngrok: true
+##      ngrok-url: ${PIX_WEBHOOK_URL} # Only for dev with docker
+#      ngrok-url: http://localhost:4040 # Only for dev without docker
+#      base-url: https://pix-h.api.efipay.com.br
+#      oauth-token-path: /oauth/token
+#      skip-mtls-checking: true
+#      client-id: ${PIX_CLIENT_ID:""}
+#      client-secret: ${PIX_CLIENT_SECRET:""}
+#      pix-keys:
+#        - "71cdf9ba-c695-4e3c-b010-abb521a3f1be" # Test only
+#      p12-password:
+#      p12-local-path: certificates/homolog/homologacao-821156-events-platform-homolog.p12
+#      p12-source: local
+  # e caso seja in memory
+  in-memory:
+    pix:
+      enabled: true
+      base-url: http://localhost:8081/api
+#      pix-keys:
+#        - "71cdf9ba-c695-4e3c-b010-abb521a3f1be" # Test only
+
+web-client:
+  payments:
+    read-timeout: 2_000 # milliseconds
+    connect-timeout: 2_000 # milliseconds
+
 redis:
   host: localhost
   port: 6379
@@ -28,10 +58,10 @@ spring:
     console:
       enabled: true
       path: /h2
-#  datasource: # change this configurations to your database
-#    url: jdbc:postgresql://localhost:5434/events-platform
-#    username: postgres
-#    password: 123456
+  #  datasource: # change this configurations to your database
+  #    url: jdbc:postgresql://localhost:5434/events-platform
+  #    username: postgres
+  #    password: 123456
   jpa:
     show-sql: true
   flyway:
@@ -45,5 +75,5 @@ management:
 
 opentelemetry:
   metrics:
-#    endpoint: ${OTEL_EXPORTER_OTLP_METRICS_ENDPOINT} # For Production
+    #    endpoint: ${OTEL_EXPORTER_OTLP_METRICS_ENDPOINT} # For Production
     endpoint: ${OTEL_EXPORTER_OTLP_METRICS_ENDPOINT:http://localhost:4317/v1/metrics} # For dev or sandbox

@@ -13,3 +13,5 @@ CREATE TABLE tickets (
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL,
     deleted_at TIMESTAMP WITH TIME ZONE
 );
+
+ALTER TABLE tickets ADD CONSTRAINT chk_sold_quantity CHECK (sold <= quantity AND sold >= 0);

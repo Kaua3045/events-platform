@@ -97,6 +97,36 @@ public class Order extends AggregateRoot<OrderID> {
         );
     }
 
+    public Order updatePaymentId(final PaymentID aPaymentId) {
+        return new Order(
+                getId(),
+                getVersion(),
+                getUserId(),
+                getItems(),
+                getTotalAmount(),
+                aPaymentId,
+                getStatus(),
+                getCreatedAt(),
+                InstantUtils.now(),
+                getFailedAt().orElse(null)
+        );
+    }
+
+    public Order markAsFailed() {
+        return new Order(
+                getId(),
+                getVersion(),
+                getUserId(),
+                getItems(),
+                getTotalAmount(),
+                getPaymentId().orElse(null),
+                OrderStatus.FAILED,
+                getCreatedAt(),
+                InstantUtils.now(),
+                InstantUtils.now()
+        );
+    }
+
     @Generated
     // TODO use this to ignore in coverage, but in future remove new order and with receive items, and use this method or add
     // if to check total is 0 or null, on is 0 or null throws exception
