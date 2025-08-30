@@ -12,7 +12,9 @@ import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.module.blackbird.BlackbirdModule;
 import com.kaua.events.platform.application.usecases.orders.create.payment.CreateCheckoutPaymentDetailsInput;
+import com.kaua.events.platform.domain.payments.PaymentDetails;
 import com.kaua.events.platform.infrastructure.configurations.deserializer.PaymentDetailsDeserializer;
+import com.kaua.events.platform.infrastructure.configurations.serializer.PaymentDetailsSerializer;
 import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
 
 import java.util.concurrent.Callable;
@@ -70,9 +72,9 @@ public enum Json {
                 .propertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE)
                 .build();
 
-        // registrar o deserializer customizado
         SimpleModule paymentModule = new SimpleModule("PaymentDetailsModule");
         paymentModule.addDeserializer(CreateCheckoutPaymentDetailsInput.class, new PaymentDetailsDeserializer());
+        paymentModule.addSerializer(PaymentDetails.class, new PaymentDetailsSerializer());
         baseMapper.registerModule(paymentModule);
 
         this.mapper = baseMapper;
