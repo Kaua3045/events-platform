@@ -4,6 +4,7 @@ import com.kaua.events.platform.application.repositories.PaymentRepository;
 import com.kaua.events.platform.domain.payments.Payment;
 import com.kaua.events.platform.infrastructure.exceptions.ConflictException;
 import com.kaua.events.platform.infrastructure.jdbc.DatabaseClient;
+import com.kaua.events.platform.infrastructure.outbox.OutboxJdbcRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -19,9 +20,14 @@ public class PaymentJdbcRepository implements PaymentRepository {
     private static final Logger log = LoggerFactory.getLogger(PaymentJdbcRepository.class);
 
     private final DatabaseClient databaseClient;
+    private final OutboxJdbcRepository outboxRepository;
 
-    public PaymentJdbcRepository(final DatabaseClient databaseClient) {
+    public PaymentJdbcRepository(
+            final DatabaseClient databaseClient,
+            final OutboxJdbcRepository outboxRepository
+    ) {
         this.databaseClient = Objects.requireNonNull(databaseClient);
+        this.outboxRepository = Objects.requireNonNull(outboxRepository);
     }
 
     @Override
@@ -30,6 +36,7 @@ public class PaymentJdbcRepository implements PaymentRepository {
         if (payment.getVersion() == 0) {
             log.debug("Creating new payment: {}", payment);
             create(payment);
+            this.outboxRepository.save(payment.getDomainEvents());
             log.info("Created new payment: {}", payment);
         } else {
             log.debug("Updating payment: {}", payment);
