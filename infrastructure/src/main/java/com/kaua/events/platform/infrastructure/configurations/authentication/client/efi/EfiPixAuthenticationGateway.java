@@ -1,7 +1,7 @@
 package com.kaua.events.platform.infrastructure.configurations.authentication.client.efi;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.kaua.events.platform.infrastructure.configurations.annotations.EfiClient;
+import com.kaua.events.platform.infrastructure.configurations.annotations.EfiPixClient;
 import com.kaua.events.platform.infrastructure.configurations.authentication.client.AuthenticationGateway;
 import com.kaua.events.platform.infrastructure.configurations.properties.payments.EfiPixProperties;
 import com.kaua.events.platform.infrastructure.gateways.helpers.ReactiveHttpClientUtils;
@@ -32,7 +32,7 @@ public class EfiAuthenticationGateway implements AuthenticationGateway, Reactive
     private final Tracer tracer;
 
     public EfiAuthenticationGateway(
-            @EfiClient final WebClient webClient,
+            @EfiPixClient final WebClient webClient,
             final EfiPixProperties efiPixProperties,
             final Tracer tracer
     ) {

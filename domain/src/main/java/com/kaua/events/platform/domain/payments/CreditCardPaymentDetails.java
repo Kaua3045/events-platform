@@ -2,21 +2,11 @@ package com.kaua.events.platform.domain.payments;
 
 import java.math.BigDecimal;
 
-public final class CreditCardPaymentDetails implements PaymentDetails {
-
-    private final BigDecimal amount;
-
-    public CreditCardPaymentDetails(final BigDecimal aAmount) {
-        this.amount = aAmount;
-    }
+public record CreditCardPaymentDetails(BigDecimal amount, String name, String cpf, String email,
+                                       String paymentToken, int installments) implements PaymentDetails {
 
     @Override
     public PaymentMethod method() {
         return PaymentMethod.CREDIT_CARD;
-    }
-
-    @Override
-    public BigDecimal amount() {
-        return amount;
     }
 }
