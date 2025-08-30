@@ -1,6 +1,6 @@
 package com.kaua.events.platform.infrastructure.configurations.payments.efi;
 
-import com.kaua.events.platform.infrastructure.configurations.annotations.EfiClient;
+import com.kaua.events.platform.infrastructure.configurations.annotations.EfiPixClient;
 import com.kaua.events.platform.infrastructure.configurations.authentication.client.GetClientCredentials;
 import com.kaua.events.platform.infrastructure.configurations.authentication.client.RefreshClientCredentials;
 import com.kaua.events.platform.infrastructure.configurations.properties.payments.EfiPixProperties;
@@ -30,24 +30,24 @@ public class EfiInitializerLocal implements CommandLineRunner {
 
     private final WebClient webClient;
     private final GetClientCredentials getClientCredentials;
-    private final RefreshClientCredentials refreshClientCredentials;
+    private final RefreshClientCredentials refreshClientCredentialsPix;
     private final EfiPixProperties efiPixProperties;
 
     public EfiInitializerLocal(
-            @EfiClient final WebClient webClient,
-            final GetClientCredentials getClientCredentials,
-            final RefreshClientCredentials refreshClientCredentials,
+            @EfiPixClient final WebClient webClient,
+            @EfiPixClient final GetClientCredentials getClientCredentials,
+            @EfiPixClient final RefreshClientCredentials refreshClientCredentialsPix,
             final EfiPixProperties efiPixProperties
     ) {
         this.webClient = Objects.requireNonNull(webClient);
         this.getClientCredentials = Objects.requireNonNull(getClientCredentials);
-        this.refreshClientCredentials = Objects.requireNonNull(refreshClientCredentials);
+        this.refreshClientCredentialsPix = Objects.requireNonNull(refreshClientCredentialsPix);
         this.efiPixProperties = Objects.requireNonNull(efiPixProperties);
     }
 
     @Override
     public void run(String... args) throws Exception {
-        this.refreshClientCredentials.refresh();
+        this.refreshClientCredentialsPix.refresh();
         Thread.sleep(Duration.ofMillis(15));
         final var aToken = getClientCredentials.retrieve();
 
