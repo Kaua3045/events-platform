@@ -2,6 +2,7 @@ package com.kaua.events.platform.domain.payments;
 
 import com.kaua.events.platform.domain.UnitTest;
 import com.kaua.events.platform.domain.orders.OrderID;
+import com.kaua.events.platform.domain.payments.events.PaymentCreatedEvent;
 import com.kaua.events.platform.domain.utils.IdentifierUtils;
 import com.kaua.events.platform.domain.utils.InstantUtils;
 import com.kaua.events.platform.domain.utils.ULID;
@@ -156,5 +157,28 @@ class PaymentTest extends UnitTest {
         final var aPaymentStatus = PaymentStatus.from("INVALID");
 
         Assertions.assertTrue(aPaymentStatus.isEmpty());
+    }
+
+    @Test
+    void givenAValidPaymentCreatedEvent_whenCallRegisterPayment_thenReturnPayment() {
+        final var aPaymentMethod = PaymentMethod.PIX;
+        final var aAmount = BigDecimal.valueOf(10);
+        final var aOrderId = new OrderID(ULID.random());
+
+        final var aPayment = Payment.newPayment(aOrderId, aPaymentMethod, aAmount);
+
+        final var aPaymentCreatedEvent = new PaymentCreatedEvent(
+                aPayment.getId().value().toString(),
+                aPayment.getOrderId().value().toString(),
+                aPayment.getVersion(),
+                aPayment.getStatus().name(),
+                aPayment.getAmount(),
+                "traceId"
+        );
+
+        aPayment.registerEvent(aPaymentCreatedEvent);
+
+        Assertions.assertEquals(1, aPayment.getDomainEvents().size());
+        Assertions.assertTrue(aPayment.getDomainEvents().contains(aPaymentCreatedEvent));
     }
 }
