@@ -40,6 +40,6 @@ class ApplicationEventBusTest extends UnitTest {
 
         eventBus.publish(message);
 
-        verify(applicationContext, times(1)).publishEvent(message.payload());
+        verify(applicationContext, times(1)).publishEvent(message);
     }
 }

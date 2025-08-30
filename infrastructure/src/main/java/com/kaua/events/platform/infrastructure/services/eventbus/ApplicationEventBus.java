@@ -18,7 +18,7 @@ public class ApplicationEventBus implements EventBus {
     @Override
     public void publish(OutboxMessage aOutboxMessage) {
         log.info("Publishing event to the application context: {}", aOutboxMessage);
-        this.applicationContext.publishEvent(aOutboxMessage.payload());
+        this.applicationContext.publishEvent(aOutboxMessage);
         log.info("Event published to the application context: {}", aOutboxMessage);
     }
 }
