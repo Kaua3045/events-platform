@@ -16,6 +16,7 @@ import com.kaua.events.platform.domain.utils.ULID;
 import com.kaua.events.platform.infrastructure.jdbc.DatabaseClient;
 import com.kaua.events.platform.infrastructure.jdbc.JdbcUtils;
 import com.kaua.events.platform.infrastructure.jdbc.RowMap;
+import com.kaua.events.platform.infrastructure.outbox.OutboxJdbcRepository;
 import com.kaua.events.platform.infrastructure.utils.DynamicQueryListBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,9 +34,14 @@ public class OrderJdbcRepository implements OrderRepository {
     private static final Logger log = LoggerFactory.getLogger(OrderJdbcRepository.class);
 
     private final DatabaseClient databaseClient;
+    private final OutboxJdbcRepository outboxRepository;
 
-    public OrderJdbcRepository(final DatabaseClient databaseClient) {
+    public OrderJdbcRepository(
+            final DatabaseClient databaseClient,
+            OutboxJdbcRepository outboxRepository
+    ) {
         this.databaseClient = Objects.requireNonNull(databaseClient);
+        this.outboxRepository = Objects.requireNonNull(outboxRepository);
     }
 
     @Transactional(readOnly = true)
@@ -153,6 +159,7 @@ public class OrderJdbcRepository implements OrderRepository {
             log.debug("Creating new order: {}", order);
             create(order);
             batchInsertItems(order.getId().value().toString(), order.getItems());
+            this.outboxRepository.save(order.getDomainEvents());
             log.info("Created new order: {}", order);
         }
 
