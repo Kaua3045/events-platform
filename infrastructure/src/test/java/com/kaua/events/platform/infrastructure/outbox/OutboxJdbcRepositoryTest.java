@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 
 class OutboxJdbcRepositoryTest extends AbstractRepositoryTest {
 
@@ -33,7 +34,7 @@ class OutboxJdbcRepositoryTest extends AbstractRepositoryTest {
                 IdentifierUtils.generateNewULID().toString()
         );
 
-        outboxRepository().save(aEvent);
+        outboxRepository().save(List.of(aEvent));
 
         Assertions.assertEquals(1, countOutboxMessages());
 
@@ -58,8 +59,8 @@ class OutboxJdbcRepositoryTest extends AbstractRepositoryTest {
         final var olderEvent = new TestDomainEvent("agg-1", 1, InstantUtils.now().minusSeconds(60));
         final var newerEvent = new TestDomainEvent("agg-2", 1, InstantUtils.now());
 
-        outboxRepository().save(newerEvent);
-        outboxRepository().save(olderEvent);
+        outboxRepository().save(List.of(newerEvent));
+        outboxRepository().save(List.of(olderEvent));
 
         final var events = outboxRepository().findTop50ByStatusIsPendingOrderByOccurredOnAsc();
 
@@ -81,7 +82,7 @@ class OutboxJdbcRepositoryTest extends AbstractRepositoryTest {
     void givenAnExistingEvent_whenMarkAsPublished_thenStatusIsUpdated() {
         final var aEvent = new TestDomainEvent("agg-123", 1, InstantUtils.now());
 
-        outboxRepository().save(aEvent);
+        outboxRepository().save(List.of(aEvent));
 
         Assertions.assertEquals(1, countOutboxMessages());
         final var before = outboxRepository().findTop50ByStatusIsPendingOrderByOccurredOnAsc().getFirst();
@@ -97,7 +98,7 @@ class OutboxJdbcRepositoryTest extends AbstractRepositoryTest {
     void givenAnExistingEvent_whenMarkAsFailed_thenStatusIsUpdated() {
         final var aEvent = new TestDomainEvent("agg-456", 1, InstantUtils.now());
 
-        outboxRepository().save(aEvent);
+        outboxRepository().save(List.of(aEvent));
 
         Assertions.assertEquals(1, countOutboxMessages());
         final var before = outboxRepository().findTop50ByStatusIsPendingOrderByOccurredOnAsc().getFirst();
