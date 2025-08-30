@@ -47,52 +47,73 @@ public class InMemoryPaymentGateway implements PaymentGateway {
 
     @Override
     public PaymentProcessResponse process(final PaymentProcessRequest request) {
-        if (!request.paymentDetails().method().equals(PaymentMethod.PIX)) {
-            throw new UnsupportedOperationException("Only PIX is supported in local in-memory gateway");
-        }
+        if (request.paymentDetails().method().equals(PaymentMethod.PIX)) {
+            final var aAmount = request.paymentDetails().amount();
+            final PaymentProcessStatus status;
 
-        final var aAmount = request.paymentDetails().amount();
-        final PaymentProcessStatus status;
+            if (aAmount.compareTo(BigDecimal.ONE) >= 0 && aAmount.compareTo(new BigDecimal("50")) <= 0) {
+                status = PaymentProcessStatus.ACTIVE;
+            } else {
+                status = PaymentProcessStatus.FAILED;
+            }
 
-        if (aAmount.compareTo(BigDecimal.ONE) >= 0 && aAmount.compareTo(new BigDecimal("50")) <= 0) {
-            status = PaymentProcessStatus.ACTIVE;
-        } else {
-            status = PaymentProcessStatus.FAILED;
-        }
+            final var qrCode = "FAKE-PIX-" + IdentifierUtils.generateNewIdWithoutHyphen();
+            final var qrCodeImageUrl = "https://fake-pix.local/qrcode/" + request.transactionId();
 
-        final var qrCode = "FAKE-PIX-" + IdentifierUtils.generateNewIdWithoutHyphen();
-        final var qrCodeImageUrl = "https://fake-pix.local/qrcode/" + request.transactionId();
+            final var aResponse = new PaymentProcessResponse(
+                    qrCode,
+                    qrCodeImageUrl,
+                    3600,
+                    status
+            );
 
-        final var aResponse = new PaymentProcessResponse(
-                qrCode,
-                qrCodeImageUrl,
-                3600,
-                status
-        );
+            final var aStoreResult = this.store.putIfAbsent(request.transactionId(), aResponse);
 
-        final var aStoreResult = this.store.putIfAbsent(request.transactionId(), aResponse);
+            if (aStoreResult != null) {
+                log.warn("[InMemoryPaymentGateway] Payment already exists [orderId:{}] [transactionId:{}] [status:{}] [expiresIn:{}] [amount:{}]",
+                        request.orderId(),
+                        request.transactionId(),
+                        aStoreResult.status(),
+                        aStoreResult.expiresIn(),
+                        request.paymentDetails().amount()
+                );
 
-        if (aStoreResult != null) {
-            log.warn("[InMemoryPaymentGateway] Payment already exists [orderId:{}] [transactionId:{}] [status:{}] [expiresIn:{}] [amount:{}]",
+                return aStoreResult;
+            }
+
+            log.info("[InMemoryPaymentGateway] Payment processed [orderId:{}] [transactionId:{}] [status:{}] [expiresIn:{}] [amount:{}]",
                     request.orderId(),
                     request.transactionId(),
-                    aStoreResult.status(),
-                    aStoreResult.expiresIn(),
+                    aResponse.status(),
+                    aResponse.expiresIn(),
                     request.paymentDetails().amount()
             );
 
-            return aStoreResult;
+            simulateWebhookCallback(request.transactionId(), aAmount);
+
+            return aResponse;
         }
 
-        log.info("[InMemoryPaymentGateway] Payment processed [orderId:{}] [transactionId:{}] [status:{}] [expiresIn:{}] [amount:{}]",
-                request.orderId(),
-                request.transactionId(),
-                aResponse.status(),
-                aResponse.expiresIn(),
-                request.paymentDetails().amount()
+        final var aAmount = request.paymentDetails().amount();
+        final PaymentProcessStatus status = ThreadLocalRandom.current().nextInt(0, 10) < 8
+                ? PaymentProcessStatus.ACTIVE
+                : PaymentProcessStatus.FAILED; // 80% chance de sucesso
+
+        final var transactionId = request.transactionId();
+        final var aResponse = new PaymentProcessResponse(
+                null,
+                null,
+                0,
+                status
         );
 
-        simulateWebhookCallback(request.transactionId(), aAmount);
+        final var aStoreResult = this.store.putIfAbsent(transactionId, aResponse);
+        if (aStoreResult != null) return aStoreResult;
+
+        log.info("[InMemoryPaymentGateway] Non-PIX payment processed [orderId:{}] [transactionId:{}] [status:{}] [amount:{}]",
+                request.orderId(), transactionId, aResponse.status(), aAmount);
+
+        simulateNonPixWebhookCallback(transactionId, aAmount, request.paymentDetails().method());
 
         return aResponse;
     }
@@ -139,6 +160,37 @@ public class InMemoryPaymentGateway implements PaymentGateway {
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 log.error("[InMemoryGateway] [transactionId:{}] Virtual thread interrupted: {}", aTransactionId, e.getMessage(), e);
+            }
+        });
+    }
+
+    private void simulateNonPixWebhookCallback(String transactionId, BigDecimal amount, PaymentMethod method) {
+        webhookExecutor.accept(() -> {
+            try {
+                long delay = ThreadLocalRandom.current().nextLong(2000, 7000);
+                sleep(delay);
+
+                Map<String, Object> payload = Map.of(
+                        "transactionId", transactionId,
+                        "status", amount.compareTo(BigDecimal.ZERO) > 0 ? "AUTHORIZED" : "DECLINED",
+                        "amount", amount.toPlainString(),
+                        "method", method.name(),
+                        "processedAt", Instant.now().toString()
+                );
+
+                log.info("[InMemoryGateway] [transactionId:{}] Sending fake Non-PIX webhook callback after {}ms -> {}", transactionId, delay, payload);
+
+                webClient.post()
+                        .uri("/webhooks/card/notification")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .bodyValue(payload)
+                        .retrieve()
+                        .toBodilessEntity()
+                        .doOnError(ex -> log.error("[InMemoryGateway] [transactionId:{}] Error sending webhook: {}", transactionId, ex.getMessage(), ex))
+                        .subscribe();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                log.error("[InMemoryGateway] [transactionId:{}] Virtual thread interrupted: {}", transactionId, e.getMessage(), e);
             }
         });
     }

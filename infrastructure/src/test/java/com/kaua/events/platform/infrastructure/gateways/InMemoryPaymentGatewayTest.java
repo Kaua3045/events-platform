@@ -95,7 +95,14 @@ class InMemoryPaymentGatewayTest extends UnitTest {
         final var request = new PaymentGateway.PaymentProcessRequest(
                 "tx123",
                 "order123",
-                new CreditCardPaymentDetails(new BigDecimal("10"))
+                new CreditCardPaymentDetails(
+                        new BigDecimal("10"),
+                        "John Doe",
+                        "123.456.789-00",
+                        "john.doe@mail.com",
+                        "120834182789",
+                        1
+                )
         );
 
         final var ex = assertThrows(UnsupportedOperationException.class, () -> gateway.process(request));
