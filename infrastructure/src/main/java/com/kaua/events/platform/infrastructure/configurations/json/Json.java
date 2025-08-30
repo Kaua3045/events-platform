@@ -13,6 +13,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.module.blackbird.BlackbirdModule;
 import com.kaua.events.platform.application.usecases.orders.create.payment.CreateCheckoutPaymentDetailsInput;
 import com.kaua.events.platform.domain.payments.PaymentDetails;
+import com.kaua.events.platform.infrastructure.configurations.deserializer.CreatePaymentDetailsDeserializer;
 import com.kaua.events.platform.infrastructure.configurations.deserializer.PaymentDetailsDeserializer;
 import com.kaua.events.platform.infrastructure.configurations.serializer.PaymentDetailsSerializer;
 import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
@@ -73,7 +74,8 @@ public enum Json {
                 .build();
 
         SimpleModule paymentModule = new SimpleModule("PaymentDetailsModule");
-        paymentModule.addDeserializer(CreateCheckoutPaymentDetailsInput.class, new PaymentDetailsDeserializer());
+        paymentModule.addDeserializer(CreateCheckoutPaymentDetailsInput.class, new CreatePaymentDetailsDeserializer());
+        paymentModule.addDeserializer(PaymentDetails.class, new PaymentDetailsDeserializer());
         paymentModule.addSerializer(PaymentDetails.class, new PaymentDetailsSerializer());
         baseMapper.registerModule(paymentModule);
 
