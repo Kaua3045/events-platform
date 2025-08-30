@@ -8,6 +8,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
@@ -23,6 +24,6 @@ class EfiClientCredentialsJobTest extends UnitTest {
     void shouldRefreshClientCredentials() {
         clientCredentialsJob.refreshClientCredentials();
 
-        verify(refreshClientCredentials).refresh();
+        verify(refreshClientCredentials, times(2)).refresh();
     }
 }
