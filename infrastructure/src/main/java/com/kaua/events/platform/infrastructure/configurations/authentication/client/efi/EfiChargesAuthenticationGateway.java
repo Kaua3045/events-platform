@@ -1,9 +1,9 @@
 package com.kaua.events.platform.infrastructure.configurations.authentication.client.efi;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.kaua.events.platform.infrastructure.configurations.annotations.EfiPixClient;
+import com.kaua.events.platform.infrastructure.configurations.annotations.EfiChargesClient;
 import com.kaua.events.platform.infrastructure.configurations.authentication.client.AuthenticationGateway;
-import com.kaua.events.platform.infrastructure.configurations.properties.payments.EfiPixProperties;
+import com.kaua.events.platform.infrastructure.configurations.properties.payments.EfiProperties;
 import com.kaua.events.platform.infrastructure.gateways.helpers.ReactiveHttpClientUtils;
 import io.github.resilience4j.retry.annotation.Retry;
 import io.opentelemetry.api.trace.Tracer;
@@ -20,25 +20,25 @@ import java.util.Map;
 import java.util.Objects;
 
 @Component
-@ConditionalOnProperty(prefix = "payments.efi.pix", name = "enabled", havingValue = "true")
-@EfiPixClient
-public class EfiPixAuthenticationGateway implements AuthenticationGateway, ReactiveHttpClientUtils {
+@ConditionalOnProperty(prefix = "payments.efi.charges", name = "enabled", havingValue = "true")
+@EfiChargesClient
+public class EfiChargesAuthenticationGateway implements AuthenticationGateway, ReactiveHttpClientUtils {
 
-    public static final String NAMESPACE_NAME = "efi-pix-authentication";
+    public static final String NAMESPACE_NAME = "efi-charges-authentication";
 
-    private static final Logger log = LoggerFactory.getLogger(EfiPixAuthenticationGateway.class);
+    private static final Logger log = LoggerFactory.getLogger(EfiChargesAuthenticationGateway.class);
 
     private final WebClient webClient;
     private final String tokenUri;
     private final Tracer tracer;
 
-    public EfiPixAuthenticationGateway(
-            @EfiPixClient final WebClient webClient,
-            final EfiPixProperties efiPixProperties,
+    public EfiChargesAuthenticationGateway(
+            @EfiChargesClient final WebClient webClient,
+            final EfiProperties efiProperties,
             final Tracer tracer
     ) {
         this.webClient = Objects.requireNonNull(instrument(webClient));
-        this.tokenUri = Objects.requireNonNull(efiPixProperties.getOauthTokenPath());
+        this.tokenUri = Objects.requireNonNull(efiProperties.getOauthTokenPath());
         this.tracer = Objects.requireNonNull(tracer);
     }
 
