@@ -1,19 +1,28 @@
 package com.kaua.events.platform.infrastructure.listeners;
 
+import com.kaua.events.platform.application.usecases.payments.create.CreatePaymentUseCase;
 import com.kaua.events.platform.domain.UnitTest;
 import com.kaua.events.platform.infrastructure.outbox.OutboxJdbcRepository.OutboxMessage;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.*;
 
+@ExtendWith(MockitoExtension.class)
 class InMemoryEventListenerTest extends UnitTest {
 
     private InMemoryEventListener listener;
 
+    @Mock
+    private CreatePaymentUseCase createPaymentUseCase;
+
     @BeforeEach
     void setUp() {
-        listener = new InMemoryEventListener();
+        listener = new InMemoryEventListener(createPaymentUseCase);
     }
 
     @Test
@@ -29,7 +38,7 @@ class InMemoryEventListenerTest extends UnitTest {
                     "aggregate_id": "agg-123",
                     "aggregate_version": 0,
                     "source": "OrderService",
-                    "trace_id": null
+                    "trace_id": "trace-123"
                 }
                 """;
 
@@ -46,6 +55,40 @@ class InMemoryEventListenerTest extends UnitTest {
         );
 
         listener.handleOrderEvent(message);
+
+        verify(createPaymentUseCase, times(1)).execute(any());
+    }
+
+    @Test
+    void givenPaymentCreatedEvent_whenHandleOrderEvent_thenProcessedSuccessfully() {
+        String payload = """
+                {
+                    "payment_id": "pay-123",
+                    "status": "COMPLETED",
+                    "amount": 100.0,
+                    "aggregate_id": "agg-123",
+                    "event_id": "evt-124",
+                    "event_type": "PaymentCreated",
+                    "occurred_on": "2025-08-30T16:27:19.481562Z",
+                    "trace_id": "trace-124"
+                }
+                """;
+
+        OutboxMessage message = new OutboxMessage(
+                "evt-124",
+                "Payment",
+                "agg-123",
+                0L,
+                "PaymentCreated",
+                payload,
+                "2025-08-30T16:27:19.481562Z",
+                "PENDING",
+                null
+        );
+
+        listener.handleOrderEvent(message);
+
+        verifyNoInteractions(createPaymentUseCase);
     }
 
     @Test
@@ -65,5 +108,6 @@ class InMemoryEventListenerTest extends UnitTest {
         );
 
         assertThrows(IllegalArgumentException.class, () -> listener.handleOrderEvent(message));
+        verifyNoInteractions(createPaymentUseCase);
     }
 }
