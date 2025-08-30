@@ -1,4 +1,6 @@
 application:
+  eventbus:
+    in-memory: true
   otel:
     memory-exporter: false
   cors:
@@ -37,6 +39,9 @@ jobs:
     client-credentials:
       refresh-rate-minutes: 50
       refresh-initial-delay-minutes: 45
+  outbox:
+    publish-rate-minutes: 1
+    publish-initial-delay-minutes: 1
 
 logging:
   level:
