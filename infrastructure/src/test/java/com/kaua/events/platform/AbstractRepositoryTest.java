@@ -8,6 +8,7 @@ import com.kaua.events.platform.infrastructure.oauth.token.AuthorizationTokenJdb
 import com.kaua.events.platform.infrastructure.orders.OrderJdbcRepository;
 import com.kaua.events.platform.infrastructure.organizations.OrganizationJdbcRepository;
 import com.kaua.events.platform.infrastructure.organizations.OrganizationMemberJdbcRepository;
+import com.kaua.events.platform.infrastructure.outbox.OutboxJdbcRepository;
 import com.kaua.events.platform.infrastructure.payments.PaymentJdbcRepository;
 import com.kaua.events.platform.infrastructure.ticket.TicketJdbcRepository;
 import com.kaua.events.platform.infrastructure.users.UserJdbcRepository;
@@ -35,6 +36,7 @@ public abstract class AbstractRepositoryTest {
     private static final String ORDERS_TABLE = "orders";
     private static final String ORDER_ITEMS_TABLE = "order_items";
     private static final String PAYMENTS_TABLE = "payments";
+    private static final String OUTBOX_TABLE = "outbox";
 
     @Autowired
     private JdbcClient jdbcClient;
@@ -51,6 +53,7 @@ public abstract class AbstractRepositoryTest {
     private TicketRepository ticketRepository;
     private OrderRepository orderRepository;
     private PaymentRepository paymentRepository;
+    private OutboxJdbcRepository outboxJdbcRepository;
 
     @BeforeEach
     void setUp() {
@@ -63,6 +66,7 @@ public abstract class AbstractRepositoryTest {
         this.ticketRepository = new TicketJdbcRepository(new JdbcClientAdapter(jdbcClient, operations));
         this.orderRepository = new OrderJdbcRepository(new JdbcClientAdapter(jdbcClient, operations));
         this.paymentRepository = new PaymentJdbcRepository(new JdbcClientAdapter(jdbcClient, operations));
+        this.outboxJdbcRepository = new OutboxJdbcRepository(new JdbcClientAdapter(jdbcClient, operations));
     }
 
     protected int countUsers() {
@@ -105,6 +109,10 @@ public abstract class AbstractRepositoryTest {
         return JdbcTestUtils.countRowsInTable(jdbcClient, PAYMENTS_TABLE);
     }
 
+    protected int countOutboxMessages() {
+        return JdbcTestUtils.countRowsInTable(jdbcClient, OUTBOX_TABLE);
+    }
+
     public UserJdbcRepository userRepository() {
         return userJdbcRepository;
     }
@@ -139,5 +147,9 @@ public abstract class AbstractRepositoryTest {
 
     public PaymentRepository paymentRepository() {
         return paymentRepository;
+    }
+
+    public OutboxJdbcRepository outboxRepository() {
+        return outboxJdbcRepository;
     }
 }
