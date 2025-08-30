@@ -7,6 +7,8 @@ import com.kaua.events.platform.infrastructure.jdbc.DatabaseClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashMap;
 import java.util.List;
@@ -23,9 +25,12 @@ public class OutboxJdbcRepository {
         this.databaseClient = Objects.requireNonNull(databaseClient);
     }
 
-    public void save(final DomainEvent aEvent) {
-        log.info("Saving outbox event with identifier {} and event {}", aEvent.eventId(), aEvent);
-        final var aSql = """
+    // TODO change this to batch insert
+    @Transactional(propagation = Propagation.REQUIRED)
+    public void save(final List<DomainEvent> aEvents) {
+        aEvents.forEach(aEvent -> {
+            log.info("Saving outbox event with identifier {} and event {}", aEvent.eventId(), aEvent);
+            final var aSql = """
                 INSERT INTO outbox (
                  id,
                  aggregate_type,
@@ -50,19 +55,20 @@ public class OutboxJdbcRepository {
                 )
                 """;
 
-        final var aParams = new HashMap<String, Object>();
-        aParams.put("id", aEvent.eventId());
-        aParams.put("aggregateType", aEvent.getClass().getSimpleName());
-        aParams.put("aggregateId", aEvent.aggregateId());
-        aParams.put("aggregateVersion", aEvent.aggregateVersion());
-        aParams.put("eventType", aEvent.eventType());
-        aParams.put("payload", Json.writeValueAsString(aEvent));
-        aParams.put("occurredOn", aEvent.occurredOn());
-        aParams.put("status", "PENDING");
-        aParams.put("lastAttemptAt", null);
+            final var aParams = new HashMap<String, Object>();
+            aParams.put("id", aEvent.eventId());
+            aParams.put("aggregateType", aEvent.getClass().getSimpleName());
+            aParams.put("aggregateId", aEvent.aggregateId());
+            aParams.put("aggregateVersion", aEvent.aggregateVersion());
+            aParams.put("eventType", aEvent.eventType());
+            aParams.put("payload", Json.writeValueAsString(aEvent));
+            aParams.put("occurredOn", aEvent.occurredOn());
+            aParams.put("status", "PENDING");
+            aParams.put("lastAttemptAt", null);
 
-        this.databaseClient.update(aSql, aParams);
-        log.info("Outbox event with identifier {} saved {}", aEvent.eventId(), aEvent);
+            this.databaseClient.update(aSql, aParams);
+            log.info("Outbox event with identifier {} saved {}", aEvent.eventId(), aEvent);
+        });
     }
 
     public List<OutboxMessage> findTop50ByStatusIsPendingOrderByOccurredOnAsc() {
