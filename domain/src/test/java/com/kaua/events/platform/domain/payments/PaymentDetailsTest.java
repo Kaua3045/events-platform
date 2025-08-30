@@ -12,7 +12,14 @@ class PaymentDetailsTest extends UnitTest {
     void givenAValidValues_whenCallNewCreditCardPaymentDetails_thenInstantiate() {
         final var aAmount = BigDecimal.valueOf(10);
 
-        final var aCreditCardDetails = new CreditCardPaymentDetails(aAmount);
+        final var aCreditCardDetails = new CreditCardPaymentDetails(
+                aAmount,
+                "John Doe",
+                "123.456.789-00",
+                "john.doe@mail.com",
+                "120834182789",
+                1
+        );
 
         Assertions.assertEquals(aAmount, aCreditCardDetails.amount());
         Assertions.assertEquals(PaymentMethod.CREDIT_CARD, aCreditCardDetails.method());
