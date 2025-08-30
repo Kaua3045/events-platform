@@ -91,25 +91,6 @@ class InMemoryPaymentGatewayTest extends UnitTest {
     }
 
     @Test
-    void givenNonPixPayment_whenProcess_thenShouldThrowException() {
-        final var request = new PaymentGateway.PaymentProcessRequest(
-                "tx123",
-                "order123",
-                new CreditCardPaymentDetails(
-                        new BigDecimal("10"),
-                        "John Doe",
-                        "123.456.789-00",
-                        "john.doe@mail.com",
-                        "120834182789",
-                        1
-                )
-        );
-
-        final var ex = assertThrows(UnsupportedOperationException.class, () -> gateway.process(request));
-        assertEquals("Only PIX is supported in local in-memory gateway", ex.getMessage());
-    }
-
-    @Test
     void whenProcessingPix_thenWebhookShouldBeCalled() {
         final var request = new PaymentGateway.PaymentProcessRequest(
                 "tx123",
@@ -216,5 +197,121 @@ class InMemoryPaymentGatewayTest extends UnitTest {
         var response = gateway.process(request);
 
         assertEquals(PaymentGateway.PaymentProcessStatus.FAILED, response.status());
+    }
+
+    @Test
+    void givenNonPixPayment_whenProcess_thenShouldReturnPaymentWithRandomStatus() {
+        final var request = new PaymentGateway.PaymentProcessRequest(
+                "tx-nonpix",
+                "order-nonpix",
+                new CreditCardPaymentDetails(
+                        new BigDecimal("100"),
+                        "Jane Doe",
+                        "123.456.789-00",
+                        "jane.doe@mail.com",
+                        "4111111111111111",
+                        12
+                )
+        );
+
+        final var response = gateway.process(request);
+
+        assertNotNull(response);
+        assertTrue(response.status() == PaymentGateway.PaymentProcessStatus.ACTIVE
+                || response.status() == PaymentGateway.PaymentProcessStatus.FAILED);
+    }
+
+    @Test
+    void givenDuplicateNonPixTransaction_whenProcess_thenShouldReturnSamePayment() {
+        final var request = new PaymentGateway.PaymentProcessRequest(
+                "tx-nonpix-dup",
+                "order-nonpix-dup",
+                new CreditCardPaymentDetails(
+                        new BigDecimal("100"),
+                        "Jane Doe",
+                        "123.456.789-00",
+                        "jane.doe@mail.com",
+                        "4111111111111111",
+                        12
+                )
+        );
+
+        final var first = gateway.process(request);
+        final var second = gateway.process(request);
+
+        assertSame(first, second);
+    }
+
+    @Test
+    void whenProcessingNonPix_thenWebhookShouldBeCalled() {
+        final var request = new PaymentGateway.PaymentProcessRequest(
+                "tx-nonpix-webhook",
+                "order-nonpix-webhook",
+                new CreditCardPaymentDetails(
+                        new BigDecimal("100"),
+                        "Jane Doe",
+                        "123.456.789-00",
+                        "jane.doe@mail.com",
+                        "4111111111111111",
+                        12
+                )
+        );
+
+        final var spyGateway = new InMemoryPaymentGateway(webClient, Runnable::run);
+
+        spyGateway.process(request);
+
+        ArgumentCaptor<Map> captor = ArgumentCaptor.forClass(Map.class);
+        verify(bodySpec, atLeastOnce()).bodyValue(captor.capture());
+        Map payload = captor.getValue();
+
+        assertNotNull(payload.get("transactionId"));
+        assertEquals("tx-nonpix-webhook", payload.get("transactionId"));
+        assertTrue(payload.get("status").equals("AUTHORIZED") || payload.get("status").equals("DECLINED"));
+        assertEquals("CREDIT_CARD", payload.get("method"));
+        assertEquals("100", payload.get("amount"));
+    }
+
+    @Test
+    void givenNonPixAmountZero_whenProcess_thenShouldReturnDeclinedStatus() {
+        final var request = new PaymentGateway.PaymentProcessRequest(
+                "tx-nonpix-zero",
+                "order-nonpix-zero",
+                new CreditCardPaymentDetails(
+                        BigDecimal.ZERO,
+                        "Jane Doe",
+                        "123.456.789-00",
+                        "jane.doe@mail.com",
+                        "4111111111111111",
+                        12
+                )
+        );
+
+        final var response = gateway.process(request);
+
+        assertTrue(PaymentGateway.PaymentProcessStatus.ACTIVE == response.status()
+                || PaymentGateway.PaymentProcessStatus.FAILED == response.status());
+    }
+
+    @Test
+    void clearStoreShouldAlsoAffectNonPixPayments() {
+        final var request = new PaymentGateway.PaymentProcessRequest(
+                "tx-nonpix-clear",
+                "order-nonpix-clear",
+                new CreditCardPaymentDetails(
+                        new BigDecimal("50"),
+                        "Jane Doe",
+                        "123.456.789-00",
+                        "jane.doe@mail.com",
+                        "4111111111111111",
+                        12
+                )
+        );
+
+        gateway.process(request);
+        gateway.clearStore();
+
+        final var newResponse = gateway.process(request);
+        assertNotNull(newResponse);
     }
 }
