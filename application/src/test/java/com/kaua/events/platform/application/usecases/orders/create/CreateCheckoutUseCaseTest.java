@@ -103,7 +103,13 @@ class CreateCheckoutUseCaseTest extends UseCaseTest {
         final var eventId = randomId();
         final var document = "448.370.900-36";
         final var ticket = newTicket("Regular Ticket", BigDecimal.valueOf(50), 1, TicketType.STANDARD);
-        final var paymentDetails = new CreateCheckoutCreditCardPaymentDetails();
+        final var paymentDetails = new CreateCheckoutCreditCardPaymentDetails(
+                "John Doe",
+                "448.370.900-36",
+                "john.doe@mail.com",
+                "valid-token",
+                1
+        );
         final var input = createCheckoutInput(document, eventId.toString(), userId.toString(), ticket, 1, paymentDetails);
 
         mockTicketFound(ticket);
