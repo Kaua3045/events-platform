@@ -1,5 +1,7 @@
 package com.kaua.events.platform.infrastructure.jobs;
 
+import com.kaua.events.platform.infrastructure.configurations.annotations.EfiChargesClient;
+import com.kaua.events.platform.infrastructure.configurations.annotations.EfiPixClient;
 import com.kaua.events.platform.infrastructure.configurations.authentication.client.RefreshClientCredentials;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,10 +20,15 @@ public class EfiClientCredentialsJob {
 
     private static final Logger log = LoggerFactory.getLogger(EfiClientCredentialsJob.class);
 
-    private final RefreshClientCredentials refreshClientCredentials;
+    private final RefreshClientCredentials refreshClientCredentialsPix;
+    private final RefreshClientCredentials refreshClientCredentialsCharges;
 
-    public EfiClientCredentialsJob(final RefreshClientCredentials refreshClientCredentials) {
-        this.refreshClientCredentials = Objects.requireNonNull(refreshClientCredentials);
+    public EfiClientCredentialsJob(
+            @EfiPixClient final RefreshClientCredentials refreshClientCredentialsPix,
+            @EfiChargesClient final RefreshClientCredentials refreshClientCredentialsCharges
+    ) {
+        this.refreshClientCredentialsPix = Objects.requireNonNull(refreshClientCredentialsPix);
+        this.refreshClientCredentialsCharges = Objects.requireNonNull(refreshClientCredentialsCharges);
     }
 
     @Scheduled(
@@ -31,7 +38,8 @@ public class EfiClientCredentialsJob {
     )
     public void refreshClientCredentials() {
         log.info("Refreshing efi client credentials");
-        this.refreshClientCredentials.refresh();
+        this.refreshClientCredentialsPix.refresh();
+        this.refreshClientCredentialsCharges.refresh();
         log.info("Client efi credentials refreshed");
     }
 }
