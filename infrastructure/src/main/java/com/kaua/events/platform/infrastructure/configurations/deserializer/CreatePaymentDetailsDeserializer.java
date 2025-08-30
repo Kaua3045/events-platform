@@ -16,6 +16,7 @@ public class CreatePaymentDetailsDeserializer extends StdDeserializer<CreateChec
         super(CreateCheckoutPaymentDetailsInput.class);
     }
 
+    // TODO handle error
     @Override
     public CreateCheckoutPaymentDetailsInput deserialize(
             final JsonParser p,
@@ -26,7 +27,13 @@ public class CreatePaymentDetailsDeserializer extends StdDeserializer<CreateChec
         if ("PIX".equalsIgnoreCase(method)) {
             return new CreateCheckoutPixPaymentDetails();
         } else if ("CREDIT_CARD".equalsIgnoreCase(method)) {
-            return new CreateCheckoutCreditCardPaymentDetails();
+            return new CreateCheckoutCreditCardPaymentDetails(
+                    node.get("name").asText(),
+                    node.get("cpf").asText(),
+                    node.get("email").asText(),
+                    node.get("payment_token").asText(),
+                    node.get("installments").asInt()
+            );
         }
         throw new IllegalArgumentException("Unknown payment method: " + method);
     }
