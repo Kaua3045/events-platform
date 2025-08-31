@@ -99,6 +99,7 @@ class CreatePaymentUseCaseTest extends UseCaseTest {
                 BigDecimal.valueOf(100),
                 "John Doe",
                 "123.456.789-00",
+                "+55 (11) 91234-5678",
                 "john.doe@mail.com",
                 "120834182789",
                 1
