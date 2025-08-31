@@ -29,7 +29,7 @@ public class InMemoryEventListener {
     }
 
     @EventListener
-    public void handleOrderEvent(OutboxMessage aOutboxMessage) {
+    public void handleEvents(OutboxMessage aOutboxMessage) {
         log.info("OutboxMessage received: {}", aOutboxMessage);
         switch (aOutboxMessage.eventType()) {
             case "OrderCreated" -> this.handleOrderCreatedEvent(Json.readValue(aOutboxMessage.payload(), OrderCreatedEvent.class));
