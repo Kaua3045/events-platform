@@ -170,6 +170,7 @@ public class DefaultCreateCheckoutUseCase extends CreateCheckoutUseCase {
                     aTotalAmount,
                     ((CreateCheckoutCreditCardPaymentDetails) aInput.paymentDetails()).name(),
                     ((CreateCheckoutCreditCardPaymentDetails) aInput.paymentDetails()).cpf(),
+                    ((CreateCheckoutCreditCardPaymentDetails) aInput.paymentDetails()).phoneNumber(),
                     ((CreateCheckoutCreditCardPaymentDetails) aInput.paymentDetails()).email(),
                     ((CreateCheckoutCreditCardPaymentDetails) aInput.paymentDetails()).paymentToken(),
                     ((CreateCheckoutCreditCardPaymentDetails) aInput.paymentDetails()).installments()
