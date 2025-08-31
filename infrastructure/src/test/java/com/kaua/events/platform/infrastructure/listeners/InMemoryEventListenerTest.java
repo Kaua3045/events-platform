@@ -54,7 +54,7 @@ class InMemoryEventListenerTest extends UnitTest {
                 null
         );
 
-        listener.handleOrderEvent(message);
+        listener.handleEvents(message);
 
         verify(createPaymentUseCase, times(1)).execute(any());
     }
@@ -86,7 +86,38 @@ class InMemoryEventListenerTest extends UnitTest {
                 null
         );
 
-        listener.handleOrderEvent(message);
+        listener.handleEvents(message);
+
+        verifyNoInteractions(createPaymentUseCase);
+    }
+
+    @Test
+    void givenPaymentStatusChangedEvent_whenHandlePaymentEvent_thenProcessedSuccessfully() {
+        String payload = """
+                {
+                    "order_id": "order-123",
+                    "status": "PAID",
+                    "aggregate_id": "agg-123",
+                    "event_id": "evt-124",
+                    "event_type": "PaymentStatusChanged",
+                    "occurred_on": "2025-08-30T16:27:19.481562Z",
+                    "trace_id": "trace-124"
+                }
+                """;
+
+        OutboxMessage message = new OutboxMessage(
+                "evt-124",
+                "Payment",
+                "agg-123",
+                0L,
+                "PaymentStatusChanged",
+                payload,
+                "2025-08-30T16:27:19.481562Z",
+                "PENDING",
+                null
+        );
+
+        listener.handleEvents(message);
 
         verifyNoInteractions(createPaymentUseCase);
     }
@@ -107,7 +138,7 @@ class InMemoryEventListenerTest extends UnitTest {
                 null
         );
 
-        assertThrows(IllegalArgumentException.class, () -> listener.handleOrderEvent(message));
+        assertThrows(IllegalArgumentException.class, () -> listener.handleEvents(message));
         verifyNoInteractions(createPaymentUseCase);
     }
 }
