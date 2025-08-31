@@ -31,6 +31,7 @@ public class PaymentDetailsDeserializer extends StdDeserializer<PaymentDetails> 
                     new BigDecimal(node.get("amount").asText()),
                     node.get("name").asText(),
                     node.get("cpf").asText(),
+                    node.get("phone_number").asText(),
                     node.get("email").asText(),
                     node.get("payment_token").asText(),
                     node.get("installments").asInt()
