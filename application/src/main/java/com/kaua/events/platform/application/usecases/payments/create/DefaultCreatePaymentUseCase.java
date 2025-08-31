@@ -82,7 +82,7 @@ public class DefaultCreatePaymentUseCase extends CreatePaymentUseCase {
                         return CreatePaymentOutput.from(aPendingPayment);
                     }
 
-                    return null;
+                    throw new RuntimeException("Error on create payment " + aOutput + " " + aPayment);
                 }
         );
     }
