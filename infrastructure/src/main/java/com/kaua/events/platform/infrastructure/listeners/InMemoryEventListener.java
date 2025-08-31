@@ -4,6 +4,7 @@ import com.kaua.events.platform.application.usecases.payments.create.CreatePayme
 import com.kaua.events.platform.application.usecases.payments.create.CreatePaymentUseCase;
 import com.kaua.events.platform.domain.orders.events.OrderCreatedEvent;
 import com.kaua.events.platform.domain.payments.events.PaymentCreatedEvent;
+import com.kaua.events.platform.domain.payments.events.PaymentStatusChangedEvent;
 import com.kaua.events.platform.infrastructure.configurations.json.Json;
 import com.kaua.events.platform.infrastructure.outbox.OutboxJdbcRepository;
 import com.kaua.events.platform.infrastructure.outbox.OutboxJdbcRepository.OutboxMessage;
@@ -33,8 +34,14 @@ public class InMemoryEventListener {
         switch (aOutboxMessage.eventType()) {
             case "OrderCreated" -> this.handleOrderCreatedEvent(Json.readValue(aOutboxMessage.payload(), OrderCreatedEvent.class));
             case "PaymentCreated" -> this.handlePaymentCreatedEvent(Json.readValue(aOutboxMessage.payload(), PaymentCreatedEvent.class));
+            case "PaymentStatusChanged" -> this.handlePaymentStatusChanged(Json.readValue(aOutboxMessage.payload(), PaymentStatusChangedEvent.class));
             default -> throw new IllegalArgumentException("Event type not recognized: " + aOutboxMessage.eventType());
         }
+    }
+
+    private void handlePaymentStatusChanged(final PaymentStatusChangedEvent paymentStatusChangedEvent) {
+        log.info("Payment status changed Event received: {}", paymentStatusChangedEvent);
+        // TODO notify order
     }
 
     private void handlePaymentCreatedEvent(final PaymentCreatedEvent paymentCreatedEvent) {
