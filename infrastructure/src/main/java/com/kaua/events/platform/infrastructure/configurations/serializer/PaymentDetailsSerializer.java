@@ -27,6 +27,7 @@ public class PaymentDetailsSerializer extends StdSerializer<PaymentDetails> {
             gen.writeNumberField("amount", creditCard.amount());
             gen.writeStringField("name", creditCard.name());
             gen.writeStringField("cpf", creditCard.cpf());
+            gen.writeStringField("phone_number", creditCard.phoneNumber());
             gen.writeStringField("email", creditCard.email());
             gen.writeStringField("payment_token", creditCard.paymentToken());
             gen.writeNumberField("installments", creditCard.installments());
