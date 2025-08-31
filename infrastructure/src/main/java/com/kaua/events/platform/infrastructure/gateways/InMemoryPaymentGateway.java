@@ -2,6 +2,7 @@ package com.kaua.events.platform.infrastructure.gateways;
 
 import com.kaua.events.platform.application.gateways.PaymentGateway;
 import com.kaua.events.platform.domain.payments.PaymentMethod;
+import com.kaua.events.platform.domain.utils.Generated;
 import com.kaua.events.platform.domain.utils.IdentifierUtils;
 import com.kaua.events.platform.infrastructure.configurations.annotations.InMemoryPaymentClient;
 import org.slf4j.Logger;
@@ -89,6 +90,7 @@ public class InMemoryPaymentGateway implements PaymentGateway {
         return response;
     }
 
+    @Generated
     @Override
     public PaymentNotification getNotifications(final String notificationId) {
         final var orderId = transactionToOrder.get(notificationId);
