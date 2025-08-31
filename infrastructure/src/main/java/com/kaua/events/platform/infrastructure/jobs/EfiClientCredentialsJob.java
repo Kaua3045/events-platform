@@ -32,14 +32,24 @@ public class EfiClientCredentialsJob {
     }
 
     @Scheduled(
-            fixedRateString = "${jobs.efi.client-credentials.refresh-rate-minutes}",
-            initialDelayString = "${jobs.efi.client-credentials.refresh-initial-delay-minutes}",
+            fixedRateString = "${jobs.efi.pix.client-credentials.refresh-rate-minutes}",
+            initialDelayString = "${jobs.efi.pix.client-credentials.refresh-initial-delay-minutes}",
             timeUnit = TimeUnit.MINUTES
     )
-    public void refreshClientCredentials() {
-        log.info("Refreshing efi client credentials");
+    public void refreshPixClientCredentials() {
+        log.info("Refreshing efi pix client credentials");
         this.refreshClientCredentialsPix.refresh();
+        log.info("Client efi pix credentials refreshed");
+    }
+
+    @Scheduled(
+            fixedRateString = "${jobs.efi.charges.client-credentials.refresh-rate-minutes}",
+            initialDelayString = "${jobs.efi.charges.client-credentials.refresh-initial-delay-minutes}",
+            timeUnit = TimeUnit.MINUTES
+    )
+    public void refreshChargesClientCredentials() {
+        log.info("Refreshing efi charges client credentials");
         this.refreshClientCredentialsCharges.refresh();
-        log.info("Client efi credentials refreshed");
+        log.info("Client efi charges credentials refreshed");
     }
 }
