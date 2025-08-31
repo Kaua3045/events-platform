@@ -1,9 +1,16 @@
 package com.kaua.events.platform.infrastructure.payments;
 
 import com.kaua.events.platform.application.repositories.PaymentRepository;
+import com.kaua.events.platform.domain.orders.OrderID;
 import com.kaua.events.platform.domain.payments.Payment;
+import com.kaua.events.platform.domain.payments.PaymentID;
+import com.kaua.events.platform.domain.payments.PaymentMethod;
+import com.kaua.events.platform.domain.payments.PaymentStatus;
+import com.kaua.events.platform.domain.utils.ULID;
 import com.kaua.events.platform.infrastructure.exceptions.ConflictException;
 import com.kaua.events.platform.infrastructure.jdbc.DatabaseClient;
+import com.kaua.events.platform.infrastructure.jdbc.JdbcUtils;
+import com.kaua.events.platform.infrastructure.jdbc.RowMap;
 import com.kaua.events.platform.infrastructure.outbox.OutboxJdbcRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,7 +19,9 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 @Component
 public class PaymentJdbcRepository implements PaymentRepository {
@@ -30,6 +39,13 @@ public class PaymentJdbcRepository implements PaymentRepository {
         this.outboxRepository = Objects.requireNonNull(outboxRepository);
     }
 
+    @Transactional(readOnly = true)
+    @Override
+    public Optional<Payment> paymentOfOrderId(final String orderId) {
+        final var aSql = "SELECT * FROM payments WHERE order_id = :orderId";
+        return this.databaseClient.queryOne(aSql, Map.of("orderId", orderId), paymentMapper());
+    }
+
     @Override
     @Transactional(propagation = Propagation.REQUIRED)
     public Payment save(final Payment payment) {
@@ -41,6 +57,7 @@ public class PaymentJdbcRepository implements PaymentRepository {
         } else {
             log.debug("Updating payment: {}", payment);
             update(payment);
+            this.outboxRepository.save(payment.getDomainEvents());
             log.info("Updated payment: {}", payment);
         }
 
@@ -127,5 +144,23 @@ public class PaymentJdbcRepository implements PaymentRepository {
         aParams.put("expiresIn", aPayment.getExpiresIn());
 
         return this.databaseClient.update(aSql, aParams);
+    }
+
+    private RowMap<Payment> paymentMapper() {
+        return rs -> Payment.with(
+                new PaymentID(ULID.fromString(rs.getString("id"))),
+                rs.getLong("version"),
+                new OrderID(ULID.fromString(rs.getString("order_id"))),
+                rs.getString("transaction_id"),
+                PaymentStatus.from(rs.getString("status")).orElse(null),
+                PaymentMethod.from(rs.getString("method")).orElse(null),
+                rs.getBigDecimal("amount"),
+                rs.getString("qr_code"),
+                rs.getString("qr_code_image_url"),
+                JdbcUtils.getInstant(rs, "created_at"),
+                JdbcUtils.getInstant(rs, "updated_at"),
+                JdbcUtils.getInstant(rs, "paid_at"),
+                rs.getInt("expires_in")
+        );
     }
 }
