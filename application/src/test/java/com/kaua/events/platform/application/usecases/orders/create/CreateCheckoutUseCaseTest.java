@@ -106,6 +106,7 @@ class CreateCheckoutUseCaseTest extends UseCaseTest {
         final var paymentDetails = new CreateCheckoutCreditCardPaymentDetails(
                 "John Doe",
                 "448.370.900-36",
+                "+55 (11) 91234-5678",
                 "john.doe@mail.com",
                 "valid-token",
                 1
