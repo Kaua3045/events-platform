@@ -21,9 +21,16 @@ class EfiClientCredentialsJobTest extends UnitTest {
     private EfiClientCredentialsJob clientCredentialsJob;
 
     @Test
-    void shouldRefreshClientCredentials() {
-        clientCredentialsJob.refreshClientCredentials();
+    void shouldRefreshPixClientCredentials() {
+        clientCredentialsJob.refreshPixClientCredentials();
 
-        verify(refreshClientCredentials, times(2)).refresh();
+        verify(refreshClientCredentials, times(1)).refresh();
+    }
+
+    @Test
+    void shouldRefreshChargesClientCredentials() {
+        clientCredentialsJob.refreshChargesClientCredentials();
+
+        verify(refreshClientCredentials, times(1)).refresh();
     }
 }
