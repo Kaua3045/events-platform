@@ -1,10 +1,12 @@
 package com.kaua.events.platform.infrastructure.configurations.payments.efi;
 
 import com.kaua.events.platform.application.gateways.PaymentGateway;
-import com.kaua.events.platform.infrastructure.configurations.annotations.EfiClient;
+import com.kaua.events.platform.infrastructure.configurations.annotations.EfiChargesClient;
+import com.kaua.events.platform.infrastructure.configurations.annotations.EfiPixClient;
 import com.kaua.events.platform.infrastructure.configurations.authentication.client.GetClientCredentials;
 import com.kaua.events.platform.infrastructure.configurations.properties.WebClientProperties;
 import com.kaua.events.platform.infrastructure.configurations.properties.payments.EfiPixProperties;
+import com.kaua.events.platform.infrastructure.configurations.properties.payments.EfiProperties;
 import com.kaua.events.platform.infrastructure.gateways.EfiPaymentGateway;
 import com.kaua.events.platform.infrastructure.services.certificates.LocalP12Loader;
 import com.kaua.events.platform.infrastructure.services.certificates.P12Loader;
@@ -25,20 +27,26 @@ import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 
 @Configuration(proxyBeanMethods = false)
-public class EfiPixConfig {
+public class EfiConfig {
 
     @Bean
     @ConditionalOnProperty(prefix = "payments.efi.pix", name = "enabled", havingValue = "true")
     public PaymentGateway efiPaymentGateway(
-            @EfiClient final WebClient webClient,
-            GetClientCredentials getClientCredentials,
+            @EfiPixClient final WebClient webClient,
+            @EfiChargesClient final WebClient webClientCharges,
+            @EfiPixClient GetClientCredentials getClientCredentials,
+            @EfiChargesClient GetClientCredentials getClientCredentialsCharges,
             EfiPixProperties efiPixProperties,
+            EfiProperties efiProperties,
             Tracer tracer
     ) {
         return new EfiPaymentGateway(
                 webClient,
+                webClientCharges,
                 getClientCredentials,
+                getClientCredentialsCharges,
                 efiPixProperties,
+                efiProperties,
                 tracer
         );
     }
@@ -52,16 +60,16 @@ public class EfiPixConfig {
     @Bean
     @ConditionalOnProperty(prefix = "payments.efi.pix", name = "enabled", havingValue = "true")
     @ConfigurationProperties(prefix = "web-client.payments")
-    @EfiClient
+    @EfiPixClient
     public WebClientProperties efiWebClientProperties() {
         return new WebClientProperties();
     }
 
-    @EfiClient
+    @EfiPixClient
     @Bean
     @ConditionalOnProperty(prefix = "payments.efi.pix", name = "enabled", havingValue = "true")
     public WebClient efiPixWebClient(
-            @EfiClient final WebClientProperties webClientProperties,
+            @EfiPixClient final WebClientProperties webClientProperties,
             final EfiPixProperties props,
             final P12Loader loader
     ) {
@@ -70,6 +78,35 @@ public class EfiPixConfig {
 
         HttpClient httpClient = HttpClient.create()
                 .secure(spec -> spec.sslContext(sslContext))
+                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, webClientProperties.getConnectTimeout())
+                .responseTimeout(Duration.ofMillis(webClientProperties.getReadTimeout()))
+                .doOnConnected(conn ->
+                        conn.addHandlerLast(new ReadTimeoutHandler(webClientProperties.getReadTimeout(), TimeUnit.MILLISECONDS))
+                                .addHandlerLast(new WriteTimeoutHandler(webClientProperties.getReadTimeout(), TimeUnit.MILLISECONDS))
+                );
+
+        return WebClient.builder()
+                .baseUrl(props.getBaseUrl())
+                .clientConnector(new ReactorClientHttpConnector(httpClient))
+                .build();
+    }
+
+    @Bean
+    @ConditionalOnProperty(prefix = "payments.efi.charges", name = "enabled", havingValue = "true")
+    @ConfigurationProperties(prefix = "web-client.payments")
+    @EfiChargesClient
+    public WebClientProperties efiChargesWebClientProperties() {
+        return new WebClientProperties();
+    }
+
+    @EfiChargesClient
+    @Bean
+    @ConditionalOnProperty(prefix = "payments.efi.charges", name = "enabled", havingValue = "true")
+    public WebClient efiChargeWebClient(
+            @EfiChargesClient final WebClientProperties webClientProperties,
+            final EfiProperties props
+    ) {
+        HttpClient httpClient = HttpClient.create()
                 .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, webClientProperties.getConnectTimeout())
                 .responseTimeout(Duration.ofMillis(webClientProperties.getReadTimeout()))
                 .doOnConnected(conn ->

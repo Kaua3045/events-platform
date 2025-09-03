@@ -2,6 +2,8 @@ package com.kaua.events.platform.domain.payments;
 
 import com.kaua.events.platform.domain.UnitTest;
 import com.kaua.events.platform.domain.orders.OrderID;
+import com.kaua.events.platform.domain.payments.events.PaymentCreatedEvent;
+import com.kaua.events.platform.domain.payments.events.PaymentStatusChangedEvent;
 import com.kaua.events.platform.domain.utils.IdentifierUtils;
 import com.kaua.events.platform.domain.utils.InstantUtils;
 import com.kaua.events.platform.domain.utils.ULID;
@@ -156,5 +158,113 @@ class PaymentTest extends UnitTest {
         final var aPaymentStatus = PaymentStatus.from("INVALID");
 
         Assertions.assertTrue(aPaymentStatus.isEmpty());
+    }
+
+    @Test
+    void givenAValidPaymentCreatedEvent_whenCallRegisterPayment_thenReturnPayment() {
+        final var aPaymentMethod = PaymentMethod.PIX;
+        final var aAmount = BigDecimal.valueOf(10);
+        final var aOrderId = new OrderID(ULID.random());
+
+        final var aPayment = Payment.newPayment(aOrderId, aPaymentMethod, aAmount);
+
+        final var aPaymentCreatedEvent = new PaymentCreatedEvent(
+                aPayment.getId().value().toString(),
+                aPayment.getOrderId().value().toString(),
+                aPayment.getVersion(),
+                aPayment.getStatus().name(),
+                aPayment.getAmount(),
+                "traceId"
+        );
+
+        aPayment.registerEvent(aPaymentCreatedEvent);
+
+        Assertions.assertEquals(1, aPayment.getDomainEvents().size());
+        Assertions.assertTrue(aPayment.getDomainEvents().contains(aPaymentCreatedEvent));
+    }
+
+    @Test
+    void givenAValidPayment_whenCallMarkAsApproved_thenReturnUpdatedPayment() {
+        final var aPaymentMethod = PaymentMethod.PIX;
+        final var aAmount = BigDecimal.valueOf(10);
+        final var aOrderId = new OrderID(ULID.random());
+
+        final var aPayment = Payment.newPayment(aOrderId, aPaymentMethod, aAmount);
+
+        final var aApprovedPayment = aPayment.markAsApproved();
+
+        Assertions.assertEquals(aApprovedPayment.getId(), aPayment.getId());
+        Assertions.assertEquals(aApprovedPayment.getOrderId().value(), aPayment.getOrderId().value());
+        Assertions.assertEquals(aApprovedPayment.getTransactionId(), aPayment.getTransactionId());
+        Assertions.assertEquals(PaymentStatus.APPROVED, aApprovedPayment.getStatus());
+        Assertions.assertEquals(aApprovedPayment.getMethod(), aPayment.getMethod());
+        Assertions.assertEquals(aApprovedPayment.getCreatedAt(), aPayment.getCreatedAt());
+        Assertions.assertNotEquals(aApprovedPayment.getUpdatedAt(), aPayment.getUpdatedAt());
+        Assertions.assertTrue(aApprovedPayment.getPaidAt().isEmpty());
+        Assertions.assertEquals(aApprovedPayment.getExpiresIn(), aPayment.getExpiresIn());
+    }
+
+    @Test
+    void givenAValidPayment_whenCallMarkAsIdentified_thenReturnUpdatedPayment() {
+        final var aPaymentMethod = PaymentMethod.PIX;
+        final var aAmount = BigDecimal.valueOf(10);
+        final var aOrderId = new OrderID(ULID.random());
+
+        final var aPayment = Payment.newPayment(aOrderId, aPaymentMethod, aAmount);
+
+        final var aIdentifiedPayment = aPayment.markAsIdentified();
+
+        Assertions.assertEquals(aIdentifiedPayment.getId(), aPayment.getId());
+        Assertions.assertEquals(aIdentifiedPayment.getOrderId().value(), aPayment.getOrderId().value());
+        Assertions.assertEquals(aIdentifiedPayment.getTransactionId(), aPayment.getTransactionId());
+        Assertions.assertEquals(PaymentStatus.IDENTIFIED, aIdentifiedPayment.getStatus());
+        Assertions.assertEquals(aIdentifiedPayment.getMethod(), aPayment.getMethod());
+        Assertions.assertEquals(aIdentifiedPayment.getCreatedAt(), aPayment.getCreatedAt());
+        Assertions.assertNotEquals(aIdentifiedPayment.getUpdatedAt(), aPayment.getUpdatedAt());
+        Assertions.assertTrue(aIdentifiedPayment.getPaidAt().isEmpty());
+        Assertions.assertEquals(aIdentifiedPayment.getExpiresIn(), aPayment.getExpiresIn());
+    }
+
+    @Test
+    void givenAValidPayment_whenCallMarkAsFailed_thenReturnUpdatedPayment() {
+        final var aPaymentMethod = PaymentMethod.PIX;
+        final var aAmount = BigDecimal.valueOf(10);
+        final var aOrderId = new OrderID(ULID.random());
+
+        final var aPayment = Payment.newPayment(aOrderId, aPaymentMethod, aAmount);
+
+        final var aFailedPayment = aPayment.markAsFailed();
+
+        Assertions.assertEquals(aFailedPayment.getId(), aPayment.getId());
+        Assertions.assertEquals(aFailedPayment.getOrderId().value(), aPayment.getOrderId().value());
+        Assertions.assertEquals(aFailedPayment.getTransactionId(), aPayment.getTransactionId());
+        Assertions.assertEquals(PaymentStatus.FAILED, aFailedPayment.getStatus());
+        Assertions.assertEquals(aFailedPayment.getMethod(), aPayment.getMethod());
+        Assertions.assertEquals(aFailedPayment.getCreatedAt(), aPayment.getCreatedAt());
+        Assertions.assertNotEquals(aFailedPayment.getUpdatedAt(), aPayment.getUpdatedAt());
+        Assertions.assertTrue(aFailedPayment.getPaidAt().isEmpty());
+        Assertions.assertEquals(aFailedPayment.getExpiresIn(), aPayment.getExpiresIn());
+    }
+
+    @Test
+    void givenAValidPaymentStatusChangedEvent_whenCallRegisterEvent_thenEventIsRegistered() {
+        final var aPaymentMethod = PaymentMethod.PIX;
+        final var aAmount = BigDecimal.valueOf(10);
+        final var aOrderId = new OrderID(ULID.random());
+
+        final var aPayment = Payment.newPayment(aOrderId, aPaymentMethod, aAmount);
+
+        final var aPaymentStatusChangedEvent = new PaymentStatusChangedEvent(
+                aPayment.getOrderId().value().toString(),
+                aPayment.getId().value().toString(),
+                aPayment.getVersion(),
+                aPayment.getStatus().name(),
+                "traceId"
+        );
+
+        aPayment.registerEvent(aPaymentStatusChangedEvent);
+
+        Assertions.assertEquals(1, aPayment.getDomainEvents().size());
+        Assertions.assertTrue(aPayment.getDomainEvents().contains(aPaymentStatusChangedEvent));
     }
 }

@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 
 class PaymentJdbcRepositoryTest extends AbstractRepositoryTest {
 
@@ -100,5 +101,38 @@ class PaymentJdbcRepositoryTest extends AbstractRepositoryTest {
         );
 
         Assertions.assertEquals(expectedMessage, aException.getMessage());
+    }
+
+    @Test
+    void givenAPersistedPayment_whenCallPaymentOfOrderId_thenReturnPayment() {
+        Assertions.assertEquals(0, countPayments());
+
+        final var aPayment = Fixture.PaymentFixture.newPayment();
+        this.paymentRepository().save(aPayment);
+
+        final var maybePayment = this.paymentRepository().paymentOfOrderId(aPayment.getOrderId().value().toString());
+
+        Assertions.assertTrue(maybePayment.isPresent());
+        final var actualPayment = maybePayment.get();
+
+        Assertions.assertEquals(aPayment.getId(), actualPayment.getId());
+        Assertions.assertEquals(aPayment.getVersion(), actualPayment.getVersion());
+        Assertions.assertEquals(aPayment.getOrderId(), actualPayment.getOrderId());
+        Assertions.assertEquals(aPayment.getTransactionId(), actualPayment.getTransactionId());
+        Assertions.assertEquals(aPayment.getAmount().setScale(2, RoundingMode.HALF_UP), actualPayment.getAmount());
+        Assertions.assertEquals(aPayment.getMethod(), actualPayment.getMethod());
+        Assertions.assertEquals(aPayment.getStatus(), actualPayment.getStatus());
+        Assertions.assertEquals(aPayment.getCreatedAt(), actualPayment.getCreatedAt());
+        Assertions.assertEquals(aPayment.getUpdatedAt(), actualPayment.getUpdatedAt());
+        Assertions.assertEquals(aPayment.getExpiresIn(), actualPayment.getExpiresIn());
+    }
+
+    @Test
+    void givenNoPaymentForOrderId_whenCallPaymentOfOrderId_thenReturnEmpty() {
+        Assertions.assertEquals(0, countPayments());
+
+        final var maybePayment = this.paymentRepository().paymentOfOrderId("non-existent-order-id");
+
+        Assertions.assertTrue(maybePayment.isEmpty());
     }
 }

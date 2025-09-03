@@ -3,6 +3,7 @@ package com.kaua.events.platform.application.usecases.orders.create;
 import com.kaua.events.platform.application.exceptions.UseCaseInputCannotBeNullException;
 import com.kaua.events.platform.application.repositories.OrderRepository;
 import com.kaua.events.platform.application.repositories.TicketRepository;
+import com.kaua.events.platform.application.usecases.orders.create.payment.CreateCheckoutCreditCardPaymentDetails;
 import com.kaua.events.platform.application.usecases.payments.create.CreatePaymentInput;
 import com.kaua.events.platform.application.usecases.payments.create.CreatePaymentUseCase;
 import com.kaua.events.platform.application.wrapper.TracerWrapper;
@@ -12,10 +13,7 @@ import com.kaua.events.platform.domain.exceptions.NotFoundException;
 import com.kaua.events.platform.domain.orders.Order;
 import com.kaua.events.platform.domain.orders.OrderItem;
 import com.kaua.events.platform.domain.orders.events.OrderCreatedEvent;
-import com.kaua.events.platform.domain.payments.PaymentDetails;
-import com.kaua.events.platform.domain.payments.PaymentID;
-import com.kaua.events.platform.domain.payments.PaymentMethod;
-import com.kaua.events.platform.domain.payments.PixPaymentDetails;
+import com.kaua.events.platform.domain.payments.*;
 import com.kaua.events.platform.domain.ticket.Ticket;
 import com.kaua.events.platform.domain.users.UserID;
 import com.kaua.events.platform.domain.utils.ULID;
@@ -168,6 +166,15 @@ public class DefaultCreateCheckoutUseCase extends CreateCheckoutUseCase {
     ) {
         return switch (aInput.paymentDetails().method()) {
             case PIX -> new PixPaymentDetails(aTotalAmount);
+            case CREDIT_CARD -> new CreditCardPaymentDetails(
+                    aTotalAmount,
+                    ((CreateCheckoutCreditCardPaymentDetails) aInput.paymentDetails()).name(),
+                    ((CreateCheckoutCreditCardPaymentDetails) aInput.paymentDetails()).cpf(),
+                    ((CreateCheckoutCreditCardPaymentDetails) aInput.paymentDetails()).phoneNumber(),
+                    ((CreateCheckoutCreditCardPaymentDetails) aInput.paymentDetails()).email(),
+                    ((CreateCheckoutCreditCardPaymentDetails) aInput.paymentDetails()).paymentToken(),
+                    ((CreateCheckoutCreditCardPaymentDetails) aInput.paymentDetails()).installments()
+            );
             default -> null;
         };
     }

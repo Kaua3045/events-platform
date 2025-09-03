@@ -17,6 +17,15 @@ application:
 
 payments:
   efi:
+    charges:
+      enabled: true
+      ngrok: false
+      base-url: http://localhost:${wiremock.server.port:8001}
+      notification-url: http://localhost:${wiremock.server.port:8081}/api/webhooks
+      oauth-token-path: /v1/authorize
+      skip-mtls-checking: true
+      client-id: ${PIX_CLIENT_ID:""}
+      client-secret: ${PIX_CLIENT_SECRET:""}
     pix:
       enabled: true
       ngrok: false

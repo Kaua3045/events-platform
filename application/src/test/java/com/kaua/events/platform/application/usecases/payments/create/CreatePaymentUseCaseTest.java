@@ -69,7 +69,7 @@ class CreatePaymentUseCaseTest extends UseCaseTest {
     }
 
     @Test
-    void givenAValidPixPaymentWithNonActiveStatus_whenCallCreatePaymentUseCase_thenReturnNull() {
+    void givenAValidPixPaymentWithNonActiveStatus_whenCallCreatePaymentUseCase_thenThrowRuntimeException() {
         final var aDetails = new PixPaymentDetails(BigDecimal.ONE);
         final var aOrderId = ULID.random().toString();
         final var aInput = CreatePaymentInput.with(aDetails, aOrderId, "trace-xyz");
@@ -85,36 +85,45 @@ class CreatePaymentUseCaseTest extends UseCaseTest {
                         PaymentProcessStatus.FAILED
                 ));
 
-        final var aOutput = Assertions.assertDoesNotThrow(() -> this.useCase.execute(aInput));
+        final var aException = Assertions.assertThrows(RuntimeException.class, () -> this.useCase.execute(aInput));
 
-        Assertions.assertNull(aOutput);
+        Assertions.assertNotNull(aException);
 
         Mockito.verify(paymentRepository, Mockito.times(1)).save(Mockito.any(Payment.class));
         Mockito.verify(paymentGateway, Mockito.times(1)).process(Mockito.any(PaymentProcessRequest.class));
     }
 
     @Test
-    void givenANonPixPayment_whenCallCreatePaymentUseCase_thenReturnNull() {
-        final var aDetails = new CreditCardPaymentDetails(BigDecimal.valueOf(100));
+    void givenAnCreditCardPaymentDetails_whenCallCreatePaymentUseCase_thenReturnOutput() {
+        final var aDetails = new CreditCardPaymentDetails(
+                BigDecimal.valueOf(100),
+                "John Doe",
+                "123.456.789-00",
+                "+55 (11) 91234-5678",
+                "john.doe@mail.com",
+                "120834182789",
+                1
+        );
         final var aOrderId = ULID.random().toString();
         final var aInput = CreatePaymentInput.with(aDetails, aOrderId, "trace-abc");
 
         Mockito.when(paymentRepository.save(Mockito.any()))
+                .thenAnswer(returnsFirstArg())
                 .thenAnswer(returnsFirstArg());
-
         Mockito.when(paymentGateway.process(Mockito.any(PaymentProcessRequest.class)))
                 .thenReturn(new PaymentProcessResponse(
                         null,
                         null,
                         0,
-                        PaymentProcessStatus.COMPLETED
+                        PaymentProcessStatus.WAITING
                 ));
 
         final var aOutput = Assertions.assertDoesNotThrow(() -> this.useCase.execute(aInput));
 
-        Assertions.assertNull(aOutput);
+        Assertions.assertNotNull(aOutput);
+        Assertions.assertNotNull(aOutput.paymentId());
 
-        Mockito.verify(paymentRepository, Mockito.times(1)).save(Mockito.any(Payment.class));
+        Mockito.verify(paymentRepository, Mockito.times(2)).save(Mockito.any(Payment.class));
         Mockito.verify(paymentGateway, Mockito.times(1)).process(Mockito.any(PaymentProcessRequest.class));
     }
 

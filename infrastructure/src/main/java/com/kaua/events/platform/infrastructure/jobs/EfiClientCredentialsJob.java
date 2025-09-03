@@ -1,5 +1,7 @@
 package com.kaua.events.platform.infrastructure.jobs;
 
+import com.kaua.events.platform.infrastructure.configurations.annotations.EfiChargesClient;
+import com.kaua.events.platform.infrastructure.configurations.annotations.EfiPixClient;
 import com.kaua.events.platform.infrastructure.configurations.authentication.client.RefreshClientCredentials;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,20 +20,36 @@ public class EfiClientCredentialsJob {
 
     private static final Logger log = LoggerFactory.getLogger(EfiClientCredentialsJob.class);
 
-    private final RefreshClientCredentials refreshClientCredentials;
+    private final RefreshClientCredentials refreshClientCredentialsPix;
+    private final RefreshClientCredentials refreshClientCredentialsCharges;
 
-    public EfiClientCredentialsJob(final RefreshClientCredentials refreshClientCredentials) {
-        this.refreshClientCredentials = Objects.requireNonNull(refreshClientCredentials);
+    public EfiClientCredentialsJob(
+            @EfiPixClient final RefreshClientCredentials refreshClientCredentialsPix,
+            @EfiChargesClient final RefreshClientCredentials refreshClientCredentialsCharges
+    ) {
+        this.refreshClientCredentialsPix = Objects.requireNonNull(refreshClientCredentialsPix);
+        this.refreshClientCredentialsCharges = Objects.requireNonNull(refreshClientCredentialsCharges);
     }
 
     @Scheduled(
-            fixedRateString = "${jobs.efi.client-credentials.refresh-rate-minutes}",
-            initialDelayString = "${jobs.efi.client-credentials.refresh-initial-delay-minutes}",
+            fixedRateString = "${jobs.efi.pix.client-credentials.refresh-rate-minutes}",
+            initialDelayString = "${jobs.efi.pix.client-credentials.refresh-initial-delay-minutes}",
             timeUnit = TimeUnit.MINUTES
     )
-    public void refreshClientCredentials() {
-        log.info("Refreshing efi client credentials");
-        this.refreshClientCredentials.refresh();
-        log.info("Client efi credentials refreshed");
+    public void refreshPixClientCredentials() {
+        log.info("Refreshing efi pix client credentials");
+        this.refreshClientCredentialsPix.refresh();
+        log.info("Client efi pix credentials refreshed");
+    }
+
+    @Scheduled(
+            fixedRateString = "${jobs.efi.charges.client-credentials.refresh-rate-minutes}",
+            initialDelayString = "${jobs.efi.charges.client-credentials.refresh-initial-delay-minutes}",
+            timeUnit = TimeUnit.MINUTES
+    )
+    public void refreshChargesClientCredentials() {
+        log.info("Refreshing efi charges client credentials");
+        this.refreshClientCredentialsCharges.refresh();
+        log.info("Client efi charges credentials refreshed");
     }
 }

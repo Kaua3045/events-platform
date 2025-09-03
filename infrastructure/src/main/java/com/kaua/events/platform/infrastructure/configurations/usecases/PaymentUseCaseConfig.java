@@ -4,6 +4,8 @@ import com.kaua.events.platform.application.gateways.PaymentGateway;
 import com.kaua.events.platform.application.repositories.PaymentRepository;
 import com.kaua.events.platform.application.usecases.payments.create.CreatePaymentUseCase;
 import com.kaua.events.platform.application.usecases.payments.create.DefaultCreatePaymentUseCase;
+import com.kaua.events.platform.application.usecases.payments.process.charges.DefaultProcessPaymentChargeUseCase;
+import com.kaua.events.platform.application.usecases.payments.process.charges.ProcessPaymentChargeUseCase;
 import com.kaua.events.platform.application.wrapper.TracerWrapper;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -21,6 +23,17 @@ public class PaymentUseCaseConfig {
                 paymentRepository,
                 paymentGateway,
                 tracerWrapper
+        );
+    }
+
+    @Bean
+    public ProcessPaymentChargeUseCase processPaymentChargeUseCase(
+            final PaymentRepository paymentRepository,
+            final PaymentGateway paymentGateway
+    ) {
+        return new DefaultProcessPaymentChargeUseCase(
+                paymentRepository,
+                paymentGateway
         );
     }
 }

@@ -147,6 +147,60 @@ public class Payment extends AggregateRoot<PaymentID> {
         );
     }
 
+    public Payment markAsApproved() {
+        return new Payment(
+                getId(),
+                getVersion(),
+                getOrderId(),
+                getTransactionId(),
+                PaymentStatus.APPROVED,
+                getMethod(),
+                getAmount(),
+                getQrCode().orElse(null),
+                getQrCodeImageUrl().orElse(null),
+                getCreatedAt(),
+                InstantUtils.now(),
+                getPaidAt().orElse(null),
+                getExpiresIn()
+        );
+    }
+
+    public Payment markAsIdentified() {
+        return new Payment(
+                getId(),
+                getVersion(),
+                getOrderId(),
+                getTransactionId(),
+                PaymentStatus.IDENTIFIED,
+                getMethod(),
+                getAmount(),
+                getQrCode().orElse(null),
+                getQrCodeImageUrl().orElse(null),
+                getCreatedAt(),
+                InstantUtils.now(),
+                getPaidAt().orElse(null),
+                getExpiresIn()
+        );
+    }
+
+    public Payment markAsFailed() {
+        return new Payment(
+                getId(),
+                getVersion(),
+                getOrderId(),
+                getTransactionId(),
+                PaymentStatus.FAILED,
+                getMethod(),
+                getAmount(),
+                getQrCode().orElse(null),
+                getQrCodeImageUrl().orElse(null),
+                getCreatedAt(),
+                InstantUtils.now(),
+                getPaidAt().orElse(null),
+                getExpiresIn()
+        );
+    }
+
     public OrderID getOrderId() {
         return orderId;
     }

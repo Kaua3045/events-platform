@@ -7,6 +7,8 @@ public enum PaymentStatus {
 
     NEW,
     PENDING,
+    APPROVED,
+    IDENTIFIED,
     PAID,
     FAILED,
     EXPIRED,

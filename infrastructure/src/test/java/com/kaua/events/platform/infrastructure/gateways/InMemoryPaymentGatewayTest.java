@@ -77,32 +77,6 @@ class InMemoryPaymentGatewayTest extends UnitTest {
     }
 
     @Test
-    void givenDuplicateTransaction_whenProcess_thenShouldReturnSamePayment() {
-        final var request = new PaymentGateway.PaymentProcessRequest(
-                "tx123",
-                "order123",
-                new PixPaymentDetails(new BigDecimal("10"))
-        );
-
-        final var first = gateway.process(request);
-        final var second = gateway.process(request);
-
-        assertSame(first, second);
-    }
-
-    @Test
-    void givenNonPixPayment_whenProcess_thenShouldThrowException() {
-        final var request = new PaymentGateway.PaymentProcessRequest(
-                "tx123",
-                "order123",
-                new CreditCardPaymentDetails(new BigDecimal("10"))
-        );
-
-        final var ex = assertThrows(UnsupportedOperationException.class, () -> gateway.process(request));
-        assertEquals("Only PIX is supported in local in-memory gateway", ex.getMessage());
-    }
-
-    @Test
     void whenProcessingPix_thenWebhookShouldBeCalled() {
         final var request = new PaymentGateway.PaymentProcessRequest(
                 "tx123",
@@ -135,41 +109,6 @@ class InMemoryPaymentGatewayTest extends UnitTest {
 
         final var newResponse = gateway.process(request);
         assertNotNull(newResponse);
-    }
-
-    @Test
-    void givenWebClientError_whenWebhook_thenDoOnErrorIsCalled() {
-        when(responseSpec.toBodilessEntity()).thenReturn(Mono.error(new RuntimeException("Webhook failed")));
-
-        var request = new PaymentGateway.PaymentProcessRequest(
-                "tx123",
-                "order123",
-                new PixPaymentDetails(new BigDecimal("10"))
-        );
-
-        final var aGateway = new InMemoryPaymentGateway(webClient, Runnable::run);
-
-        assertDoesNotThrow(() -> aGateway.process(request));
-
-        ArgumentCaptor<Map> captor = ArgumentCaptor.forClass(Map.class);
-        verify(bodySpec, atLeastOnce()).bodyValue(captor.capture());
-        Map payload = captor.getValue();
-        assertNotNull(payload.get("pix"));
-        System.out.println(responseSpec);
-    }
-
-    @Test
-    void whenWebhookSleepInterrupted_thenShouldLogError() throws InterruptedException {
-        final var request = new PaymentGateway.PaymentProcessRequest(
-                "tx123",
-                "order123",
-                new PixPaymentDetails(new BigDecimal("10"))
-        );
-
-        var gatewaySpy = spy(new InMemoryPaymentGateway(webClient, Runnable::run));
-        doThrow(new InterruptedException("Simulated interruption")).when(gatewaySpy).sleep(anyLong());
-
-        assertDoesNotThrow(() -> gatewaySpy.process(request));
     }
 
     @Test
@@ -209,5 +148,187 @@ class InMemoryPaymentGatewayTest extends UnitTest {
         var response = gateway.process(request);
 
         assertEquals(PaymentGateway.PaymentProcessStatus.FAILED, response.status());
+    }
+
+    @Test
+    void givenNonPixPayment_whenProcess_thenShouldReturnPaymentWithRandomStatus() {
+        final var request = new PaymentGateway.PaymentProcessRequest(
+                "tx-nonpix",
+                "order-nonpix",
+                new CreditCardPaymentDetails(
+                        new BigDecimal("100"),
+                        "Jane Doe",
+                        "123.456.789-00",
+                        "+55 (11) 91234-5678",
+                        "jane.doe@mail.com",
+                        "4111111111111111",
+                        12
+                )
+        );
+
+        final var response = gateway.process(request);
+
+        assertNotNull(response);
+        assertTrue(response.status() == PaymentGateway.PaymentProcessStatus.ACTIVE
+                || response.status() == PaymentGateway.PaymentProcessStatus.FAILED);
+    }
+
+    @Test
+    void whenProcessingNonPix_thenWebhookShouldBeCalled() {
+        final var request = new PaymentGateway.PaymentProcessRequest(
+                "tx-nonpix-webhook",
+                "order-nonpix-webhook",
+                new CreditCardPaymentDetails(
+                        new BigDecimal("100"),
+                        "Jane Doe",
+                        "123.456.789-00",
+                        "+55 (11) 91234-5678",
+                        "jane.doe@mail.com",
+                        "4111111111111111",
+                        12
+                )
+        );
+
+        final var spyGateway = new InMemoryPaymentGateway(webClient, Runnable::run);
+
+        spyGateway.process(request);
+
+        ArgumentCaptor<Map> captor = ArgumentCaptor.forClass(Map.class);
+        verify(bodySpec, atLeastOnce()).bodyValue(captor.capture());
+    }
+
+    @Test
+    void givenNonPixAmountZero_whenProcess_thenShouldReturnDeclinedStatus() {
+        final var request = new PaymentGateway.PaymentProcessRequest(
+                "tx-nonpix-zero",
+                "order-nonpix-zero",
+                new CreditCardPaymentDetails(
+                        BigDecimal.ZERO,
+                        "Jane Doe",
+                        "123.456.789-00",
+                        "+55 (11) 91234-5678",
+                        "jane.doe@mail.com",
+                        "4111111111111111",
+                        12
+                )
+        );
+
+        final var response = gateway.process(request);
+
+        assertTrue(PaymentGateway.PaymentProcessStatus.ACTIVE == response.status()
+                || PaymentGateway.PaymentProcessStatus.FAILED == response.status());
+    }
+
+    @Test
+    void clearStoreShouldAlsoAffectNonPixPayments() {
+        final var request = new PaymentGateway.PaymentProcessRequest(
+                "tx-nonpix-clear",
+                "order-nonpix-clear",
+                new CreditCardPaymentDetails(
+                        new BigDecimal("50"),
+                        "Jane Doe",
+                        "123.456.789-00",
+                        "+55 (11) 91234-5678",
+                        "jane.doe@mail.com",
+                        "4111111111111111",
+                        12
+                )
+        );
+
+        gateway.process(request);
+        gateway.clearStore();
+
+        final var newResponse = gateway.process(request);
+        assertNotNull(newResponse);
+    }
+
+    @Test
+    void givenExistingTransaction_whenGetNotifications_thenShouldReturnNotification() {
+        final var request = new PaymentGateway.PaymentProcessRequest(
+                "tx-get",
+                "order-get",
+                new PixPaymentDetails(new BigDecimal("10"))
+        );
+
+        gateway.process(request);
+
+        final var notification = gateway.getNotifications("tx-get");
+
+        assertNotNull(notification);
+        assertEquals(200, notification.code());
+        assertNotNull(notification.data());
+        assertFalse(notification.data().isEmpty());
+
+        final var data = notification.data().get(0);
+        assertEquals("order-get", data.customId());
+        assertEquals("ACTIVE", data.currentStatus());
+    }
+
+    @Test
+    void whenWebhookPixSleepInterrupted_thenShouldLogError() throws InterruptedException {
+        final var request = new PaymentGateway.PaymentProcessRequest(
+                "tx-interrupted",
+                "order-interrupted",
+                new PixPaymentDetails(new BigDecimal("100"))
+        );
+
+        var gatewaySpy = spy(new InMemoryPaymentGateway(webClient, Runnable::run));
+
+        doThrow(new InterruptedException("Simulated interruption")).when(gatewaySpy).sleep(anyLong());
+
+        assertDoesNotThrow(() -> gatewaySpy.process(request));
+    }
+
+    @Test
+    void whenWebhookSleepInterrupted_thenShouldLogError() throws InterruptedException {
+        final var request = new PaymentGateway.PaymentProcessRequest(
+                "tx-interrupted",
+                "order-interrupted",
+                new CreditCardPaymentDetails(new BigDecimal("100"), "Jane Doe", "123.456.789-00", "+55 (11) 91234-5678",
+                        "jane.doe@mail.com", "4111111111111111", 12)
+        );
+
+        var gatewaySpy = spy(new InMemoryPaymentGateway(webClient, Runnable::run));
+
+        doThrow(new InterruptedException("Simulated interruption")).when(gatewaySpy).sleep(anyLong());
+
+        assertDoesNotThrow(() -> gatewaySpy.process(request));
+    }
+
+    @Test
+    void givenWebClientError_whenWebhook_thenDoOnErrorIsCalled() {
+        when(responseSpec.toBodilessEntity()).thenReturn(Mono.error(new RuntimeException("Webhook failed")));
+
+        var request = new PaymentGateway.PaymentProcessRequest(
+                "tx-webclient-error",
+                "order-webclient-error",
+                new CreditCardPaymentDetails(new BigDecimal("100"), "Jane Doe", "123.456.789-00", "+55 (11) 91234-5678",
+                        "jane.doe@mail.com", "4111111111111111", 12)
+        );
+
+        final var aGateway = new InMemoryPaymentGateway(webClient, Runnable::run);
+
+        assertDoesNotThrow(() -> aGateway.process(request));
+
+        ArgumentCaptor<Map> captor = ArgumentCaptor.forClass(Map.class);
+        verify(bodySpec, atLeastOnce()).bodyValue(captor.capture());
+    }
+
+    @Test
+    void givenWebClientError_whenWebhookPix_thenDoOnErrorIsCalled() {
+        when(responseSpec.toBodilessEntity()).thenReturn(Mono.error(new RuntimeException("Webhook failed")));
+
+        var request = new PaymentGateway.PaymentProcessRequest(
+                "tx-webclient-error",
+                "order-webclient-error",
+                new PixPaymentDetails(new BigDecimal("100"))
+        );
+
+        final var aGateway = new InMemoryPaymentGateway(webClient, Runnable::run);
+
+        assertDoesNotThrow(() -> aGateway.process(request));
+
+        ArgumentCaptor<Map> captor = ArgumentCaptor.forClass(Map.class);
+        verify(bodySpec, atLeastOnce()).bodyValue(captor.capture());
     }
 }

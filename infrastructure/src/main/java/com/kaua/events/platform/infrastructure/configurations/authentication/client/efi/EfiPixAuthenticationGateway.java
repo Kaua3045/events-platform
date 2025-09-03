@@ -1,7 +1,7 @@
 package com.kaua.events.platform.infrastructure.configurations.authentication.client.efi;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.kaua.events.platform.infrastructure.configurations.annotations.EfiClient;
+import com.kaua.events.platform.infrastructure.configurations.annotations.EfiPixClient;
 import com.kaua.events.platform.infrastructure.configurations.authentication.client.AuthenticationGateway;
 import com.kaua.events.platform.infrastructure.configurations.properties.payments.EfiPixProperties;
 import com.kaua.events.platform.infrastructure.gateways.helpers.ReactiveHttpClientUtils;
@@ -21,18 +21,19 @@ import java.util.Objects;
 
 @Component
 @ConditionalOnProperty(prefix = "payments.efi.pix", name = "enabled", havingValue = "true")
-public class EfiAuthenticationGateway implements AuthenticationGateway, ReactiveHttpClientUtils {
+@EfiPixClient
+public class EfiPixAuthenticationGateway implements AuthenticationGateway, ReactiveHttpClientUtils {
 
-    public static final String NAMESPACE_NAME = "efi-authentication";
+    public static final String NAMESPACE_NAME = "efi-pix-authentication";
 
-    private static final Logger log = LoggerFactory.getLogger(EfiAuthenticationGateway.class);
+    private static final Logger log = LoggerFactory.getLogger(EfiPixAuthenticationGateway.class);
 
     private final WebClient webClient;
     private final String tokenUri;
     private final Tracer tracer;
 
-    public EfiAuthenticationGateway(
-            @EfiClient final WebClient webClient,
+    public EfiPixAuthenticationGateway(
+            @EfiPixClient final WebClient webClient,
             final EfiPixProperties efiPixProperties,
             final Tracer tracer
     ) {

@@ -71,9 +71,18 @@ public class DefaultCreatePaymentUseCase extends CreatePaymentUseCase {
                         return CreatePaymentOutput.from(aPendingPayment);
                     }
 
-                    // TODO se nao for pix, deve salvar um evento e retornar o payment ou alguma outra coisa, talvez caso seja pix criar um caso de uso a parte
+                    if (aPayment.getMethod().equals(PaymentMethod.CREDIT_CARD) && aOutput.status().equals(PaymentProcessStatus.WAITING)) {
+                        final var aPendingPayment = aPayment.markAsPending(0, null, null);
 
-                    return null;
+                        ctx.runInSpan(
+                                "payment.update",
+                                () -> this.paymentRepository.save(aPendingPayment)
+                        );
+
+                        return CreatePaymentOutput.from(aPendingPayment);
+                    }
+
+                    throw new RuntimeException("Error on create payment " + aOutput + " " + aPayment);
                 }
         );
     }

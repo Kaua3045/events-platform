@@ -1,9 +1,10 @@
 package com.kaua.events.platform.infrastructure.configurations.authentication.client.efi;
 
+import com.kaua.events.platform.infrastructure.configurations.annotations.EfiChargesClient;
 import com.kaua.events.platform.infrastructure.configurations.authentication.client.AuthenticationGateway;
 import com.kaua.events.platform.infrastructure.configurations.authentication.client.GetClientCredentials;
 import com.kaua.events.platform.infrastructure.configurations.authentication.client.RefreshClientCredentials;
-import com.kaua.events.platform.infrastructure.configurations.properties.payments.EfiPixProperties;
+import com.kaua.events.platform.infrastructure.configurations.properties.payments.EfiProperties;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
@@ -13,20 +14,21 @@ import java.util.concurrent.atomic.AtomicReference;
 import static com.kaua.events.platform.infrastructure.configurations.authentication.client.AuthenticationGateway.ClientCredentialsInput;
 
 @Component
-@ConditionalOnProperty(prefix = "payments.efi.pix", name = "enabled", havingValue = "true")
-public class EfiClientCredentialsManager implements GetClientCredentials, RefreshClientCredentials {
+@ConditionalOnProperty(prefix = "payments.efi.charges", name = "enabled", havingValue = "true")
+@EfiChargesClient
+public class EfiChargesClientCredentialsManager implements GetClientCredentials, RefreshClientCredentials {
 
     private final AtomicReference<ClientCredentials> credentials = new AtomicReference<>();
 
     private final AuthenticationGateway authenticationGateway;
-    private final EfiPixProperties efiPixProperties;
+    private final EfiProperties efiProperties;
 
-    public EfiClientCredentialsManager(
-            final AuthenticationGateway authenticationGateway,
-            final EfiPixProperties efiPixProperties
+    public EfiChargesClientCredentialsManager(
+            @EfiChargesClient final AuthenticationGateway authenticationGateway,
+            final EfiProperties efiProperties
     ) {
         this.authenticationGateway = Objects.requireNonNull(authenticationGateway);
-        this.efiPixProperties = Objects.requireNonNull(efiPixProperties);
+        this.efiProperties = Objects.requireNonNull(efiProperties);
     }
 
     @Override
@@ -43,11 +45,11 @@ public class EfiClientCredentialsManager implements GetClientCredentials, Refres
     }
 
     private String clientId() {
-        return this.efiPixProperties.getClientId();
+        return this.efiProperties.getClientId();
     }
 
     private String clientSecret() {
-        return this.efiPixProperties.getClientSecret();
+        return this.efiProperties.getClientSecret();
     }
 
     record ClientCredentials(String accessToken) {
