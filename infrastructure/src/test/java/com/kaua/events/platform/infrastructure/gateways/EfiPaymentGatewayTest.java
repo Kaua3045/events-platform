@@ -7,8 +7,11 @@ import com.kaua.events.platform.domain.exceptions.InternalErrorException;
 import com.kaua.events.platform.domain.exceptions.NotFoundException;
 import com.kaua.events.platform.domain.payments.CreditCardPaymentDetails;
 import com.kaua.events.platform.domain.payments.PixPaymentDetails;
+import com.kaua.events.platform.infrastructure.configurations.annotations.EfiChargesClient;
+import com.kaua.events.platform.infrastructure.configurations.annotations.EfiPixClient;
 import com.kaua.events.platform.infrastructure.configurations.authentication.client.GetClientCredentials;
 import com.kaua.events.platform.infrastructure.configurations.properties.payments.EfiPixProperties;
+import com.kaua.events.platform.infrastructure.configurations.properties.payments.EfiProperties;
 import com.kaua.events.platform.infrastructure.exceptions.ConflictException;
 import com.kaua.events.platform.infrastructure.exceptions.TooManyRequestsException;
 import io.github.resilience4j.bulkhead.BulkheadFullException;
@@ -25,6 +28,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Map;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
@@ -36,10 +40,18 @@ class EfiPaymentGatewayTest extends AbstractRestClientTest implements Observatio
     private EfiPaymentGateway gateway;
 
     @MockitoSpyBean
+    @EfiPixClient
     private GetClientCredentials getClientCredentials;
+
+    @MockitoSpyBean
+    @EfiChargesClient
+    private GetClientCredentials getChargesClientCredentials;
 
     @Autowired
     private EfiPixProperties efiPixProperties;
+
+    @Autowired
+    private EfiProperties efiProperties;
 
     @Autowired
     private InMemorySpanExporter spanExporter;
@@ -229,21 +241,6 @@ class EfiPaymentGatewayTest extends AbstractRestClientTest implements Observatio
     }
 
     @Test
-    void givenNonPixPayment_whenProcess_thenShouldReturnNull() {
-        final var aToken = "tokenNonPix";
-        Mockito.doReturn(aToken).when(getClientCredentials).retrieve();
-
-        final var request = new EfiPaymentGateway.PaymentProcessRequest("txCard", "orderCard",
-                new CreditCardPaymentDetails(BigDecimal.TEN));
-
-        final var response = this.gateway.process(request);
-        Assertions.assertNull(response);
-
-        verify(0, putRequestedFor(urlMatching("/v2/cob/.*")));
-        verify(0, getRequestedFor(urlMatching("/v2/loc/.*")));
-    }
-
-    @Test
     void givenTimeoutExceed_whenProcess_thenShouldThrowInternalErrorException() {
         final var transactionId = "txTimeout";
         final var orderId = "orderTimeout";
@@ -406,6 +403,243 @@ class EfiPaymentGatewayTest extends AbstractRestClientTest implements Observatio
         verify(1, getRequestedFor(urlEqualTo("/v2/loc/321/qrcode"))
                 .withHeader(HttpHeaders.AUTHORIZATION, equalTo("Bearer " + aToken)));
     }
+
+    @Test
+    void givenValidCreditCardRequest_whenProcess_thenShouldReturnWaitingStatus() {
+        final var transactionId = "txCard123";
+        final var orderId = "orderCard123";
+        final var amount = BigDecimal.valueOf(59.90);
+        final var aToken = "tokenCard123";
+
+        Mockito.doReturn(aToken).when(getChargesClientCredentials).retrieve();
+
+        stubFor(post(urlPathEqualTo("/v1/charge/one-step"))
+                .withHeader(HttpHeaders.AUTHORIZATION, equalTo("Bearer " + aToken))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                        .withBody("""
+                                {
+                                  "code": 200,
+                                  "data": {
+                                    "installments": 1,
+                                    "installment_value": 5990,
+                                    "payment": "credit_card",
+                                    "charge_id": "charge123",
+                                    "status": "paid",
+                                    "total": 5990,
+                                    "custom_id": "%s",
+                                    "created_at": "2025-08-30T10:00:00Z"
+                                  }
+                                }
+                                """.formatted(transactionId))));
+
+        final var request = new EfiPaymentGateway.PaymentProcessRequest(
+                transactionId,
+                orderId,
+                new CreditCardPaymentDetails(
+                        amount,
+                        "John Doe",
+                        "123.456.789-00",
+                        "+55 (11) 91234-5678",
+                        "john.doe@mail.com",
+                        "120834182789",
+                        1
+                )
+        );
+
+        final var response = this.gateway.process(request);
+
+        Assertions.assertNotNull(response);
+        Assertions.assertEquals(EfiPaymentGateway.PaymentProcessStatus.WAITING, response.status());
+
+        verify(1, postRequestedFor(urlEqualTo("/v1/charge/one-step"))
+                .withHeader(HttpHeaders.AUTHORIZATION, equalTo("Bearer " + aToken)));
+    }
+
+    @Test
+    void givenCreditCardPaymentUnpaid_whenProcess_thenShouldReturnFailedStatus() {
+        final var transactionId = "txCardUnpaid";
+        final var orderId = "orderCardUnpaid";
+        final var amount = BigDecimal.valueOf(89.00);
+        final var aToken = "tokenCardUnpaid";
+
+        Mockito.doReturn(aToken).when(getChargesClientCredentials).retrieve();
+
+        stubFor(post(urlPathEqualTo("/v1/charge/one-step"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                        .withBody("""
+                                {
+                                  "code": 200,
+                                  "data": {
+                                    "installments": 1,
+                                    "installment_value": 8900,
+                                    "payment": "credit_card",
+                                    "charge_id": "chargeUnpaid",
+                                    "status": "unpaid",
+                                    "total": 8900,
+                                    "custom_id": "%s",
+                                    "created_at": "2025-08-30T10:00:00Z"
+                                  }
+                                }
+                                """.formatted(transactionId))));
+
+        final var request = new EfiPaymentGateway.PaymentProcessRequest(
+                transactionId,
+                orderId,
+                new CreditCardPaymentDetails(
+                        amount,
+                        "Jane Doe",
+                        "987.654.321-00",
+                        "+55 (11) 91234-5678",
+                        "jane.doe@mail.com",
+                        "987654321234",
+                        1
+                )
+        );
+
+        final var response = this.gateway.process(request);
+
+        Assertions.assertNotNull(response);
+        Assertions.assertEquals(EfiPaymentGateway.PaymentProcessStatus.FAILED, response.status());
+
+        verify(1, postRequestedFor(urlEqualTo("/v1/charge/one-step")));
+    }
+
+    @Test
+    void givenCreditCardPaymentWithServerError_whenProcess_thenShouldThrowInternalErrorException() {
+        final var transactionId = "txCard500";
+        final var orderId = "orderCard500";
+        final var amount = BigDecimal.valueOf(120);
+        final var aToken = "tokenCard500";
+
+        Mockito.doReturn(aToken).when(getChargesClientCredentials).retrieve();
+
+        stubFor(post(urlPathEqualTo("/v1/charge/one-step"))
+                .willReturn(aResponse()
+                        .withStatus(500)
+                        .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                        .withBody("{\"message\":\"Internal Server Error\"}")));
+
+        final var request = new EfiPaymentGateway.PaymentProcessRequest(
+                transactionId,
+                orderId,
+                new CreditCardPaymentDetails(
+                        amount,
+                        "Alice",
+                        "111.222.333-44",
+                        "+55 (11) 91234-5678",
+                        "alice@mail.com",
+                        "123456789012",
+                        1
+                )
+        );
+
+        final var exception = Assertions.assertThrows(InternalErrorException.class,
+                () -> this.gateway.process(request));
+
+        Assertions.assertTrue(exception.getMessage().contains("Error observed"));
+
+        verify(2, postRequestedFor(urlEqualTo("/v1/charge/one-step"))); // retry
+    }
+
+    @Test
+    void givenValidNotificationId_whenGetNotifications_thenReturnPaymentNotification() {
+        final var notificationId = "notif123";
+        final var aToken = "tokenNotif123";
+        Mockito.doReturn(aToken).when(getChargesClientCredentials).retrieve();
+
+        final var body = Map.of(
+                "code", 200,
+                "data", List.of(
+                        Map.of(
+                                "id", 123L,
+                                "type", "PAYMENT",
+                                "custom_id", "custom123",
+                                "status", Map.of("current", "PAID", "previous", "PENDING"),
+                                "identifiers", Map.of("charge_id", 456L, "carnet_id", 789L),
+                                "created_at", "2025-08-31T12:00:00Z"
+                        )
+                )
+        );
+
+        stubFor(get(urlPathEqualTo("/v1/notification/" + notificationId))
+                .withHeader(HttpHeaders.AUTHORIZATION, equalTo("Bearer " + aToken))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                        .withBody(writeValueAsString(body))));
+
+        final var notification = gateway.getNotifications(notificationId);
+
+        Assertions.assertNotNull(notification);
+        Assertions.assertEquals(200, notification.code());
+        Assertions.assertEquals(1, notification.data().size());
+        final var data = notification.data().get(0);
+        Assertions.assertEquals(123L, data.id());
+        Assertions.assertEquals("PAID", data.currentStatus());
+        Assertions.assertEquals(456L, data.chargeId());
+
+        verify(1, getRequestedFor(urlEqualTo("/v1/notification/" + notificationId))
+                .withHeader(HttpHeaders.AUTHORIZATION, equalTo("Bearer " + aToken)));
+    }
+
+    @Test
+    void givenNotificationNotFound_whenGetNotifications_thenThrowNotFoundException() {
+        final var notificationId = "notif404";
+        final var aToken = "tokenNotif404";
+        Mockito.doReturn(aToken).when(getChargesClientCredentials).retrieve();
+
+        stubFor(get(urlPathEqualTo("/v1/notification/" + notificationId))
+                .willReturn(aResponse().withStatus(404)));
+
+        final var exception = Assertions.assertThrows(NotFoundException.class,
+                () -> gateway.getNotifications(notificationId));
+
+        Assertions.assertTrue(exception.getMessage().contains(notificationId));
+        verify(1, getRequestedFor(urlEqualTo("/v1/notification/" + notificationId)));
+    }
+
+    @Test
+    void givenNotificationService5xx_whenGetNotifications_thenThrowInternalErrorException() {
+        final var notificationId = "notif500";
+        final var aToken = "tokenNotif500";
+        Mockito.doReturn(aToken).when(getChargesClientCredentials).retrieve();
+
+        stubFor(get(urlPathEqualTo("/v1/notification/" + notificationId))
+                .willReturn(aResponse()
+                        .withStatus(500)
+                        .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                        .withBody("{\"message\":\"Internal Server Error\"}")));
+
+        final var exception = Assertions.assertThrows(InternalErrorException.class,
+                () -> gateway.getNotifications(notificationId));
+
+        Assertions.assertTrue(exception.getMessage().contains("Error observed"));
+        verify(1, getRequestedFor(urlEqualTo("/v1/notification/" + notificationId)));
+    }
+
+    @Test
+    void givenNotificationService429_whenGetNotifications_thenThrowTooManyRequestsException() {
+        final var notificationId = "notif429";
+        final var aToken = "tokenNotif429";
+        Mockito.doReturn(aToken).when(getChargesClientCredentials).retrieve();
+
+        stubFor(get(urlPathEqualTo("/v1/notification/" + notificationId))
+                .willReturn(aResponse()
+                        .withStatus(429)
+                        .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                        .withBody("{\"nome\":\"TooManyRequests\",\"mensagem\":\"Rate limit exceeded\"}")));
+
+        final var exception = Assertions.assertThrows(TooManyRequestsException.class,
+                () -> gateway.getNotifications(notificationId));
+
+        Assertions.assertEquals("TooManyRequestsException", exception.getMessage());
+        verify(1, getRequestedFor(urlEqualTo("/v1/notification/" + notificationId)));
+    }
+
 
     @Override
     public InMemorySpanExporter getSpanExporter() {
