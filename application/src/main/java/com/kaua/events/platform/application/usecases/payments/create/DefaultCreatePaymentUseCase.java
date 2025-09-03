@@ -9,6 +9,7 @@ import com.kaua.events.platform.application.wrapper.TracerWrapper;
 import com.kaua.events.platform.domain.orders.OrderID;
 import com.kaua.events.platform.domain.payments.Payment;
 import com.kaua.events.platform.domain.payments.PaymentMethod;
+import com.kaua.events.platform.domain.payments.PixPaymentDetails;
 import com.kaua.events.platform.domain.utils.ULID;
 
 import java.util.Objects;
@@ -39,6 +40,7 @@ public class DefaultCreatePaymentUseCase extends CreatePaymentUseCase {
                     final var aPayment = Payment.newPayment(
                             new OrderID(ULID.fromString(input.orderId())),
                             input.paymentDetails().method(),
+                            input.paymentDetails(),
                             input.paymentDetails().amount()
                     );
 
@@ -58,9 +60,12 @@ public class DefaultCreatePaymentUseCase extends CreatePaymentUseCase {
 
                     if (aPayment.getMethod().equals(PaymentMethod.PIX) && aOutput.status().equals(PaymentProcessStatus.ACTIVE)) {
                         final var aPendingPayment = aPayment.markAsPending(
-                                aOutput.expiresIn(),
-                                aOutput.qrCode(),
-                                aOutput.qrCodeImageUrl()
+                                new PixPaymentDetails(
+                                        aPayment.getAmount(),
+                                        aOutput.qrCode(),
+                                        aOutput.qrCodeImageUrl(),
+                                        aOutput.expiresIn()
+                                )
                         );
 
                         ctx.runInSpan(
@@ -72,7 +77,7 @@ public class DefaultCreatePaymentUseCase extends CreatePaymentUseCase {
                     }
 
                     if (aPayment.getMethod().equals(PaymentMethod.CREDIT_CARD) && aOutput.status().equals(PaymentProcessStatus.WAITING)) {
-                        final var aPendingPayment = aPayment.markAsPending(0, null, null);
+                        final var aPendingPayment = aPayment.markAsPending(aPayment.getPaymentDetails());
 
                         ctx.runInSpan(
                                 "payment.update",
