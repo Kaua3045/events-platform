@@ -16,6 +16,7 @@ import com.kaua.events.platform.domain.exceptions.DomainException;
 import com.kaua.events.platform.domain.exceptions.NotFoundException;
 import com.kaua.events.platform.domain.orders.Order;
 import com.kaua.events.platform.domain.payments.PaymentMethod;
+import com.kaua.events.platform.domain.payments.PixPaymentDetails;
 import com.kaua.events.platform.domain.ticket.Ticket;
 import com.kaua.events.platform.domain.ticket.TicketStatus;
 import com.kaua.events.platform.domain.ticket.TicketType;
@@ -79,16 +80,13 @@ class CreateCheckoutUseCaseTest extends UseCaseTest {
         Mockito.when(createPaymentUseCase.execute(Mockito.any()))
                 .thenReturn(new CreatePaymentOutput(
                         ULID.random().toString(),
-                        "qrCode",
-                        "qrCodeImage")
-                );
+                        new PixPaymentDetails(ticket.getPrice().add(ticket.getPrice()), "qrcode", "qrcodeIMageUrl", 1000)
+                ));
 
         final var output = Assertions.assertDoesNotThrow(() -> useCase.execute(input));
 
         Assertions.assertNotNull(output);
         Assertions.assertNotNull(output.getOrderId());
-        Assertions.assertTrue(output.getQrCodeUrl().isPresent());
-        Assertions.assertTrue(output.getQrCodeImageUrl().isPresent());
         Assertions.assertEquals(PaymentMethod.PIX.name(), output.getPaymentMethod());
         Assertions.assertNotNull(output.getOrderId());
 
@@ -120,7 +118,6 @@ class CreateCheckoutUseCaseTest extends UseCaseTest {
 
         Assertions.assertNotNull(output);
         Assertions.assertEquals(PaymentMethod.CREDIT_CARD.name(), output.getPaymentMethod());
-        Assertions.assertTrue(output.getQrCodeUrl().isEmpty());
 
         Mockito.verify(ticketRepository).saveAll(Mockito.anyList());
         Mockito.verify(orderRepository).save(argThat(o -> o.getItems().size() == 1));
