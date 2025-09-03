@@ -1,6 +1,7 @@
 package com.kaua.events.platform.application.usecases.orders.create;
 
 import com.kaua.events.platform.domain.orders.Order;
+import com.kaua.events.platform.domain.payments.PaymentDetails;
 
 import java.util.Optional;
 
@@ -8,28 +9,24 @@ public class CreateCheckoutOutput {
 
     private final String orderId;
     private final String paymentMethod;
-    private final String qrCodeUrl;
-    private final String qrCodeImageUrl;
+    private final PaymentDetails paymentDetails;
 
     public CreateCheckoutOutput(
             final String orderId,
             final String paymentMethod,
-            final String qrCodeUrl,
-            final String qrCodeImageUrl
+            final PaymentDetails paymentDetails
     ) {
         this.orderId = orderId;
         this.paymentMethod = paymentMethod;
-        this.qrCodeUrl = qrCodeUrl;
-        this.qrCodeImageUrl = qrCodeImageUrl;
+        this.paymentDetails = paymentDetails;
     }
 
     public static CreateCheckoutOutput from(
             final Order aOrder,
             final String paymentMethod,
-            final String qrCodeUrl,
-            final String qrCodeImageUrl
+            final PaymentDetails paymentDetails
     ) {
-        return new CreateCheckoutOutput(aOrder.getId().value().toString(), paymentMethod, qrCodeUrl, qrCodeImageUrl);
+        return new CreateCheckoutOutput(aOrder.getId().value().toString(), paymentMethod, paymentDetails);
     }
 
     public String getOrderId() {
@@ -40,11 +37,7 @@ public class CreateCheckoutOutput {
         return paymentMethod;
     }
 
-    public Optional<String> getQrCodeUrl() {
-        return Optional.ofNullable(qrCodeUrl);
-    }
-
-    public Optional<String> getQrCodeImageUrl() {
-        return Optional.ofNullable(qrCodeImageUrl);
+    public PaymentDetails getPaymentDetails() {
+        return paymentDetails;
     }
 }
