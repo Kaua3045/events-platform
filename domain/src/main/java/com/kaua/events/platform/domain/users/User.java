@@ -1,11 +1,13 @@
 package com.kaua.events.platform.domain.users;
 
 import com.kaua.events.platform.domain.AggregateRoot;
+import com.kaua.events.platform.domain.person.Document;
 import com.kaua.events.platform.domain.utils.InstantUtils;
 import com.kaua.events.platform.domain.utils.ULID;
 import com.kaua.events.platform.domain.validation.ValidationHandler;
 
 import java.time.Instant;
+import java.util.Optional;
 
 public class User extends AggregateRoot<UserID> {
 
@@ -13,6 +15,7 @@ public class User extends AggregateRoot<UserID> {
     private Email email;
     private Password password;
     private UserRole role;
+    private Document document;
     private Instant createdAt;
     private Instant updatedAt;
 
@@ -23,6 +26,7 @@ public class User extends AggregateRoot<UserID> {
             final Email aEmail,
             final Password aPassword,
             final UserRole aRole,
+            final Document aDocument,
             final Instant aCreatedAt,
             final Instant aUpdatedAt
     ) {
@@ -31,6 +35,7 @@ public class User extends AggregateRoot<UserID> {
         this.setEmail(aEmail);
         this.setPassword(aPassword);
         this.setRole(aRole);
+        this.setDocument(aDocument);
         this.setCreatedAt(aCreatedAt);
         this.setUpdatedAt(aUpdatedAt);
     }
@@ -50,6 +55,7 @@ public class User extends AggregateRoot<UserID> {
                 aEmail,
                 aPassword,
                 aRole,
+                null,
                 aNow,
                 aNow
         );
@@ -62,6 +68,7 @@ public class User extends AggregateRoot<UserID> {
             final Email aEmail,
             final Password aPassword,
             final UserRole aRole,
+            final Document aDocument,
             final Instant aCreatedAt,
             final Instant aUpdatedAt
     ) {
@@ -72,6 +79,7 @@ public class User extends AggregateRoot<UserID> {
                 aEmail,
                 aPassword,
                 aRole,
+                aDocument,
                 aCreatedAt,
                 aUpdatedAt
         );
@@ -91,6 +99,10 @@ public class User extends AggregateRoot<UserID> {
 
     public UserRole getRole() {
         return role;
+    }
+
+    public Optional<Document> getDocument() {
+        return Optional.ofNullable(document);
     }
 
     public Instant getCreatedAt() {
@@ -121,6 +133,10 @@ public class User extends AggregateRoot<UserID> {
         this.role = this.assertArgumentNotNull(role, "role", "should not be null");
     }
 
+    private void setDocument(final Document document) {
+        this.document = document;
+    }
+
     private void setCreatedAt(final Instant createdAt) {
         this.createdAt = this.assertArgumentNotNull(createdAt, "createdAt", "should not be null");
     }
@@ -137,6 +153,7 @@ public class User extends AggregateRoot<UserID> {
                 ", name=" + name.fullName() +
                 ", email=" + email.value() +
                 ", role=" + role.name() +
+                ", document=" + getDocument().orElse(null) +
                 ", createdAt=" + createdAt +
                 ", updatedAt=" + updatedAt +
                 ')';
