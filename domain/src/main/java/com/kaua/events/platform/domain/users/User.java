@@ -85,6 +85,20 @@ public class User extends AggregateRoot<UserID> {
         );
     }
 
+    public User updateDocument(final Document aDocument) {
+        return new User(
+                getId(),
+                getVersion(),
+                getName(),
+                getEmail(),
+                getPassword(),
+                getRole(),
+                aDocument,
+                getCreatedAt(),
+                InstantUtils.now()
+        );
+    }
+
     public Name getName() {
         return name;
     }
