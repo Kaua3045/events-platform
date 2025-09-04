@@ -212,7 +212,7 @@ public class PaymentJdbcRepository implements PaymentRepository {
                         rs.getString("qr_code_image_url"),
                         rs.getInt("expires_in")
                 );
-            } else if (aMethod.get().equals(PaymentMethod.CREDIT_CARD)) {
+            } else if (aMethod.isPresent() && aMethod.get().equals(PaymentMethod.CREDIT_CARD)) {
                 aPaymentDetails = new CreditCardPaymentDetails(
                         aAmount,
                         "",
