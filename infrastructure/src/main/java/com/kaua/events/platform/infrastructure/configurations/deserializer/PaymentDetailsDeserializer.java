@@ -25,7 +25,12 @@ public class PaymentDetailsDeserializer extends StdDeserializer<PaymentDetails> 
         JsonNode node = p.getCodec().readTree(p);
         String method = node.get("method").asText();
         if ("PIX".equalsIgnoreCase(method)) {
-            return new PixPaymentDetails(new BigDecimal(node.get("amount").asText()));
+            return new PixPaymentDetails(
+                    new BigDecimal(node.get("amount").asText()),
+                    node.get("qr_code").asText(null),
+                    node.get("qr_code_image_url").asText(null),
+                    node.get("expires_in").asInt(0)
+            );
         } else if ("CREDIT_CARD".equalsIgnoreCase(method)) {
             return new CreditCardPaymentDetails(
                     new BigDecimal(node.get("amount").asText()),
