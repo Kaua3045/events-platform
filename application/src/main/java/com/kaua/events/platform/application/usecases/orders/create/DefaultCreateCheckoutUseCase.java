@@ -119,8 +119,7 @@ public class DefaultCreateCheckoutUseCase extends CreateCheckoutUseCase {
                         return CreateCheckoutOutput.from(
                                 aOrder,
                                 input.paymentDetails().method().name(),
-                                null,
-                                null
+                                createPaymentDetailsOutput(input, aOrder.getTotalAmount())
                         );
                     }
 
@@ -143,8 +142,7 @@ public class DefaultCreateCheckoutUseCase extends CreateCheckoutUseCase {
                         return CreateCheckoutOutput.from(
                                 aOrderWithPaymentId,
                                 input.paymentDetails().method().name(),
-                                aPaymentResponse.qrCode(),
-                                aPaymentResponse.qrCodeImageUrl()
+                                aPaymentResponse.paymentDetails()
                         );
                     } catch (Exception ex) {
                         ctx.runInSpan("order.saveFailed", () -> this.orderRepository.save(aOrder.markAsFailed()));
@@ -173,6 +171,25 @@ public class DefaultCreateCheckoutUseCase extends CreateCheckoutUseCase {
                     ((CreateCheckoutCreditCardPaymentDetails) aInput.paymentDetails()).phoneNumber(),
                     ((CreateCheckoutCreditCardPaymentDetails) aInput.paymentDetails()).email(),
                     ((CreateCheckoutCreditCardPaymentDetails) aInput.paymentDetails()).paymentToken(),
+                    ((CreateCheckoutCreditCardPaymentDetails) aInput.paymentDetails()).installments()
+            );
+            default -> null;
+        };
+    }
+
+    private PaymentDetails createPaymentDetailsOutput(
+            final CreateCheckoutInput aInput,
+            final BigDecimal aTotalAmount
+    ) {
+        return switch (aInput.paymentDetails().method()) {
+            case PIX -> new PixPaymentDetails(aTotalAmount);
+            case CREDIT_CARD -> new CreditCardPaymentDetails(
+                    aTotalAmount,
+                    ((CreateCheckoutCreditCardPaymentDetails) aInput.paymentDetails()).name(),
+                    ((CreateCheckoutCreditCardPaymentDetails) aInput.paymentDetails()).cpf(),
+                    ((CreateCheckoutCreditCardPaymentDetails) aInput.paymentDetails()).phoneNumber(),
+                    ((CreateCheckoutCreditCardPaymentDetails) aInput.paymentDetails()).email(),
+                    "",
                     ((CreateCheckoutCreditCardPaymentDetails) aInput.paymentDetails()).installments()
             );
             default -> null;

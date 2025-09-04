@@ -31,7 +31,7 @@ class InMemoryEventListenerTest extends UnitTest {
                 {
                     "status": "CREATED",
                     "total_amount": 100.0,
-                    "payment_details": {"method": "PIX", "amount": 100.0},
+                    "payment_details": {"method": "PIX", "amount": 100.0, "qr_code": null, "qr_code_image_url": null, "expires_in": 0},
                     "event_id": "evt-123",
                     "event_type": "OrderCreated",
                     "occurred_on": "2025-08-30T16:27:19.481562Z",

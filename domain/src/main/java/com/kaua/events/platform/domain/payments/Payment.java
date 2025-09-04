@@ -18,13 +18,11 @@ public class Payment extends AggregateRoot<PaymentID> {
     private PaymentMethod method;
     private BigDecimal amount;
 
-    private String qrCode;
-    private String qrCodeImageUrl;
+    private PaymentDetails paymentDetails;
 
     private Instant createdAt;
     private Instant updatedAt;
     private Instant paidAt;
-    private int expiresIn;
 
     private Payment(
             final PaymentID aPaymentID,
@@ -34,12 +32,10 @@ public class Payment extends AggregateRoot<PaymentID> {
             final PaymentStatus aStatus,
             final PaymentMethod aMethod,
             final BigDecimal aAmount,
-            final String aQrCode,
-            final String aQrCodeImageUrl,
+            final PaymentDetails aPaymentDetails,
             final Instant aCreatedAt,
             final Instant aUpdatedAt,
-            final Instant aPaidAt,
-            final int aExpiresIn
+            final Instant aPaidAt
     ) {
         super(aPaymentID, aVersion);
         setOrderId(aOrderId);
@@ -47,17 +43,16 @@ public class Payment extends AggregateRoot<PaymentID> {
         setStatus(aStatus);
         setMethod(aMethod);
         setAmount(aAmount);
-        setQrCode(aQrCode);
-        setQrCodeImageUrl(aQrCodeImageUrl);
+        setPaymentDetails(aPaymentDetails);
         setCreatedAt(aCreatedAt);
         setUpdatedAt(aUpdatedAt);
         setPaidAt(aPaidAt);
-        setExpiresIn(aExpiresIn);
     }
 
     public static Payment newPayment(
             final OrderID aOrderId,
             final PaymentMethod aMethod,
+            final PaymentDetails aPaymentDetails,
             final BigDecimal aAmount
     ) {
         final var aNow = InstantUtils.now();
@@ -70,12 +65,10 @@ public class Payment extends AggregateRoot<PaymentID> {
                 PaymentStatus.NEW,
                 aMethod,
                 aAmount,
-                null,
-                null,
+                aPaymentDetails,
                 aNow,
                 aNow,
-                null,
-                0
+                null
         );
     }
 
@@ -87,12 +80,10 @@ public class Payment extends AggregateRoot<PaymentID> {
             final PaymentStatus aStatus,
             final PaymentMethod aMethod,
             final BigDecimal aAmount,
-            final String aQrCode,
-            final String aQrCodeImageUrl,
+            final PaymentDetails aPaymentDetails,
             final Instant aCreatedAt,
             final Instant aUpdatedAt,
-            final Instant aPaidAt,
-            final int aExpiresIn
+            final Instant aPaidAt
     ) {
         return new Payment(
                 aPaymentId,
@@ -102,16 +93,14 @@ public class Payment extends AggregateRoot<PaymentID> {
                 aStatus,
                 aMethod,
                 aAmount,
-                aQrCode,
-                aQrCodeImageUrl,
+                aPaymentDetails,
                 aCreatedAt,
                 aUpdatedAt,
-                aPaidAt,
-                aExpiresIn
+                aPaidAt
         );
     }
 
-    public Payment markAsPending(final int aExpiresIn, final String aQrCode, final String aQrCodeImageUrl) {
+    public Payment markAsPending(final PaymentDetails aPaymentDetails) {
         return new Payment(
                 getId(),
                 getVersion(),
@@ -120,12 +109,10 @@ public class Payment extends AggregateRoot<PaymentID> {
                 PaymentStatus.PENDING,
                 getMethod(),
                 getAmount(),
-                aQrCode,
-                aQrCodeImageUrl,
+                aPaymentDetails,
                 getCreatedAt(),
                 InstantUtils.now(),
-                null,
-                aExpiresIn
+                null
         );
     }
 
@@ -138,12 +125,10 @@ public class Payment extends AggregateRoot<PaymentID> {
                 PaymentStatus.PAID,
                 getMethod(),
                 getAmount(),
-                getQrCode().orElse(null),
-                getQrCodeImageUrl().orElse(null),
+                getPaymentDetails(),
                 getCreatedAt(),
                 InstantUtils.now(),
-                InstantUtils.now(),
-                getExpiresIn()
+                InstantUtils.now()
         );
     }
 
@@ -156,12 +141,10 @@ public class Payment extends AggregateRoot<PaymentID> {
                 PaymentStatus.APPROVED,
                 getMethod(),
                 getAmount(),
-                getQrCode().orElse(null),
-                getQrCodeImageUrl().orElse(null),
+                getPaymentDetails(),
                 getCreatedAt(),
                 InstantUtils.now(),
-                getPaidAt().orElse(null),
-                getExpiresIn()
+                getPaidAt().orElse(null)
         );
     }
 
@@ -174,12 +157,10 @@ public class Payment extends AggregateRoot<PaymentID> {
                 PaymentStatus.IDENTIFIED,
                 getMethod(),
                 getAmount(),
-                getQrCode().orElse(null),
-                getQrCodeImageUrl().orElse(null),
+                getPaymentDetails(),
                 getCreatedAt(),
                 InstantUtils.now(),
-                getPaidAt().orElse(null),
-                getExpiresIn()
+                getPaidAt().orElse(null)
         );
     }
 
@@ -192,12 +173,10 @@ public class Payment extends AggregateRoot<PaymentID> {
                 PaymentStatus.FAILED,
                 getMethod(),
                 getAmount(),
-                getQrCode().orElse(null),
-                getQrCodeImageUrl().orElse(null),
+                getPaymentDetails(),
                 getCreatedAt(),
                 InstantUtils.now(),
-                getPaidAt().orElse(null),
-                getExpiresIn()
+                getPaidAt().orElse(null)
         );
     }
 
@@ -221,12 +200,8 @@ public class Payment extends AggregateRoot<PaymentID> {
         return amount;
     }
 
-    public Optional<String> getQrCode() {
-        return Optional.ofNullable(qrCode);
-    }
-
-    public Optional<String> getQrCodeImageUrl() {
-        return Optional.ofNullable(qrCodeImageUrl);
+    public PaymentDetails getPaymentDetails() {
+        return paymentDetails;
     }
 
     public Instant getCreatedAt() {
@@ -239,10 +214,6 @@ public class Payment extends AggregateRoot<PaymentID> {
 
     public Optional<Instant> getPaidAt() {
         return Optional.ofNullable(paidAt);
-    }
-
-    public int getExpiresIn() {
-        return expiresIn;
     }
 
     private void setOrderId(final OrderID orderId) {
@@ -266,12 +237,8 @@ public class Payment extends AggregateRoot<PaymentID> {
         this.amount = amount;
     }
 
-    private void setQrCode(final String qrCode) {
-        this.qrCode = qrCode;
-    }
-
-    private void setQrCodeImageUrl(final String qrCodeImageUrl) {
-        this.qrCodeImageUrl = qrCodeImageUrl;
+    public void setPaymentDetails(final PaymentDetails paymentDetails) {
+        this.paymentDetails = this.assertArgumentNotNull(paymentDetails, "paymentDetails", "should not be null");
     }
 
     private void setCreatedAt(final Instant createdAt) {
@@ -284,10 +251,6 @@ public class Payment extends AggregateRoot<PaymentID> {
 
     private void setPaidAt(final Instant paidAt) {
         this.paidAt = paidAt;
-    }
-
-    private void setExpiresIn(final int expiresIn) {
-        this.expiresIn = expiresIn;
     }
 
     @Override
@@ -303,12 +266,10 @@ public class Payment extends AggregateRoot<PaymentID> {
                 ", status=" + status.name() +
                 ", method=" + method.name() +
                 ", amount=" + amount +
-                ", qrCode='" + getQrCode().orElse(null) + '\'' +
-                ", qrCodeImageUrl='" + getQrCodeImageUrl().orElse(null) + '\'' +
+                ", paymentDetails='" + getPaymentDetails() + '\'' +
                 ", createdAt=" + createdAt +
                 ", updatedAt=" + updatedAt +
                 ", paidAt=" + getPaidAt().orElse(null) +
-                ", expiresIn=" + expiresIn +
                 ')';
     }
 }

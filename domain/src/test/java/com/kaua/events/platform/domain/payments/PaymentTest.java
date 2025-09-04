@@ -20,20 +20,32 @@ class PaymentTest extends UnitTest {
         final var aPaymentMethod = PaymentMethod.PIX;
         final var aAmount = BigDecimal.valueOf(10);
         final var aOrderId = new OrderID(ULID.random());
+        final var aPaymentDetails = new PixPaymentDetails(
+                aAmount,
+                null,
+                null,
+                0
+        );
 
-        final var aPayment = Payment.newPayment(aOrderId, aPaymentMethod, aAmount);
+        final var aPayment = Payment.newPayment(
+                aOrderId,
+                aPaymentMethod,
+                aPaymentDetails,
+                aAmount
+        );
 
         Assertions.assertNotNull(aPayment.getId());
         Assertions.assertNotNull(aPayment.getTransactionId());
         Assertions.assertEquals(aOrderId.value(), aPayment.getOrderId().value());
         Assertions.assertEquals(PaymentStatus.NEW, aPayment.getStatus());
         Assertions.assertEquals(aPaymentMethod, aPayment.getMethod());
-        Assertions.assertTrue(aPayment.getQrCode().isEmpty());
-        Assertions.assertTrue(aPayment.getQrCodeImageUrl().isEmpty());
+        Assertions.assertEquals(aPaymentDetails, aPayment.getPaymentDetails());
+        Assertions.assertEquals(aPaymentDetails.getExpiresIn(), ((PixPaymentDetails) aPayment.getPaymentDetails()).getExpiresIn());
+        Assertions.assertTrue(((PixPaymentDetails) aPayment.getPaymentDetails()).getQrCode().isEmpty());
+        Assertions.assertTrue(((PixPaymentDetails) aPayment.getPaymentDetails()).getQrCodeImageUrl().isEmpty());
         Assertions.assertNotNull(aPayment.getCreatedAt());
         Assertions.assertNotNull(aPayment.getUpdatedAt());
         Assertions.assertTrue(aPayment.getPaidAt().isEmpty());
-        Assertions.assertEquals(0, aPayment.getExpiresIn());
         Assertions.assertDoesNotThrow(() -> aPayment.validate(NotificationHandler.create()));
     }
 
@@ -51,6 +63,13 @@ class PaymentTest extends UnitTest {
         final var aNow = InstantUtils.now();
         final var aExpiresIn = 0;
 
+        final var aPaymentDetails = new PixPaymentDetails(
+                aAmount,
+                aQrCode,
+                aQrCodeImageUrl,
+                aExpiresIn
+        );
+
         final var aPayment = Payment.with(
                 aPaymentId,
                 aVersion,
@@ -59,12 +78,10 @@ class PaymentTest extends UnitTest {
                 aPaymentStatus,
                 aPaymentMethod,
                 aAmount,
-                aQrCode,
-                aQrCodeImageUrl,
+                aPaymentDetails,
                 aNow,
                 aNow,
-                null,
-                aExpiresIn
+                null
         );
 
         Assertions.assertEquals(aPaymentId, aPayment.getId());
@@ -72,12 +89,10 @@ class PaymentTest extends UnitTest {
         Assertions.assertEquals(aTransactionId, aPayment.getTransactionId());
         Assertions.assertEquals(aPaymentStatus, aPayment.getStatus());
         Assertions.assertEquals(aPaymentMethod, aPayment.getMethod());
-        Assertions.assertEquals(aQrCode, aPayment.getQrCode().get());
-        Assertions.assertEquals(aQrCodeImageUrl, aPayment.getQrCodeImageUrl().get());
+        Assertions.assertEquals(aPaymentDetails, aPayment.getPaymentDetails());
         Assertions.assertEquals(aNow, aPayment.getCreatedAt());
         Assertions.assertEquals(aNow, aPayment.getUpdatedAt());
         Assertions.assertTrue(aPayment.getPaidAt().isEmpty());
-        Assertions.assertEquals(aExpiresIn, aPayment.getExpiresIn());
     }
 
     @Test
@@ -85,30 +100,35 @@ class PaymentTest extends UnitTest {
         final var aPaymentMethod = PaymentMethod.PIX;
         final var aAmount = BigDecimal.valueOf(10);
         final var aOrderId = new OrderID(ULID.random());
+        final var aPaymentDetails = new PixPaymentDetails(
+                aAmount,
+                null,
+                null,
+                0
+        );
 
         final var aQrCode = "copy-and-past";
         final var aQrCodeImageUrl = "http://qrcode-image";
         final var aExpiresIn = 10;
 
-        final var aPayment = Payment.newPayment(aOrderId, aPaymentMethod, aAmount);
-
-        final var aPendingPayment = aPayment.markAsPending(
-                aExpiresIn,
-                aQrCode,
-                aQrCodeImageUrl
+        final var aPayment = Payment.newPayment(
+                aOrderId,
+                aPaymentMethod,
+                aPaymentDetails,
+                aAmount
         );
+
+        final var aPendingPayment = aPayment.markAsPending(aPaymentDetails);
 
         Assertions.assertEquals(aPendingPayment.getId(), aPayment.getId());
         Assertions.assertEquals(aPendingPayment.getOrderId().value(), aPayment.getOrderId().value());
         Assertions.assertEquals(aPendingPayment.getTransactionId(), aPayment.getTransactionId());
         Assertions.assertEquals(PaymentStatus.PENDING, aPendingPayment.getStatus());
         Assertions.assertEquals(aPendingPayment.getMethod(), aPayment.getMethod());
-        Assertions.assertEquals(aQrCode, aPendingPayment.getQrCode().get());
-        Assertions.assertEquals(aQrCodeImageUrl, aPendingPayment.getQrCodeImageUrl().get());
+        Assertions.assertEquals(aPaymentDetails, aPendingPayment.getPaymentDetails());
         Assertions.assertEquals(aPendingPayment.getCreatedAt(), aPayment.getCreatedAt());
         Assertions.assertNotEquals(aPendingPayment.getUpdatedAt(), aPayment.getUpdatedAt());
         Assertions.assertTrue(aPayment.getPaidAt().isEmpty());
-        Assertions.assertEquals(aExpiresIn, aPendingPayment.getExpiresIn());
     }
 
     @Test
@@ -116,8 +136,19 @@ class PaymentTest extends UnitTest {
         final var aPaymentMethod = PaymentMethod.PIX;
         final var aAmount = BigDecimal.valueOf(10);
         final var aOrderId = new OrderID(ULID.random());
+        final var aPaymentDetails = new PixPaymentDetails(
+                aAmount,
+                null,
+                null,
+                0
+        );
 
-        final var aPayment = Payment.newPayment(aOrderId, aPaymentMethod, aAmount);
+        final var aPayment = Payment.newPayment(
+                aOrderId,
+                aPaymentMethod,
+                aPaymentDetails,
+                aAmount
+        );
 
         final var aPaidPayment = aPayment.markAsPaid();
 
@@ -129,7 +160,6 @@ class PaymentTest extends UnitTest {
         Assertions.assertEquals(aPaidPayment.getCreatedAt(), aPayment.getCreatedAt());
         Assertions.assertNotEquals(aPaidPayment.getUpdatedAt(), aPayment.getUpdatedAt());
         Assertions.assertTrue(aPaidPayment.getPaidAt().isPresent());
-        Assertions.assertEquals(aPaidPayment.getExpiresIn(), aPayment.getExpiresIn());
     }
 
     @Test
@@ -137,8 +167,19 @@ class PaymentTest extends UnitTest {
         final var aPaymentMethod = PaymentMethod.PIX;
         final var aAmount = BigDecimal.valueOf(10);
         final var aOrderId = new OrderID(ULID.random());
+        final var aPaymentDetails = new PixPaymentDetails(
+                aAmount,
+                null,
+                null,
+                0
+        );
 
-        final var aPayment = Payment.newPayment(aOrderId, aPaymentMethod, aAmount);
+        final var aPayment = Payment.newPayment(
+                aOrderId,
+                aPaymentMethod,
+                aPaymentDetails,
+                aAmount
+        );
 
         final var aPaymentToString = aPayment.toString();
 
@@ -165,8 +206,19 @@ class PaymentTest extends UnitTest {
         final var aPaymentMethod = PaymentMethod.PIX;
         final var aAmount = BigDecimal.valueOf(10);
         final var aOrderId = new OrderID(ULID.random());
+        final var aPaymentDetails = new PixPaymentDetails(
+                aAmount,
+                null,
+                null,
+                0
+        );
 
-        final var aPayment = Payment.newPayment(aOrderId, aPaymentMethod, aAmount);
+        final var aPayment = Payment.newPayment(
+                aOrderId,
+                aPaymentMethod,
+                aPaymentDetails,
+                aAmount
+        );
 
         final var aPaymentCreatedEvent = new PaymentCreatedEvent(
                 aPayment.getId().value().toString(),
@@ -188,8 +240,19 @@ class PaymentTest extends UnitTest {
         final var aPaymentMethod = PaymentMethod.PIX;
         final var aAmount = BigDecimal.valueOf(10);
         final var aOrderId = new OrderID(ULID.random());
+        final var aPaymentDetails = new PixPaymentDetails(
+                aAmount,
+                null,
+                null,
+                0
+        );
 
-        final var aPayment = Payment.newPayment(aOrderId, aPaymentMethod, aAmount);
+        final var aPayment = Payment.newPayment(
+                aOrderId,
+                aPaymentMethod,
+                aPaymentDetails,
+                aAmount
+        );
 
         final var aApprovedPayment = aPayment.markAsApproved();
 
@@ -201,7 +264,6 @@ class PaymentTest extends UnitTest {
         Assertions.assertEquals(aApprovedPayment.getCreatedAt(), aPayment.getCreatedAt());
         Assertions.assertNotEquals(aApprovedPayment.getUpdatedAt(), aPayment.getUpdatedAt());
         Assertions.assertTrue(aApprovedPayment.getPaidAt().isEmpty());
-        Assertions.assertEquals(aApprovedPayment.getExpiresIn(), aPayment.getExpiresIn());
     }
 
     @Test
@@ -209,8 +271,19 @@ class PaymentTest extends UnitTest {
         final var aPaymentMethod = PaymentMethod.PIX;
         final var aAmount = BigDecimal.valueOf(10);
         final var aOrderId = new OrderID(ULID.random());
+        final var aPaymentDetails = new PixPaymentDetails(
+                aAmount,
+                null,
+                null,
+                0
+        );
 
-        final var aPayment = Payment.newPayment(aOrderId, aPaymentMethod, aAmount);
+        final var aPayment = Payment.newPayment(
+                aOrderId,
+                aPaymentMethod,
+                aPaymentDetails,
+                aAmount
+        );
 
         final var aIdentifiedPayment = aPayment.markAsIdentified();
 
@@ -222,7 +295,6 @@ class PaymentTest extends UnitTest {
         Assertions.assertEquals(aIdentifiedPayment.getCreatedAt(), aPayment.getCreatedAt());
         Assertions.assertNotEquals(aIdentifiedPayment.getUpdatedAt(), aPayment.getUpdatedAt());
         Assertions.assertTrue(aIdentifiedPayment.getPaidAt().isEmpty());
-        Assertions.assertEquals(aIdentifiedPayment.getExpiresIn(), aPayment.getExpiresIn());
     }
 
     @Test
@@ -230,8 +302,19 @@ class PaymentTest extends UnitTest {
         final var aPaymentMethod = PaymentMethod.PIX;
         final var aAmount = BigDecimal.valueOf(10);
         final var aOrderId = new OrderID(ULID.random());
+        final var aPaymentDetails = new PixPaymentDetails(
+                aAmount,
+                null,
+                null,
+                0
+        );
 
-        final var aPayment = Payment.newPayment(aOrderId, aPaymentMethod, aAmount);
+        final var aPayment = Payment.newPayment(
+                aOrderId,
+                aPaymentMethod,
+                aPaymentDetails,
+                aAmount
+        );
 
         final var aFailedPayment = aPayment.markAsFailed();
 
@@ -243,7 +326,6 @@ class PaymentTest extends UnitTest {
         Assertions.assertEquals(aFailedPayment.getCreatedAt(), aPayment.getCreatedAt());
         Assertions.assertNotEquals(aFailedPayment.getUpdatedAt(), aPayment.getUpdatedAt());
         Assertions.assertTrue(aFailedPayment.getPaidAt().isEmpty());
-        Assertions.assertEquals(aFailedPayment.getExpiresIn(), aPayment.getExpiresIn());
     }
 
     @Test
@@ -251,8 +333,19 @@ class PaymentTest extends UnitTest {
         final var aPaymentMethod = PaymentMethod.PIX;
         final var aAmount = BigDecimal.valueOf(10);
         final var aOrderId = new OrderID(ULID.random());
+        final var aPaymentDetails = new PixPaymentDetails(
+                aAmount,
+                null,
+                null,
+                0
+        );
 
-        final var aPayment = Payment.newPayment(aOrderId, aPaymentMethod, aAmount);
+        final var aPayment = Payment.newPayment(
+                aOrderId,
+                aPaymentMethod,
+                aPaymentDetails,
+                aAmount
+        );
 
         final var aPaymentStatusChangedEvent = new PaymentStatusChangedEvent(
                 aPayment.getOrderId().value().toString(),

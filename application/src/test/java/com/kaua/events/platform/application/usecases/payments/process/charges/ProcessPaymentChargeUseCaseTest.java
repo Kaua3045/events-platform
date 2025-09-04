@@ -185,6 +185,24 @@ class ProcessPaymentChargeUseCaseTest extends UseCaseTest {
         verify(paymentRepository, never()).save(any());
     }
 
+    @Test
+    void givenNotificationWithStatusNotInPriority_whenExecute_thenChooseFallbackPriority() {
+        final var payment = Fixture.PaymentFixture.newPayment();
+        final var notifications = List.of(
+                createNotificationData(payment, "some-unknown-status", null),
+                createNotificationData(payment, "paid", null)
+        );
+
+        final var input = ProcessPaymentChargeInput.with("notif-id-fallback");
+        when(paymentGateway.getNotifications(input.notificationId()))
+                .thenReturn(new PaymentGateway.PaymentNotification(200, notifications));
+        when(paymentRepository.paymentOfOrderId(anyString())).thenReturn(Optional.of(payment));
+        when(paymentRepository.save(any(Payment.class))).thenAnswer(returnsFirstArg());
+
+        Assertions.assertDoesNotThrow(() -> useCase.execute(input));
+
+        verify(paymentRepository, times(1)).save(argThat(p -> p.getStatus() == PaymentStatus.PAID));
+    }
 
     private PaymentGateway.PaymentNotificationData createNotificationData(
             Payment payment, String status, String customId

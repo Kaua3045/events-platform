@@ -11,6 +11,7 @@ import com.kaua.events.platform.domain.organizations.OrganizationMember;
 import com.kaua.events.platform.domain.organizations.OrganizationMemberRole;
 import com.kaua.events.platform.domain.payments.Payment;
 import com.kaua.events.platform.domain.payments.PaymentMethod;
+import com.kaua.events.platform.domain.payments.PixPaymentDetails;
 import com.kaua.events.platform.domain.ticket.Ticket;
 import com.kaua.events.platform.domain.ticket.TicketID;
 import com.kaua.events.platform.domain.ticket.TicketStatus;
@@ -304,6 +305,7 @@ public final class Fixture {
             return Payment.newPayment(
                     new OrderID(ULID.random()),
                     PaymentMethod.PIX,
+                    new PixPaymentDetails(BigDecimal.valueOf(10)),
                     BigDecimal.valueOf(10)
             );
         }

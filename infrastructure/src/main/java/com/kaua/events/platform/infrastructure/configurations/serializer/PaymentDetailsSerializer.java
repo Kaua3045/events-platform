@@ -3,7 +3,6 @@ package com.kaua.events.platform.infrastructure.configurations.serializer;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.ser.std.StdSerializer;
-import com.kaua.events.platform.application.usecases.orders.create.payment.CreateCheckoutCreditCardPaymentDetails;
 import com.kaua.events.platform.domain.payments.CreditCardPaymentDetails;
 import com.kaua.events.platform.domain.payments.PaymentDetails;
 import com.kaua.events.platform.domain.payments.PixPaymentDetails;
@@ -23,6 +22,9 @@ public class PaymentDetailsSerializer extends StdSerializer<PaymentDetails> {
 
         if (value instanceof PixPaymentDetails pix) {
             gen.writeNumberField("amount", pix.amount());
+            gen.writeStringField("qr_code", pix.getQrCode().orElse(null));
+            gen.writeStringField("qr_code_image_url", pix.getQrCodeImageUrl().orElse(null));
+            gen.writeNumberField("expires_in", pix.getExpiresIn());
         } else if (value instanceof CreditCardPaymentDetails creditCard) {
             gen.writeNumberField("amount", creditCard.amount());
             gen.writeStringField("name", creditCard.name());

@@ -2,10 +2,7 @@ package com.kaua.events.platform.infrastructure.payments;
 
 import com.kaua.events.platform.application.repositories.PaymentRepository;
 import com.kaua.events.platform.domain.orders.OrderID;
-import com.kaua.events.platform.domain.payments.Payment;
-import com.kaua.events.platform.domain.payments.PaymentID;
-import com.kaua.events.platform.domain.payments.PaymentMethod;
-import com.kaua.events.platform.domain.payments.PaymentStatus;
+import com.kaua.events.platform.domain.payments.*;
 import com.kaua.events.platform.domain.utils.ULID;
 import com.kaua.events.platform.infrastructure.exceptions.ConflictException;
 import com.kaua.events.platform.infrastructure.jdbc.DatabaseClient;
@@ -42,7 +39,7 @@ public class PaymentJdbcRepository implements PaymentRepository {
     @Transactional(readOnly = true)
     @Override
     public Optional<Payment> paymentOfOrderId(final String orderId) {
-        final var aSql = "SELECT * FROM payments WHERE order_id = :orderId";
+        final var aSql = "SELECT * FROM payments p INNER JOIN payment_details d ON p.id = d.id WHERE p.order_id = :orderId";
         return this.databaseClient.queryOne(aSql, Map.of("orderId", orderId), paymentMapper());
     }
 
@@ -75,12 +72,9 @@ public class PaymentJdbcRepository implements PaymentRepository {
                 status,
                 method,
                 amount,
-                qr_code,
-                qr_code_image_url,
                 created_at,
                 updated_at,
-                paid_at,
-                expires_in
+                paid_at
                 )
                 VALUES (
                 :id,
@@ -90,16 +84,35 @@ public class PaymentJdbcRepository implements PaymentRepository {
                 :status,
                 :method,
                 :amount,
-                :qrCode,
-                :qrCodeImageUrl,
                 :createdAt,
                 :updatedAt,
-                :paidAt,
-                :expiresIn
+                :paidAt
+                )
+                """;
+
+        final var aSqlPaymentDetails = """
+                INSERT INTO payment_details (
+                id,
+                version,
+                qr_code,
+                qr_code_image_url,
+                expires_in,
+                payment_token,
+                installments
+                )
+                VALUES (
+                :id,
+                (:version + 1),
+                :qrCode,
+                :qrCodeImageUrl,
+                :expiresIn,
+                :paymentToken,
+                :installments
                 )
                 """;
 
         executeUpdate(aSql, aPayment);
+        executeUpdatePaymentDetails(aSqlPaymentDetails, aPayment);
     }
 
     private void update(final Payment aPayment) {
@@ -112,12 +125,21 @@ public class PaymentJdbcRepository implements PaymentRepository {
                 status = :status,
                 method = :method,
                 amount = :amount,
-                qr_code = :qrCode,
-                qr_code_image_url = :qrCodeImageUrl,
                 created_at = :createdAt,
                 updated_at = :updatedAt,
-                paid_at = :paidAt,
-                expires_in = :expiresIn
+                paid_at = :paidAt
+                WHERE id = :id AND version = :version
+                """;
+
+        final var aSqlPaymentDetails = """
+                UPDATE payment_details
+                SET
+                version = (:version + 1),
+                qr_code = :qrCode,
+                qr_code_image_url = :qrCodeImageUrl,
+                expires_in = :expiresIn,
+                payment_token = :paymentToken,
+                installments = :installments
                 WHERE id = :id AND version = :version
                 """;
 
@@ -125,9 +147,11 @@ public class PaymentJdbcRepository implements PaymentRepository {
             throw ConflictException.with("Payment with identifier %s and version %d does not match, payment was updated by another transaction"
                     .formatted(aPayment.getId().value(), aPayment.getVersion()));
         }
+
+        executeUpdatePaymentDetails(aSqlPaymentDetails, aPayment);
     }
 
-    private int executeUpdate(final String aSql, final Payment aPayment) {
+    private int executeUpdate(final String aSqlStorePayment, final Payment aPayment) {
         final var aParams = new HashMap<String, Object>();
         aParams.put("id", aPayment.getId().value().toString());
         aParams.put("version", aPayment.getVersion());
@@ -136,31 +160,83 @@ public class PaymentJdbcRepository implements PaymentRepository {
         aParams.put("status", aPayment.getStatus().name());
         aParams.put("method", aPayment.getMethod().name());
         aParams.put("amount", aPayment.getAmount());
-        aParams.put("qrCode", aPayment.getQrCode().orElse(null));
-        aParams.put("qrCodeImageUrl", aPayment.getQrCodeImageUrl().orElse(null));
         aParams.put("createdAt", aPayment.getCreatedAt());
         aParams.put("updatedAt", aPayment.getUpdatedAt());
         aParams.put("paidAt", aPayment.getPaidAt().orElse(null));
-        aParams.put("expiresIn", aPayment.getExpiresIn());
 
-        return this.databaseClient.update(aSql, aParams);
+        return this.databaseClient.update(aSqlStorePayment, aParams);
+    }
+
+    private int executeUpdatePaymentDetails(final String aSql, final Payment aPayment) {
+        final var aParamsPaymentDetails = new HashMap<String, Object>();
+        aParamsPaymentDetails.put("id", aPayment.getId().value().toString());
+        aParamsPaymentDetails.put("version", aPayment.getVersion());
+
+        if (aPayment.getPaymentDetails().method().equals(PaymentMethod.PIX)) {
+            aParamsPaymentDetails.put("qrCodeImageUrl", ((PixPaymentDetails) aPayment.getPaymentDetails()).getQrCodeImageUrl().orElse(null));
+            aParamsPaymentDetails.put("qrCode", ((PixPaymentDetails) aPayment.getPaymentDetails()).getQrCode().orElse(null));
+            aParamsPaymentDetails.put("expiresIn", ((PixPaymentDetails) aPayment.getPaymentDetails()).getExpiresIn());
+
+            aParamsPaymentDetails.put("paymentToken", null);
+            aParamsPaymentDetails.put("installments", 0);
+        } else if (aPayment.getPaymentDetails().method().equals(PaymentMethod.CREDIT_CARD)) {
+            aParamsPaymentDetails.put("paymentToken", ((CreditCardPaymentDetails) aPayment.getPaymentDetails()).paymentToken());
+            aParamsPaymentDetails.put("installments", ((CreditCardPaymentDetails) aPayment.getPaymentDetails()).installments());
+
+            aParamsPaymentDetails.put("qrCodeImageUrl", null);
+            aParamsPaymentDetails.put("qrCode", null);
+            aParamsPaymentDetails.put("expiresIn", 0);
+        }
+
+        return this.databaseClient.update(aSql, aParamsPaymentDetails);
     }
 
     private RowMap<Payment> paymentMapper() {
-        return rs -> Payment.with(
-                new PaymentID(ULID.fromString(rs.getString("id"))),
-                rs.getLong("version"),
-                new OrderID(ULID.fromString(rs.getString("order_id"))),
-                rs.getString("transaction_id"),
-                PaymentStatus.from(rs.getString("status")).orElse(null),
-                PaymentMethod.from(rs.getString("method")).orElse(null),
-                rs.getBigDecimal("amount"),
-                rs.getString("qr_code"),
-                rs.getString("qr_code_image_url"),
-                JdbcUtils.getInstant(rs, "created_at"),
-                JdbcUtils.getInstant(rs, "updated_at"),
-                JdbcUtils.getInstant(rs, "paid_at"),
-                rs.getInt("expires_in")
-        );
+        return rs -> {
+            final var aPaymentId = new PaymentID(ULID.fromString(rs.getString("id")));
+            final var aVersion = rs.getLong("version");
+            final var aOrderId = new OrderID(ULID.fromString(rs.getString("order_id")));
+            final var aTransactionId = rs.getString("transaction_id");
+            final var aStatus = PaymentStatus.from(rs.getString("status")).orElse(null);
+            final var aMethod = PaymentMethod.from(rs.getString("method"));
+            final var aAmount = rs.getBigDecimal("amount");
+            final var aCreatedAt = JdbcUtils.getInstant(rs, "created_at");
+            final var aUpdatedAt = JdbcUtils.getInstant(rs, "updated_at");
+            final var aPaidAt = JdbcUtils.getInstant(rs, "paid_at");
+
+            PaymentDetails aPaymentDetails = null;
+            if (aMethod.isPresent() && aMethod.get().equals(PaymentMethod.PIX)) {
+                aPaymentDetails = new PixPaymentDetails(
+                        aAmount,
+                        rs.getString("qr_code"),
+                        rs.getString("qr_code_image_url"),
+                        rs.getInt("expires_in")
+                );
+            } else if (aMethod.isPresent() && aMethod.get().equals(PaymentMethod.CREDIT_CARD)) {
+                aPaymentDetails = new CreditCardPaymentDetails(
+                        aAmount,
+                        "",
+                        "",
+                        "",
+                        "",
+                        rs.getString("payment_token"),
+                        rs.getInt("installments")
+                );
+            }
+
+            return Payment.with(
+                    aPaymentId,
+                    aVersion,
+                    aOrderId,
+                    aTransactionId,
+                    aStatus,
+                    aMethod.orElse(null),
+                    aAmount,
+                    aPaymentDetails,
+                    aCreatedAt,
+                    aUpdatedAt,
+                    aPaidAt
+            );
+        };
     }
 }

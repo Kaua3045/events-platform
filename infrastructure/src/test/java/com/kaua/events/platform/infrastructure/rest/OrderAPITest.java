@@ -13,6 +13,7 @@ import com.kaua.events.platform.application.usecases.orders.retrieve.list.ListOr
 import com.kaua.events.platform.domain.Fixture;
 import com.kaua.events.platform.domain.pagination.Pagination;
 import com.kaua.events.platform.domain.pagination.PaginationMetadata;
+import com.kaua.events.platform.domain.payments.PixPaymentDetails;
 import com.kaua.events.platform.domain.users.UserID;
 import com.kaua.events.platform.domain.utils.ULID;
 import org.junit.jupiter.api.Assertions;
@@ -27,6 +28,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultHandlers;
 
+import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
 
@@ -63,13 +65,19 @@ class OrderAPITest {
         final var paymentMethod = "PIX";
         final var qrCodeUrl = "1231082e8u1289";
         final var qrCodeImageUrl = "http://qr-code-url";
+        final var aPaymentDetails = new PixPaymentDetails(
+                new BigDecimal("10.00"),
+                qrCodeUrl,
+                qrCodeImageUrl,
+                0
+        );
 
         final var aEventId = ULID.random().toString();
         final var aTicketId = ULID.random().toString();
         final var aQuantity = 2;
 
         Mockito.when(createCheckoutUseCase.execute(any()))
-                .thenReturn(new CreateCheckoutOutput(anOrderId, paymentMethod, qrCodeUrl, qrCodeImageUrl));
+                .thenReturn(new CreateCheckoutOutput(anOrderId, paymentMethod, aPaymentDetails));
 
         var json = """
                 {
@@ -103,8 +111,8 @@ class OrderAPITest {
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.order_id").value(anOrderId))
                 .andExpect(jsonPath("$.payment_method").value(paymentMethod))
-                .andExpect(jsonPath("$.pix").value(qrCodeUrl))
-                .andExpect(jsonPath("$.qr_code_image_url").value(qrCodeImageUrl));
+                .andExpect(jsonPath("$.payment_details.qr_code").value(qrCodeUrl))
+                .andExpect(jsonPath("$.payment_details.qr_code_image_url").value(qrCodeImageUrl));
 
         Mockito.verify(createCheckoutUseCase, Mockito.times(1)).execute(createCheckoutInputCaptor.capture());
         var capturedInput = createCheckoutInputCaptor.getValue();
