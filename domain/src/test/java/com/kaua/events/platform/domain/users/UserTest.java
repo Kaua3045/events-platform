@@ -102,4 +102,25 @@ class UserTest extends UnitTest {
         Assertions.assertTrue(aUserToString.contains("createdAt=" + aNow));
         Assertions.assertTrue(aUserToString.contains("updatedAt=" + aNow));
     }
+
+    @Test
+    void givenAValidValues_whenCallUpdateDocument_thenReturnUpdatedUser() {
+        final var aName = new Name("John", "Doe");
+        final var aEmail = new Email("testes@test.com");
+        final var aPassword = Password.of("123455Am@");
+        final var aRole = UserRole.USER;
+        final var aDocument = DocumentFactory.create("217.641.740-20", "cpf");
+
+        final var aUser = User.newUser(
+                aName,
+                aEmail,
+                aPassword,
+                aRole
+        );
+
+        final var aUpdatedUser = aUser.updateDocument(aDocument);
+
+        Assertions.assertEquals(aDocument, aUpdatedUser.getDocument().get());
+        Assertions.assertTrue(aUser.getUpdatedAt().isBefore(aUpdatedUser.getUpdatedAt()));
+    }
 }
