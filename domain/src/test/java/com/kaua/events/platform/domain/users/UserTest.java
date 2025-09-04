@@ -1,6 +1,7 @@
 package com.kaua.events.platform.domain.users;
 
 import com.kaua.events.platform.domain.UnitTest;
+import com.kaua.events.platform.domain.person.DocumentFactory;
 import com.kaua.events.platform.domain.utils.InstantUtils;
 import com.kaua.events.platform.domain.utils.ULID;
 import com.kaua.events.platform.domain.validation.handler.NotificationHandler;
@@ -25,6 +26,7 @@ class UserTest extends UnitTest {
         Assertions.assertEquals(aEmail, aUser.getEmail());
         Assertions.assertEquals(aPassword, aUser.getPassword());
         Assertions.assertEquals(aRole, aUser.getRole());
+        Assertions.assertTrue(aUser.getDocument().isEmpty());
         Assertions.assertNotNull(aUser.getCreatedAt());
         Assertions.assertNotNull(aUser.getUpdatedAt());
     }
@@ -37,6 +39,7 @@ class UserTest extends UnitTest {
         final var aEmail = new Email("testes@test.com");
         final var aPassword = Password.of("123455Am@");
         final var aRole = UserRole.USER;
+        final var aDocument = DocumentFactory.create("217.641.740-20", "cpf");
         final var aNow = InstantUtils.now();
 
         final var aUser = User.with(
@@ -46,6 +49,7 @@ class UserTest extends UnitTest {
                 aEmail,
                 aPassword,
                 aRole,
+                aDocument,
                 aNow,
                 aNow
         );
@@ -57,6 +61,7 @@ class UserTest extends UnitTest {
         Assertions.assertEquals(aEmail, aUser.getEmail());
         Assertions.assertEquals(aPassword, aUser.getPassword());
         Assertions.assertEquals(aRole, aUser.getRole());
+        Assertions.assertEquals(aDocument, aUser.getDocument().get());
         Assertions.assertNotNull(aUser.getCreatedAt());
         Assertions.assertNotNull(aUser.getUpdatedAt());
         Assertions.assertDoesNotThrow(() -> aUser.validate(NotificationHandler.create()));
@@ -70,6 +75,7 @@ class UserTest extends UnitTest {
         final var aEmail = new Email("testes@test.com");
         final var aPassword = Password.of("123455Am@");
         final var aRole = UserRole.from("user").get();
+        final var aDocument = DocumentFactory.create("217.641.740-20", "cpf");
         final var aNow = InstantUtils.now();
 
         final var aUser = User.with(
@@ -79,6 +85,7 @@ class UserTest extends UnitTest {
                 aEmail,
                 aPassword,
                 aRole,
+                aDocument,
                 aNow,
                 aNow
         );
@@ -91,6 +98,7 @@ class UserTest extends UnitTest {
         Assertions.assertTrue(aUserToString.contains("name=" + aName.fullName()));
         Assertions.assertTrue(aUserToString.contains("email=" + aEmail.value()));
         Assertions.assertTrue(aUserToString.contains("role=" + aRole.name()));
+        Assertions.assertTrue(aUserToString.contains("document=" + aDocument));
         Assertions.assertTrue(aUserToString.contains("createdAt=" + aNow));
         Assertions.assertTrue(aUserToString.contains("updatedAt=" + aNow));
     }
