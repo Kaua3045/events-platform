@@ -2,8 +2,11 @@ package com.kaua.events.platform.infrastructure.users;
 
 import com.kaua.events.platform.application.repositories.UserRepository;
 import com.kaua.events.platform.domain.exceptions.NotFoundException;
+import com.kaua.events.platform.domain.person.Document;
+import com.kaua.events.platform.domain.person.DocumentFactory;
 import com.kaua.events.platform.domain.users.*;
 import com.kaua.events.platform.domain.utils.ULID;
+import com.kaua.events.platform.infrastructure.exceptions.ConflictException;
 import com.kaua.events.platform.infrastructure.jdbc.DatabaseClient;
 import com.kaua.events.platform.infrastructure.jdbc.JdbcUtils;
 import com.kaua.events.platform.infrastructure.jdbc.RowMap;
@@ -60,6 +63,10 @@ public class UserJdbcRepository implements UserRepository {
             log.debug("Creating a new user: {}", aUser);
             create(aUser);
             log.info("Created user {}", aUser);
+        } else {
+            log.debug("Updating user: {}", aUser);
+            update(aUser);
+            log.info("Updated user: {}", aUser);
         }
 
         aUser.incrementVersion();
@@ -68,10 +75,32 @@ public class UserJdbcRepository implements UserRepository {
 
     private void create(final User aUser) {
         final var aSql = """
-                INSERT INTO users (id, version, first_name, last_name, email, password, role, created_at, updated_at)
-                VALUES (:id, (:version + 1), :first_name, :last_name, :email, :password, :role, :created_at, :updated_at)
+                INSERT INTO users (id, version, first_name, last_name, email, password, role, document_number, document_type, created_at, updated_at)
+                VALUES (:id, (:version + 1), :first_name, :last_name, :email, :password, :role, :document_number, :document_type, :created_at, :updated_at)
                 """;
         executeUpdate(aSql, aUser);
+    }
+
+    private void update(final User aUser) {
+        final var aSql = """
+                UPDATE users
+                SET
+                version = (:version + 1),
+                first_name = :first_name,
+                last_name = :last_name,
+                email = :email,
+                password = :password,
+                role = :role,
+                document_number = :document_number,
+                document_type = :document_type,
+                updated_at = :updated_at
+                WHERE id = :id AND version = :version
+                """;
+
+        if (executeUpdate(aSql, aUser) == 0) {
+            throw ConflictException.with("User with identifier %s and version %d does not match, user was updated by another transaction"
+                    .formatted(aUser.getId().value().toString(), aUser.getVersion()));
+        }
     }
 
     private int executeUpdate(final String aSql, final User aUser) {
@@ -83,6 +112,8 @@ public class UserJdbcRepository implements UserRepository {
         aParams.put("email", aUser.getEmail().value());
         aParams.put("password", aUser.getPassword().value());
         aParams.put("role", aUser.getRole().name());
+        aParams.put("document_number", aUser.getDocument().map(Document::value).orElse(null));
+        aParams.put("document_type", aUser.getDocument().map(Document::type).orElse(null));
         aParams.put("created_at", aUser.getCreatedAt());
         aParams.put("updated_at", aUser.getUpdatedAt());
         return this.databaseClient.update(aSql, aParams);
@@ -97,6 +128,9 @@ public class UserJdbcRepository implements UserRepository {
                         new Email(rs.getString("email")),
                         Password.of(rs.getString("password")),
                         UserRole.from(rs.getString("role")).orElseThrow(() -> NotFoundException.with("UserRole not found")),
+                        rs.getString("document_type") != null ?
+                                DocumentFactory.create(rs.getString("document_number"), rs.getString("document_type"))
+                                : null,
                         JdbcUtils.getInstant(rs, "created_at"),
                         JdbcUtils.getInstant(rs, "updated_at")
                 );
