@@ -4,7 +4,6 @@ import com.kaua.events.platform.IntegrationTest;
 import com.kaua.events.platform.application.gateways.TokenGeneratorGateway;
 import com.kaua.events.platform.application.repositories.UserRepository;
 import com.kaua.events.platform.domain.auth.token.AuthorizationTokenType;
-import com.kaua.events.platform.domain.exceptions.DomainException;
 import com.kaua.events.platform.domain.exceptions.InternalErrorException;
 import com.kaua.events.platform.domain.exceptions.NotFoundException;
 import com.kaua.events.platform.domain.users.*;
@@ -43,6 +42,7 @@ class TokenGeneratorGatewayImplTest {
                         new Email("john.doe@gmail.com"),
                         Password.of("12345677Am@"),
                         UserRole.USER,
+                        null,
                         InstantUtils.now(),
                         InstantUtils.now()
                 )));
