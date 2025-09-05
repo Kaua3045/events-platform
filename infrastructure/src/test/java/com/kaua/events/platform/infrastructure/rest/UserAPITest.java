@@ -8,6 +8,9 @@ import com.kaua.events.platform.application.usecases.users.create.CreateUserOutp
 import com.kaua.events.platform.application.usecases.users.create.CreateUserUseCase;
 import com.kaua.events.platform.application.usecases.users.retrive.get.GetUserByIdOutput;
 import com.kaua.events.platform.application.usecases.users.retrive.get.GetUserByIdUseCase;
+import com.kaua.events.platform.application.usecases.users.update.document.UpdateUserDocumentInput;
+import com.kaua.events.platform.application.usecases.users.update.document.UpdateUserDocumentOutput;
+import com.kaua.events.platform.application.usecases.users.update.document.UpdateUserDocumentUseCase;
 import com.kaua.events.platform.domain.Fixture;
 import com.kaua.events.platform.domain.utils.ULID;
 import com.kaua.events.platform.infrastructure.idempotency.IdempotencyKey;
@@ -42,8 +45,14 @@ class UserAPITest {
     @MockitoBean
     private GetUserByIdUseCase getUserByIdUseCase;
 
+    @MockitoBean
+    private UpdateUserDocumentUseCase updateUserDocumentUseCase;
+
     @Captor
     private ArgumentCaptor<CreateUserInput> createUserInputCaptor;
+
+    @Captor
+    private ArgumentCaptor<UpdateUserDocumentInput> updateUserDocumentInputCaptor;
 
     @Test
     void givenAValidRequest_whenCallCreateUser_thenReturnUserId() throws Exception {
@@ -120,5 +129,50 @@ class UserAPITest {
                 .andExpect(jsonPath("$.role").value(aUser.getRole().name()))
                 .andExpect(jsonPath("$.created_at").value(aUser.getCreatedAt().toString()))
                 .andExpect(jsonPath("$.updated_at").value(aUser.getUpdatedAt().toString()));
+    }
+
+    @Test
+    void givenAValidRequest_whenCallUpdateDocument_thenReturnUpdatedDocument() throws Exception {
+        final var aUser = Fixture.UserFixture.newUser();
+        final var aUserId = aUser.getId().value().toString();
+
+        final var aDocumentType = "CPF";
+        final var aDocumentNumber = "12345678901";
+
+        final var aOutput = new UpdateUserDocumentOutput(aUserId);
+
+        Mockito.when(updateUserDocumentUseCase.execute(any()))
+                .thenReturn(aOutput);
+
+        final var json = """
+                {
+                    "document_type": "%s",
+                    "document_number": "%s"
+                }
+                """.formatted(aDocumentType, aDocumentNumber);
+
+        final var aRequest = MockMvcRequestBuilders.patch("/v1/users/update/document")
+                .with(ApiTest.admin(aUserId))
+                .with(csrf())
+                .accept(MediaType.APPLICATION_JSON_VALUE)
+                .contentType(MediaType.APPLICATION_JSON_VALUE)
+                .content(json);
+
+        final var aResponse = this.mvc.perform(aRequest);
+
+        aResponse
+                .andDo(MockMvcResultHandlers.print())
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Type", MediaType.APPLICATION_JSON_VALUE))
+                .andExpect(jsonPath("$.id").value(aUserId));
+
+        Mockito.verify(updateUserDocumentUseCase, Mockito.times(1))
+                .execute(updateUserDocumentInputCaptor.capture());
+
+        final var aCapturedInput = updateUserDocumentInputCaptor.getValue();
+
+        Assertions.assertEquals(aUserId, aCapturedInput.userId());
+        Assertions.assertEquals(aDocumentType, aCapturedInput.documentType());
+        Assertions.assertEquals(aDocumentNumber, aCapturedInput.documentNumber());
     }
 }
