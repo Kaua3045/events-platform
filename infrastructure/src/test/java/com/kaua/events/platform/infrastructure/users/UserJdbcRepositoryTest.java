@@ -222,18 +222,19 @@ class UserJdbcRepositoryTest extends AbstractRepositoryTest {
         Assertions.assertEquals(1, countUsers());
 
         final var aUpdatedUser = aUser.updateDocument(DocumentFactory.create("217.641.740-20", "cpf"));
+        final var aUpdatedUserCompleted = aUpdatedUser.updatePhoneNumber("+5511987654321");
 
-        final var aActualUser = this.userRepository().save(aUpdatedUser);
+        final var aActualUser = this.userRepository().save(aUpdatedUserCompleted);
 
         Assertions.assertEquals(aUser.getId(), aActualUser.getId());
         Assertions.assertEquals(aUser.getVersion() + 1, aActualUser.getVersion());
-        Assertions.assertEquals(aUpdatedUser.getName(), aActualUser.getName());
-        Assertions.assertEquals(aUpdatedUser.getEmail(), aActualUser.getEmail());
-        Assertions.assertEquals(aUpdatedUser.getPassword(), aActualUser.getPassword());
-        Assertions.assertEquals(aUpdatedUser.getRole(), aActualUser.getRole());
-        Assertions.assertEquals(aUpdatedUser.getDocument().get(), aActualUser.getDocument().get());
-        Assertions.assertEquals(aUpdatedUser.getCreatedAt(), aActualUser.getCreatedAt());
-        Assertions.assertTrue(aActualUser.getUpdatedAt().isAfter(aUpdatedUser.getCreatedAt()));
+        Assertions.assertEquals(aUpdatedUserCompleted.getName(), aActualUser.getName());
+        Assertions.assertEquals(aUpdatedUserCompleted.getEmail(), aActualUser.getEmail());
+        Assertions.assertEquals(aUpdatedUserCompleted.getPassword(), aActualUser.getPassword());
+        Assertions.assertEquals(aUpdatedUserCompleted.getRole(), aActualUser.getRole());
+        Assertions.assertEquals(aUpdatedUserCompleted.getDocument().get(), aActualUser.getDocument().get());
+        Assertions.assertEquals(aUpdatedUserCompleted.getCreatedAt(), aActualUser.getCreatedAt());
+        Assertions.assertTrue(aActualUser.getUpdatedAt().isAfter(aUpdatedUserCompleted.getCreatedAt()));
     }
 
     @Test
