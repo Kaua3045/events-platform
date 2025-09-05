@@ -75,8 +75,8 @@ public class UserJdbcRepository implements UserRepository {
 
     private void create(final User aUser) {
         final var aSql = """
-                INSERT INTO users (id, version, first_name, last_name, email, password, role, document_number, document_type, created_at, updated_at)
-                VALUES (:id, (:version + 1), :first_name, :last_name, :email, :password, :role, :document_number, :document_type, :created_at, :updated_at)
+                INSERT INTO users (id, version, first_name, last_name, email, password, role, document_number, document_type, phone_e164, created_at, updated_at)
+                VALUES (:id, (:version + 1), :first_name, :last_name, :email, :password, :role, :document_number, :document_type, :phone_e164, :created_at, :updated_at)
                 """;
         executeUpdate(aSql, aUser);
     }
@@ -93,6 +93,7 @@ public class UserJdbcRepository implements UserRepository {
                 role = :role,
                 document_number = :document_number,
                 document_type = :document_type,
+                phone_e164 = :phone_e164,
                 updated_at = :updated_at
                 WHERE id = :id AND version = :version
                 """;
@@ -114,6 +115,7 @@ public class UserJdbcRepository implements UserRepository {
         aParams.put("role", aUser.getRole().name());
         aParams.put("document_number", aUser.getDocument().map(Document::value).orElse(null));
         aParams.put("document_type", aUser.getDocument().map(Document::type).orElse(null));
+        aParams.put("phone_e164", aUser.getPhoneNumber().orElse(null));
         aParams.put("created_at", aUser.getCreatedAt());
         aParams.put("updated_at", aUser.getUpdatedAt());
         return this.databaseClient.update(aSql, aParams);
@@ -131,6 +133,7 @@ public class UserJdbcRepository implements UserRepository {
                         rs.getString("document_type") != null ?
                                 DocumentFactory.create(rs.getString("document_number"), rs.getString("document_type"))
                                 : null,
+                        rs.getString("phone_e164"),
                         JdbcUtils.getInstant(rs, "created_at"),
                         JdbcUtils.getInstant(rs, "updated_at")
                 );
