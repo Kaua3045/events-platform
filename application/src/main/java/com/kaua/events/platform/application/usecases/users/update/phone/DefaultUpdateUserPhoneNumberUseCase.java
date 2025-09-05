@@ -28,7 +28,7 @@ public class DefaultUpdateUserPhoneNumberUseCase extends UpdateUserPhoneNumberUs
     @Override
     public UpdateUserPhoneNumberOutput execute(final UpdateUserPhoneNumberInput input) {
         return this.tracerWrapper.traceWithReturn(
-                "updateUserDocumentUseCase",
+                "updateUserPhoneNumberUseCase",
                 ctx -> {
                     if (input == null) throw new UseCaseInputCannotBeNullException(UpdateUserPhoneNumberUseCase.class);
 
