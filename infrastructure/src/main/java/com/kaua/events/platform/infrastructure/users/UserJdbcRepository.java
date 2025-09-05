@@ -6,6 +6,7 @@ import com.kaua.events.platform.domain.person.Document;
 import com.kaua.events.platform.domain.person.DocumentFactory;
 import com.kaua.events.platform.domain.users.*;
 import com.kaua.events.platform.domain.utils.ULID;
+import com.kaua.events.platform.infrastructure.exceptions.ConflictException;
 import com.kaua.events.platform.infrastructure.jdbc.DatabaseClient;
 import com.kaua.events.platform.infrastructure.jdbc.JdbcUtils;
 import com.kaua.events.platform.infrastructure.jdbc.RowMap;
@@ -62,6 +63,10 @@ public class UserJdbcRepository implements UserRepository {
             log.debug("Creating a new user: {}", aUser);
             create(aUser);
             log.info("Created user {}", aUser);
+        } else {
+            log.debug("Updating user: {}", aUser);
+            update(aUser);
+            log.info("Updated user: {}", aUser);
         }
 
         aUser.incrementVersion();
@@ -74,6 +79,28 @@ public class UserJdbcRepository implements UserRepository {
                 VALUES (:id, (:version + 1), :first_name, :last_name, :email, :password, :role, :document_number, :document_type, :created_at, :updated_at)
                 """;
         executeUpdate(aSql, aUser);
+    }
+
+    private void update(final User aUser) {
+        final var aSql = """
+                UPDATE users
+                SET
+                version = (:version + 1),
+                first_name = :first_name,
+                last_name = :last_name,
+                email = :email,
+                password = :password,
+                role = :role,
+                document_number = :document_number,
+                document_type = :document_type,
+                updated_at = :updated_at
+                WHERE id = :id AND version = :version
+                """;
+
+        if (executeUpdate(aSql, aUser) == 0) {
+            throw ConflictException.with("User with identifier %s and version %d does not match, user was updated by another transaction"
+                    .formatted(aUser.getId().value().toString(), aUser.getVersion()));
+        }
     }
 
     private int executeUpdate(final String aSql, final User aUser) {
