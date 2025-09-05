@@ -16,6 +16,7 @@ public class User extends AggregateRoot<UserID> {
     private Password password;
     private UserRole role;
     private Document document;
+    private String phoneNumber;
     private Instant createdAt;
     private Instant updatedAt;
 
@@ -27,6 +28,7 @@ public class User extends AggregateRoot<UserID> {
             final Password aPassword,
             final UserRole aRole,
             final Document aDocument,
+            final String aPhoneNumber,
             final Instant aCreatedAt,
             final Instant aUpdatedAt
     ) {
@@ -36,6 +38,7 @@ public class User extends AggregateRoot<UserID> {
         this.setPassword(aPassword);
         this.setRole(aRole);
         this.setDocument(aDocument);
+        this.setPhoneNumber(aPhoneNumber);
         this.setCreatedAt(aCreatedAt);
         this.setUpdatedAt(aUpdatedAt);
     }
@@ -56,6 +59,7 @@ public class User extends AggregateRoot<UserID> {
                 aPassword,
                 aRole,
                 null,
+                null,
                 aNow,
                 aNow
         );
@@ -69,6 +73,7 @@ public class User extends AggregateRoot<UserID> {
             final Password aPassword,
             final UserRole aRole,
             final Document aDocument,
+            final String aPhoneNumber,
             final Instant aCreatedAt,
             final Instant aUpdatedAt
     ) {
@@ -80,6 +85,7 @@ public class User extends AggregateRoot<UserID> {
                 aPassword,
                 aRole,
                 aDocument,
+                aPhoneNumber,
                 aCreatedAt,
                 aUpdatedAt
         );
@@ -94,6 +100,22 @@ public class User extends AggregateRoot<UserID> {
                 getPassword(),
                 getRole(),
                 aDocument,
+                getPhoneNumber().orElse(null),
+                getCreatedAt(),
+                InstantUtils.now()
+        );
+    }
+
+    public User updatePhoneNumber(final String aPhoneNumber) {
+        return new User(
+                getId(),
+                getVersion(),
+                getName(),
+                getEmail(),
+                getPassword(),
+                getRole(),
+                getDocument().orElse(null),
+                aPhoneNumber,
                 getCreatedAt(),
                 InstantUtils.now()
         );
@@ -117,6 +139,10 @@ public class User extends AggregateRoot<UserID> {
 
     public Optional<Document> getDocument() {
         return Optional.ofNullable(document);
+    }
+
+    public Optional<String> getPhoneNumber() {
+        return Optional.ofNullable(phoneNumber);
     }
 
     public Instant getCreatedAt() {
@@ -151,6 +177,18 @@ public class User extends AggregateRoot<UserID> {
         this.document = document;
     }
 
+    private void setPhoneNumber(final String phoneNumber) {
+        if (phoneNumber != null) {
+            this.assertArgumentPattern(
+                    phoneNumber,
+                    "^\\+[1-9]\\d{1,14}$",
+                    "phoneNumber",
+                    "must be in E.164 format"
+            );
+        }
+        this.phoneNumber = phoneNumber;
+    }
+
     private void setCreatedAt(final Instant createdAt) {
         this.createdAt = this.assertArgumentNotNull(createdAt, "createdAt", "should not be null");
     }
@@ -164,10 +202,10 @@ public class User extends AggregateRoot<UserID> {
         return "User(" +
                 "userId=" + getId().value().toString() +
                 ", version=" + getVersion() +
-                ", name=" + name.fullName() +
-                ", email=" + email.value() +
+                ", name=" + name.fullName() + ", email=" + email.value() +
                 ", role=" + role.name() +
                 ", document=" + getDocument().orElse(null) +
+                ", phoneNumber=" + getPhoneNumber().orElse(null) +
                 ", createdAt=" + createdAt +
                 ", updatedAt=" + updatedAt +
                 ')';
