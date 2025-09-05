@@ -9,10 +9,8 @@ public record UpdateUserDocumentRequest(
 ) {
 
     public UpdateUserDocumentInput toInput(
-            final String aUserId,
-            final String aDocumentNumber,
-            final String aDocumentType
+            final String aUserId
     ) {
-        return new UpdateUserDocumentInput(aUserId, aDocumentNumber, aDocumentType);
+        return new UpdateUserDocumentInput(aUserId, documentNumber(), documentType());
     }
 }
