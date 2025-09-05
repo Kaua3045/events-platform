@@ -2,7 +2,9 @@ package com.kaua.events.platform.infrastructure.users;
 
 import com.kaua.events.platform.AbstractRepositoryTest;
 import com.kaua.events.platform.domain.exceptions.NotFoundException;
+import com.kaua.events.platform.domain.person.DocumentFactory;
 import com.kaua.events.platform.domain.users.*;
+import com.kaua.events.platform.infrastructure.exceptions.ConflictException;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.context.jdbc.Sql;
@@ -202,5 +204,70 @@ class UserJdbcRepositoryTest extends AbstractRepositoryTest {
         final var aActualResponse = this.userRepository().existsById(aId);
 
         Assertions.assertFalse(aActualResponse);
+    }
+
+    @Test
+    void givenAValidPersistedUser_whenCallSave_thenReturnUpdatedUser() {
+        Assertions.assertEquals(0, countUsers());
+
+        final var aUser = User.newUser(
+                new Name("John", "Doe"),
+                new Email("john.doe@test.com"),
+                Password.of("123456Amq@"),
+                UserRole.USER
+        );
+
+        this.userRepository().save(aUser);
+
+        Assertions.assertEquals(1, countUsers());
+
+        final var aUpdatedUser = aUser.updateDocument(DocumentFactory.create("217.641.740-20", "cpf"));
+
+        final var aActualUser = this.userRepository().save(aUpdatedUser);
+
+        Assertions.assertEquals(aUser.getId(), aActualUser.getId());
+        Assertions.assertEquals(aUser.getVersion() + 1, aActualUser.getVersion());
+        Assertions.assertEquals(aUpdatedUser.getName(), aActualUser.getName());
+        Assertions.assertEquals(aUpdatedUser.getEmail(), aActualUser.getEmail());
+        Assertions.assertEquals(aUpdatedUser.getPassword(), aActualUser.getPassword());
+        Assertions.assertEquals(aUpdatedUser.getRole(), aActualUser.getRole());
+        Assertions.assertEquals(aUpdatedUser.getDocument().get(), aActualUser.getDocument().get());
+        Assertions.assertEquals(aUpdatedUser.getCreatedAt(), aActualUser.getCreatedAt());
+        Assertions.assertTrue(aActualUser.getUpdatedAt().isAfter(aUpdatedUser.getCreatedAt()));
+    }
+
+    @Test
+    void givenAValidUserButVersionMismatch_whenCallSave_thenThrowsConflictException() {
+        Assertions.assertEquals(0, countUsers());
+
+        final var aUser = User.newUser(
+                new Name("John", "Doe"),
+                new Email("john.doe@test.com"),
+                Password.of("123456Amq@"),
+                UserRole.USER
+        );
+
+        final var aUserSaved = this.userRepository().save(aUser);
+
+        Assertions.assertEquals(1, countUsers());
+
+        final var expectedErrorMessage =
+                "User with identifier %s and version %d does not match, user was updated by another transaction"
+                        .formatted(aUser.getId().value(), aUserSaved.getVersion() + 1);
+
+        final var aUserSearched = this.userRepository()
+                .userOfId(aUserSaved.getId().value().toString())
+                .orElseThrow();
+
+        final var aUpdatedUser = aUserSearched.updateDocument(DocumentFactory.create("217.641.740-20", "cpf"));
+
+        aUpdatedUser.incrementVersion();
+
+        final var userRepo = this.userRepository();
+
+        final var aException = Assertions.assertThrows(ConflictException.class,
+                () -> userRepo.save(aUpdatedUser));
+
+        Assertions.assertEquals(expectedErrorMessage, aException.getMessage());
     }
 }
