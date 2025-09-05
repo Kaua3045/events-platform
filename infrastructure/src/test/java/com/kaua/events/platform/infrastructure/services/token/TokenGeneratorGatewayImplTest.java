@@ -43,6 +43,7 @@ class TokenGeneratorGatewayImplTest {
                         Password.of("12345677Am@"),
                         UserRole.USER,
                         null,
+                        null,
                         InstantUtils.now(),
                         InstantUtils.now()
                 )));
