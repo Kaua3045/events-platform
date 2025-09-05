@@ -4,14 +4,17 @@ import com.kaua.events.platform.application.usecases.users.create.CreateUserUseC
 import com.kaua.events.platform.application.usecases.users.retrive.get.GetUserByIdInput;
 import com.kaua.events.platform.application.usecases.users.retrive.get.GetUserByIdUseCase;
 import com.kaua.events.platform.application.usecases.users.update.document.UpdateUserDocumentUseCase;
+import com.kaua.events.platform.application.usecases.users.update.phone.UpdateUserPhoneNumberUseCase;
 import com.kaua.events.platform.infrastructure.configurations.authentication.AuthenticatedUser;
 import com.kaua.events.platform.infrastructure.idempotency.IdempotencyKey;
 import com.kaua.events.platform.infrastructure.rest.UserAPI;
 import com.kaua.events.platform.infrastructure.users.req.CreateUserRequest;
 import com.kaua.events.platform.infrastructure.users.req.UpdateUserDocumentRequest;
+import com.kaua.events.platform.infrastructure.users.req.UpdateUserPhoneNumberRequest;
 import com.kaua.events.platform.infrastructure.users.res.CreateUserResponse;
 import com.kaua.events.platform.infrastructure.users.res.GetUserByIdResponse;
 import com.kaua.events.platform.infrastructure.users.res.UpdateUserDocumentResponse;
+import com.kaua.events.platform.infrastructure.users.res.UpdateUserPhoneNumberResponse;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -25,15 +28,18 @@ public class UserRestController implements UserAPI {
     private final CreateUserUseCase createUserUseCase;
     private final GetUserByIdUseCase getUserByIdUseCase;
     private final UpdateUserDocumentUseCase updateUserDocumentUseCase;
+    private final UpdateUserPhoneNumberUseCase updateUserPhoneNumberUseCase;
 
     public UserRestController(
             final CreateUserUseCase createUserUseCase,
             final GetUserByIdUseCase getUserByIdUseCase,
-            final UpdateUserDocumentUseCase updateUserDocumentUseCase
+            final UpdateUserDocumentUseCase updateUserDocumentUseCase,
+            final UpdateUserPhoneNumberUseCase updateUserPhoneNumberUseCase
     ) {
         this.createUserUseCase = Objects.requireNonNull(createUserUseCase);
         this.getUserByIdUseCase = Objects.requireNonNull(getUserByIdUseCase);
         this.updateUserDocumentUseCase = Objects.requireNonNull(updateUserDocumentUseCase);
+        this.updateUserPhoneNumberUseCase = Objects.requireNonNull(updateUserPhoneNumberUseCase);
     }
 
     @IdempotencyKey
@@ -67,5 +73,19 @@ public class UserRestController implements UserAPI {
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(UpdateUserDocumentResponse.from(aOutput));
+    }
+
+    @Override
+    public ResponseEntity<UpdateUserPhoneNumberResponse> updatePhoneNumber(
+            final AuthenticatedUser aUser,
+            final UpdateUserPhoneNumberRequest aRequest
+    ) {
+        final var aInput = aRequest.toInput(aUser.id());
+
+        final var aOutput = this.updateUserPhoneNumberUseCase.execute(aInput);
+
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(UpdateUserPhoneNumberResponse.from(aOutput));
     }
 }
