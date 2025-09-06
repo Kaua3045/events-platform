@@ -1,5 +1,6 @@
 package com.kaua.events.platform.infrastructure.configurations.usecases;
 
+import com.kaua.events.platform.application.gateways.PhoneNumberGateway;
 import com.kaua.events.platform.application.repositories.UserRepository;
 import com.kaua.events.platform.application.usecases.users.create.CreateUserUseCase;
 import com.kaua.events.platform.application.usecases.users.create.DefaultCreateUserUseCase;
@@ -7,6 +8,8 @@ import com.kaua.events.platform.application.usecases.users.retrive.get.DefaultGe
 import com.kaua.events.platform.application.usecases.users.retrive.get.GetUserByIdUseCase;
 import com.kaua.events.platform.application.usecases.users.update.document.DefaultUpdateUserDocumentUseCase;
 import com.kaua.events.platform.application.usecases.users.update.document.UpdateUserDocumentUseCase;
+import com.kaua.events.platform.application.usecases.users.update.phone.DefaultUpdateUserPhoneNumberUseCase;
+import com.kaua.events.platform.application.usecases.users.update.phone.UpdateUserPhoneNumberUseCase;
 import com.kaua.events.platform.application.wrapper.TracerWrapper;
 import com.kaua.events.platform.domain.users.PasswordEncryption;
 import org.springframework.context.annotation.Bean;
@@ -38,6 +41,19 @@ public class UserUseCaseConfig {
     ) {
         return new DefaultUpdateUserDocumentUseCase(
                 userRepository,
+                tracerWrapper
+        );
+    }
+
+    @Bean
+    public UpdateUserPhoneNumberUseCase updateUserPhoneNumberUseCase(
+            final UserRepository userRepository,
+            final PhoneNumberGateway phoneNumberGateway,
+            final TracerWrapper tracerWrapper
+    ) {
+        return new DefaultUpdateUserPhoneNumberUseCase(
+                userRepository,
+                phoneNumberGateway,
                 tracerWrapper
         );
     }

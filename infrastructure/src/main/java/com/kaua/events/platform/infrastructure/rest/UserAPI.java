@@ -3,9 +3,11 @@ package com.kaua.events.platform.infrastructure.rest;
 import com.kaua.events.platform.infrastructure.configurations.authentication.AuthenticatedUser;
 import com.kaua.events.platform.infrastructure.users.req.CreateUserRequest;
 import com.kaua.events.platform.infrastructure.users.req.UpdateUserDocumentRequest;
+import com.kaua.events.platform.infrastructure.users.req.UpdateUserPhoneNumberRequest;
 import com.kaua.events.platform.infrastructure.users.res.CreateUserResponse;
 import com.kaua.events.platform.infrastructure.users.res.GetUserByIdResponse;
 import com.kaua.events.platform.infrastructure.users.res.UpdateUserDocumentResponse;
+import com.kaua.events.platform.infrastructure.users.res.UpdateUserPhoneNumberResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -61,5 +63,22 @@ public interface UserAPI {
     ResponseEntity<UpdateUserDocumentResponse> updateDocument(
             @AuthenticationPrincipal AuthenticatedUser user,
             @RequestBody UpdateUserDocumentRequest request
+    );
+
+    @PatchMapping(
+            path = "/update/phone",
+            produces = MediaType.APPLICATION_JSON_VALUE,
+            consumes = MediaType.APPLICATION_JSON_VALUE
+    )
+    @Operation(summary = "Update a user phone")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "User phone updated successfully"),
+            @ApiResponse(responseCode = "400", description = "A validation error was observed"),
+            @ApiResponse(responseCode = "422", description = "A business rule was violated"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    ResponseEntity<UpdateUserPhoneNumberResponse> updatePhoneNumber(
+            @AuthenticationPrincipal AuthenticatedUser user,
+            @RequestBody UpdateUserPhoneNumberRequest request
     );
 }

@@ -40,6 +40,7 @@ class UserTest extends UnitTest {
         final var aPassword = Password.of("123455Am@");
         final var aRole = UserRole.USER;
         final var aDocument = DocumentFactory.create("217.641.740-20", "cpf");
+        final var aPhoneNumber = "+5511987654321";
         final var aNow = InstantUtils.now();
 
         final var aUser = User.with(
@@ -50,6 +51,7 @@ class UserTest extends UnitTest {
                 aPassword,
                 aRole,
                 aDocument,
+                aPhoneNumber,
                 aNow,
                 aNow
         );
@@ -62,6 +64,7 @@ class UserTest extends UnitTest {
         Assertions.assertEquals(aPassword, aUser.getPassword());
         Assertions.assertEquals(aRole, aUser.getRole());
         Assertions.assertEquals(aDocument, aUser.getDocument().get());
+        Assertions.assertEquals(aPhoneNumber, aUser.getPhoneNumber().get());
         Assertions.assertNotNull(aUser.getCreatedAt());
         Assertions.assertNotNull(aUser.getUpdatedAt());
         Assertions.assertDoesNotThrow(() -> aUser.validate(NotificationHandler.create()));
@@ -76,6 +79,7 @@ class UserTest extends UnitTest {
         final var aPassword = Password.of("123455Am@");
         final var aRole = UserRole.from("user").get();
         final var aDocument = DocumentFactory.create("217.641.740-20", "cpf");
+        final var aPhoneNumber = "+5511987654321";
         final var aNow = InstantUtils.now();
 
         final var aUser = User.with(
@@ -86,6 +90,7 @@ class UserTest extends UnitTest {
                 aPassword,
                 aRole,
                 aDocument,
+                aPhoneNumber,
                 aNow,
                 aNow
         );
@@ -99,6 +104,7 @@ class UserTest extends UnitTest {
         Assertions.assertTrue(aUserToString.contains("email=" + aEmail.value()));
         Assertions.assertTrue(aUserToString.contains("role=" + aRole.name()));
         Assertions.assertTrue(aUserToString.contains("document=" + aDocument));
+        Assertions.assertTrue(aUserToString.contains("phoneNumber=" + aPhoneNumber));
         Assertions.assertTrue(aUserToString.contains("createdAt=" + aNow));
         Assertions.assertTrue(aUserToString.contains("updatedAt=" + aNow));
     }
@@ -121,6 +127,27 @@ class UserTest extends UnitTest {
         final var aUpdatedUser = aUser.updateDocument(aDocument);
 
         Assertions.assertEquals(aDocument, aUpdatedUser.getDocument().get());
+        Assertions.assertTrue(aUser.getUpdatedAt().isBefore(aUpdatedUser.getUpdatedAt()));
+    }
+
+    @Test
+    void givenAValidValues_whenCallUpdatePhoneNumber_thenReturnUpdatedUser() {
+        final var aName = new Name("John", "Doe");
+        final var aEmail = new Email("testes@test.com");
+        final var aPassword = Password.of("123455Am@");
+        final var aRole = UserRole.USER;
+        final var aPhoneNumber = "+5511987654321";
+
+        final var aUser = User.newUser(
+                aName,
+                aEmail,
+                aPassword,
+                aRole
+        );
+
+        final var aUpdatedUser = aUser.updatePhoneNumber(aPhoneNumber);
+
+        Assertions.assertEquals(aPhoneNumber, aUpdatedUser.getPhoneNumber().get());
         Assertions.assertTrue(aUser.getUpdatedAt().isBefore(aUpdatedUser.getUpdatedAt()));
     }
 }

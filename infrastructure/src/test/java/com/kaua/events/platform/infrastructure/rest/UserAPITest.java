@@ -11,6 +11,9 @@ import com.kaua.events.platform.application.usecases.users.retrive.get.GetUserBy
 import com.kaua.events.platform.application.usecases.users.update.document.UpdateUserDocumentInput;
 import com.kaua.events.platform.application.usecases.users.update.document.UpdateUserDocumentOutput;
 import com.kaua.events.platform.application.usecases.users.update.document.UpdateUserDocumentUseCase;
+import com.kaua.events.platform.application.usecases.users.update.phone.UpdateUserPhoneNumberInput;
+import com.kaua.events.platform.application.usecases.users.update.phone.UpdateUserPhoneNumberOutput;
+import com.kaua.events.platform.application.usecases.users.update.phone.UpdateUserPhoneNumberUseCase;
 import com.kaua.events.platform.domain.Fixture;
 import com.kaua.events.platform.domain.utils.ULID;
 import com.kaua.events.platform.infrastructure.idempotency.IdempotencyKey;
@@ -48,11 +51,17 @@ class UserAPITest {
     @MockitoBean
     private UpdateUserDocumentUseCase updateUserDocumentUseCase;
 
+    @MockitoBean
+    private UpdateUserPhoneNumberUseCase updateUserPhoneNumberUseCase;
+
     @Captor
     private ArgumentCaptor<CreateUserInput> createUserInputCaptor;
 
     @Captor
     private ArgumentCaptor<UpdateUserDocumentInput> updateUserDocumentInputCaptor;
+
+    @Captor
+    private ArgumentCaptor<UpdateUserPhoneNumberInput> updateUserPhoneNumberInputCaptor;
 
     @Test
     void givenAValidRequest_whenCallCreateUser_thenReturnUserId() throws Exception {
@@ -174,5 +183,50 @@ class UserAPITest {
         Assertions.assertEquals(aUserId, aCapturedInput.userId());
         Assertions.assertEquals(aDocumentType, aCapturedInput.documentType());
         Assertions.assertEquals(aDocumentNumber, aCapturedInput.documentNumber());
+    }
+
+    @Test
+    void givenAValidRequest_whenCallUpdatePhone_thenReturnUpdatedPhone() throws Exception {
+        final var aUser = Fixture.UserFixture.newUser();
+        final var aUserId = aUser.getId().value().toString();
+
+        final var aPhoneNumber = "+5511987654321";
+        final var aDefaultRegion = "br";
+
+        final var aOutput = new UpdateUserPhoneNumberOutput(aUserId);
+
+        Mockito.when(updateUserPhoneNumberUseCase.execute(any()))
+                .thenReturn(aOutput);
+
+        final var json = """
+                {
+                    "phone_number": "%s",
+                    "default_region": "%s"
+                }
+                """.formatted(aPhoneNumber, aDefaultRegion);
+
+        final var aRequest = MockMvcRequestBuilders.patch("/v1/users/update/phone")
+                .with(ApiTest.admin(aUserId))
+                .with(csrf())
+                .accept(MediaType.APPLICATION_JSON_VALUE)
+                .contentType(MediaType.APPLICATION_JSON_VALUE)
+                .content(json);
+
+        final var aResponse = this.mvc.perform(aRequest);
+
+        aResponse
+                .andDo(MockMvcResultHandlers.print())
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Type", MediaType.APPLICATION_JSON_VALUE))
+                .andExpect(jsonPath("$.id").value(aUserId));
+
+        Mockito.verify(updateUserPhoneNumberUseCase, Mockito.times(1))
+                .execute(updateUserPhoneNumberInputCaptor.capture());
+
+        final var aCapturedInput = updateUserPhoneNumberInputCaptor.getValue();
+
+        Assertions.assertEquals(aUserId, aCapturedInput.userId());
+        Assertions.assertEquals(aPhoneNumber, aCapturedInput.phoneNumber());
+        Assertions.assertEquals(aDefaultRegion, aCapturedInput.defaultRegion());
     }
 }

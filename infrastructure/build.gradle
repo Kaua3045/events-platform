@@ -70,6 +70,8 @@ dependencies {
     implementation "io.github.resilience4j:resilience4j-bulkhead"
     implementation "io.github.resilience4j:resilience4j-circuitbreaker"
 
+    implementation 'com.googlecode.libphonenumber:libphonenumber:9.0.13'
+
     testImplementation "org.springframework.boot:spring-boot-starter-test"
     testImplementation "org.springframework.security:spring-security-test"
     testImplementation "org.springframework.boot:spring-boot-testcontainers"
