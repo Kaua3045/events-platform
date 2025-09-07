@@ -166,12 +166,9 @@ public class DefaultCreateCheckoutUseCase extends CreateCheckoutUseCase {
             case PIX -> new PixPaymentDetails(aTotalAmount);
             case CREDIT_CARD -> new CreditCardPaymentDetails(
                     aTotalAmount,
-                    ((CreateCheckoutCreditCardPaymentDetails) aInput.paymentDetails()).name(),
-                    ((CreateCheckoutCreditCardPaymentDetails) aInput.paymentDetails()).cpf(),
-                    ((CreateCheckoutCreditCardPaymentDetails) aInput.paymentDetails()).phoneNumber(),
-                    ((CreateCheckoutCreditCardPaymentDetails) aInput.paymentDetails()).email(),
                     ((CreateCheckoutCreditCardPaymentDetails) aInput.paymentDetails()).paymentToken(),
-                    ((CreateCheckoutCreditCardPaymentDetails) aInput.paymentDetails()).installments()
+                    ((CreateCheckoutCreditCardPaymentDetails) aInput.paymentDetails()).installments(),
+                    ((CreateCheckoutCreditCardPaymentDetails) aInput.paymentDetails()).userId()
             );
             default -> null;
         };
@@ -185,12 +182,9 @@ public class DefaultCreateCheckoutUseCase extends CreateCheckoutUseCase {
             case PIX -> new PixPaymentDetails(aTotalAmount);
             case CREDIT_CARD -> new CreditCardPaymentDetails(
                     aTotalAmount,
-                    ((CreateCheckoutCreditCardPaymentDetails) aInput.paymentDetails()).name(),
-                    ((CreateCheckoutCreditCardPaymentDetails) aInput.paymentDetails()).cpf(),
-                    ((CreateCheckoutCreditCardPaymentDetails) aInput.paymentDetails()).phoneNumber(),
-                    ((CreateCheckoutCreditCardPaymentDetails) aInput.paymentDetails()).email(),
                     "",
-                    ((CreateCheckoutCreditCardPaymentDetails) aInput.paymentDetails()).installments()
+                    ((CreateCheckoutCreditCardPaymentDetails) aInput.paymentDetails()).installments(),
+                    ((CreateCheckoutCreditCardPaymentDetails) aInput.paymentDetails()).userId()
             );
             default -> null;
         };
