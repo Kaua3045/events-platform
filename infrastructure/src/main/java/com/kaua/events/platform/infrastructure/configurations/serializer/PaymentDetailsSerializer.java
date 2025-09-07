@@ -27,12 +27,9 @@ public class PaymentDetailsSerializer extends StdSerializer<PaymentDetails> {
             gen.writeNumberField("expires_in", pix.getExpiresIn());
         } else if (value instanceof CreditCardPaymentDetails creditCard) {
             gen.writeNumberField("amount", creditCard.amount());
-            gen.writeStringField("name", creditCard.name());
-            gen.writeStringField("cpf", creditCard.cpf());
-            gen.writeStringField("phone_number", creditCard.phoneNumber());
-            gen.writeStringField("email", creditCard.email());
             gen.writeStringField("payment_token", creditCard.paymentToken());
             gen.writeNumberField("installments", creditCard.installments());
+            gen.writeStringField("user_id", creditCard.userId());
         }
 
         gen.writeEndObject();
