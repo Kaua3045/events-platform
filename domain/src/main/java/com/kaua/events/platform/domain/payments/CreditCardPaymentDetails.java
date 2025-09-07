@@ -9,8 +9,8 @@ import java.math.BigDecimal;
 // depois refatorar tudo de checkout pra receber o authenticatedUserId
 // dai passar pro evento, refatorar o payment pra receber os details
 // depois salvar no db
-public record CreditCardPaymentDetails(BigDecimal amount, String name, String cpf, String phoneNumber, String email,
-                                       String paymentToken, int installments) implements PaymentDetails {
+public record CreditCardPaymentDetails(BigDecimal amount, String paymentToken, int installments,
+                                       String userId) implements PaymentDetails {
 
     @Override
     public PaymentMethod method() {
