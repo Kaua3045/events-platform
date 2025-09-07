@@ -1,6 +1,6 @@
 package com.kaua.events.platform.application.gateways;
 
-import com.kaua.events.platform.domain.payments.PaymentDetails;
+import com.kaua.events.platform.application.gateways.payment.PaymentDetailsRequest;
 
 import java.util.List;
 
@@ -13,7 +13,7 @@ public interface PaymentGateway {
     record PaymentProcessRequest(
             String transactionId,
             String orderId,
-            PaymentDetails paymentDetails
+            PaymentDetailsRequest paymentDetails
     ) {
     }
 
