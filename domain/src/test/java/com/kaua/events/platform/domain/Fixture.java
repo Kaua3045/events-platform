@@ -12,6 +12,7 @@ import com.kaua.events.platform.domain.organizations.OrganizationMemberRole;
 import com.kaua.events.platform.domain.payments.Payment;
 import com.kaua.events.platform.domain.payments.PaymentMethod;
 import com.kaua.events.platform.domain.payments.PixPaymentDetails;
+import com.kaua.events.platform.domain.person.DocumentFactory;
 import com.kaua.events.platform.domain.ticket.Ticket;
 import com.kaua.events.platform.domain.ticket.TicketID;
 import com.kaua.events.platform.domain.ticket.TicketStatus;
@@ -50,6 +51,22 @@ public final class Fixture {
                     Password.of("12345678Am*"),
                     UserRole.USER
             );
+        }
+
+        public static User newUserWithDocumentAndPhone() {
+            final var aFakerFirstName = faker.name().firstName();
+            final var aFirstName = aFakerFirstName.length() < 3 || aFakerFirstName.length() > 99 ? "TESSSSS"
+                    : aFakerFirstName;
+            final var aFakerLastName = faker.name().lastName();
+            final var aLastName = aFakerLastName.length() < 3 || aFakerLastName.length() > 99 ?
+                    "TESTESSSSS" : aFakerLastName;
+            return User.newUser(
+                    new Name(aFirstName, aLastName),
+                    new Email(faker.internet().safeEmailAddress()),
+                    Password.of("12345678Am*"),
+                    UserRole.USER
+            ).updateDocument(DocumentFactory.create("902.733.880-96", "cpf"))
+                    .updatePhoneNumber("+21912345678");
         }
     }
 
