@@ -14,12 +14,9 @@ class PaymentDetailsTest extends UnitTest {
 
         final var aCreditCardDetails = new CreditCardPaymentDetails(
                 aAmount,
-                "John Doe",
-                "123.456.789-00",
-                "+55 (11) 91234-5678",
-                "john.doe@mail.com",
-                "120834182789",
-                1
+                "123712731782",
+                1,
+                "27931781"
         );
 
         Assertions.assertEquals(aAmount, aCreditCardDetails.amount());
