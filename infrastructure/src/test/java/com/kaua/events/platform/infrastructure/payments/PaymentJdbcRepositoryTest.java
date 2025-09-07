@@ -163,12 +163,9 @@ class PaymentJdbcRepositoryTest extends AbstractRepositoryTest {
                 aMethod,
                 new CreditCardPaymentDetails(
                         aAmount,
-                        "John doe",
-                        "129038012893",
-                        "128048012840",
-                        "john.doe@mail.com",
-                        IdentifierUtils.generateNewIdWithoutHyphen(),
-                        1
+                        "valid-token",
+                        1,
+                        IdentifierUtils.generateNewULID().toString()
                 ),
                 aAmount
         );
@@ -197,12 +194,9 @@ class PaymentJdbcRepositoryTest extends AbstractRepositoryTest {
                 PaymentMethod.CREDIT_CARD,
                 new CreditCardPaymentDetails(
                         new BigDecimal("10"),
-                        "John doe",
-                        "129038012893",
-                        "128048012840",
-                        "john.doe@mail.com",
-                        IdentifierUtils.generateNewIdWithoutHyphen(),
-                        1
+                        "valid-token",
+                        1,
+                        IdentifierUtils.generateNewULID().toString()
                 ),
                 new BigDecimal("10")
         );
