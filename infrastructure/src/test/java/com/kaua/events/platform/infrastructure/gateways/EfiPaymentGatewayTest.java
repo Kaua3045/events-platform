@@ -2,11 +2,11 @@ package com.kaua.events.platform.infrastructure.gateways;
 
 import com.kaua.events.platform.AbstractRestClientTest;
 import com.kaua.events.platform.ObservationTest;
+import com.kaua.events.platform.application.gateways.payment.PaymentCreditCardPaymentDetailsRequest;
+import com.kaua.events.platform.application.gateways.payment.PaymentPixPaymentDetailsRequest;
 import com.kaua.events.platform.domain.exceptions.DomainException;
 import com.kaua.events.platform.domain.exceptions.InternalErrorException;
 import com.kaua.events.platform.domain.exceptions.NotFoundException;
-import com.kaua.events.platform.domain.payments.CreditCardPaymentDetails;
-import com.kaua.events.platform.domain.payments.PixPaymentDetails;
 import com.kaua.events.platform.infrastructure.configurations.annotations.EfiChargesClient;
 import com.kaua.events.platform.infrastructure.configurations.annotations.EfiPixClient;
 import com.kaua.events.platform.infrastructure.configurations.authentication.client.GetClientCredentials;
@@ -99,7 +99,7 @@ class EfiPaymentGatewayTest extends AbstractRestClientTest implements Observatio
                                 }
                                 """)));
 
-        final var request = new EfiPaymentGateway.PaymentProcessRequest(transactionId, orderId, new PixPaymentDetails(amount));
+        final var request = new EfiPaymentGateway.PaymentProcessRequest(transactionId, orderId, new PaymentPixPaymentDetailsRequest(amount));
         final var response = this.gateway.process(request);
 
         Assertions.assertNotNull(response);
@@ -129,7 +129,7 @@ class EfiPaymentGatewayTest extends AbstractRestClientTest implements Observatio
                         .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                         .withBody("{\"message\":\"Internal Server Error\"}")));
 
-        final var request = new EfiPaymentGateway.PaymentProcessRequest(transactionId, orderId, new PixPaymentDetails(amount));
+        final var request = new EfiPaymentGateway.PaymentProcessRequest(transactionId, orderId, new PaymentPixPaymentDetailsRequest(amount));
 
         final var exception = Assertions.assertThrows(InternalErrorException.class,
                 () -> this.gateway.process(request));
@@ -160,7 +160,7 @@ class EfiPaymentGatewayTest extends AbstractRestClientTest implements Observatio
                         .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                         .withBody(writeValueAsString(body))));
 
-        final var request = new EfiPaymentGateway.PaymentProcessRequest(transactionId, orderId, new PixPaymentDetails(amount));
+        final var request = new EfiPaymentGateway.PaymentProcessRequest(transactionId, orderId, new PaymentPixPaymentDetailsRequest(amount));
 
         final var exception = Assertions.assertThrows(DomainException.class,
                 () -> this.gateway.process(request));
@@ -194,7 +194,7 @@ class EfiPaymentGatewayTest extends AbstractRestClientTest implements Observatio
                         .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                         .withBody(writeValueAsString(body))));
 
-        final var request = new EfiPaymentGateway.PaymentProcessRequest(transactionId, orderId, new PixPaymentDetails(amount));
+        final var request = new EfiPaymentGateway.PaymentProcessRequest(transactionId, orderId, new PaymentPixPaymentDetailsRequest(amount));
 
         final var exception = Assertions.assertThrows(ConflictException.class,
                 () -> this.gateway.process(request));
@@ -228,7 +228,7 @@ class EfiPaymentGatewayTest extends AbstractRestClientTest implements Observatio
                         .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                         .withBody(writeValueAsString(body))));
 
-        final var request = new EfiPaymentGateway.PaymentProcessRequest(transactionId, orderId, new PixPaymentDetails(amount));
+        final var request = new EfiPaymentGateway.PaymentProcessRequest(transactionId, orderId, new PaymentPixPaymentDetailsRequest(amount));
 
         final var exception = Assertions.assertThrows(TooManyRequestsException.class,
                 () -> this.gateway.process(request));
@@ -253,7 +253,7 @@ class EfiPaymentGatewayTest extends AbstractRestClientTest implements Observatio
                         .withStatus(201)
                         .withFixedDelay(2000)));
 
-        final var request = new EfiPaymentGateway.PaymentProcessRequest(transactionId, orderId, new PixPaymentDetails(amount));
+        final var request = new EfiPaymentGateway.PaymentProcessRequest(transactionId, orderId, new PaymentPixPaymentDetailsRequest(amount));
 
         final var exception = Assertions.assertThrows(InternalErrorException.class,
                 () -> this.gateway.process(request));
@@ -269,7 +269,7 @@ class EfiPaymentGatewayTest extends AbstractRestClientTest implements Observatio
 
         acquireBulkheadPermission(EfiPaymentGateway.NAMESPACE_NAME);
 
-        final var request = new EfiPaymentGateway.PaymentProcessRequest("tx123", "order123", new PixPaymentDetails(BigDecimal.TEN));
+        final var request = new EfiPaymentGateway.PaymentProcessRequest("tx123", "order123", new PaymentPixPaymentDetailsRequest(BigDecimal.TEN));
         final var exception = Assertions.assertThrows(BulkheadFullException.class,
                 () -> this.gateway.process(request));
 
@@ -284,7 +284,7 @@ class EfiPaymentGatewayTest extends AbstractRestClientTest implements Observatio
 
         transitionToOpenState(EfiPaymentGateway.NAMESPACE_NAME);
 
-        final var request = new EfiPaymentGateway.PaymentProcessRequest("tx123", "order123", new PixPaymentDetails(BigDecimal.TEN));
+        final var request = new EfiPaymentGateway.PaymentProcessRequest("tx123", "order123", new PaymentPixPaymentDetailsRequest(BigDecimal.TEN));
         final var exception = Assertions.assertThrows(CallNotPermittedException.class,
                 () -> this.gateway.process(request));
 
@@ -329,7 +329,7 @@ class EfiPaymentGatewayTest extends AbstractRestClientTest implements Observatio
                                 "mensagem", "Nenhuma location encontrado para o identificador informado"
                         )))));
 
-        final var request = new EfiPaymentGateway.PaymentProcessRequest(transactionId, orderId, new PixPaymentDetails(amount));
+        final var request = new EfiPaymentGateway.PaymentProcessRequest(transactionId, orderId, new PaymentPixPaymentDetailsRequest(amount));
 
         final var exception = Assertions.assertThrows(NotFoundException.class,
                 () -> this.gateway.process(request));
@@ -351,7 +351,7 @@ class EfiPaymentGatewayTest extends AbstractRestClientTest implements Observatio
         final var aToken = "tokenRetry";
         Mockito.doReturn(aToken).when(getClientCredentials).retrieve();
 
-        final var request = new EfiPaymentGateway.PaymentProcessRequest(transactionId, orderId, new PixPaymentDetails(amount));
+        final var request = new EfiPaymentGateway.PaymentProcessRequest(transactionId, orderId, new PaymentPixPaymentDetailsRequest(amount));
 
         stubFor(put(urlPathEqualTo("/v2/cob/" + transactionId))
                 .inScenario("RetryScenario")
@@ -437,12 +437,13 @@ class EfiPaymentGatewayTest extends AbstractRestClientTest implements Observatio
         final var request = new EfiPaymentGateway.PaymentProcessRequest(
                 transactionId,
                 orderId,
-                new CreditCardPaymentDetails(
+                new PaymentCreditCardPaymentDetailsRequest(
                         amount,
                         "John Doe",
                         "123.456.789-00",
-                        "+55 (11) 91234-5678",
+                        "cpf",
                         "john.doe@mail.com",
+                        "+55 (11) 91234-5678",
                         "120834182789",
                         1
                 )
@@ -489,12 +490,13 @@ class EfiPaymentGatewayTest extends AbstractRestClientTest implements Observatio
         final var request = new EfiPaymentGateway.PaymentProcessRequest(
                 transactionId,
                 orderId,
-                new CreditCardPaymentDetails(
+                new PaymentCreditCardPaymentDetailsRequest(
                         amount,
                         "Jane Doe",
                         "987.654.321-00",
-                        "+55 (11) 91234-5678",
+                        "cpf",
                         "jane.doe@mail.com",
+                        "+55 (11) 91234-5678",
                         "987654321234",
                         1
                 )
@@ -526,12 +528,13 @@ class EfiPaymentGatewayTest extends AbstractRestClientTest implements Observatio
         final var request = new EfiPaymentGateway.PaymentProcessRequest(
                 transactionId,
                 orderId,
-                new CreditCardPaymentDetails(
+                new PaymentCreditCardPaymentDetailsRequest(
                         amount,
                         "Alice",
                         "111.222.333-44",
-                        "+55 (11) 91234-5678",
+                        "cpf",
                         "alice@mail.com",
+                        "+55 (11) 91234-5678",
                         "123456789012",
                         1
                 )
