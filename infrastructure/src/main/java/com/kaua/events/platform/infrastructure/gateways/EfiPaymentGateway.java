@@ -3,8 +3,8 @@ package com.kaua.events.platform.infrastructure.gateways;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.kaua.events.platform.application.gateways.PaymentGateway;
+import com.kaua.events.platform.application.gateways.payment.PaymentCreditCardPaymentDetailsRequest;
 import com.kaua.events.platform.domain.exceptions.NotFoundException;
-import com.kaua.events.platform.domain.payments.CreditCardPaymentDetails;
 import com.kaua.events.platform.domain.payments.PaymentMethod;
 import com.kaua.events.platform.domain.utils.Generated;
 import com.kaua.events.platform.infrastructure.configurations.annotations.EfiChargesClient;
@@ -111,7 +111,7 @@ public class EfiPaymentGateway implements PaymentGateway, ReactiveHttpClientUtil
     }
 
     private PaymentProcessResponse processCreditCardPayment(final PaymentProcessRequest request, final String aToken) {
-        final var aPaymentDetails = (CreditCardPaymentDetails) request.paymentDetails();
+        final var aPaymentDetails = (PaymentCreditCardPaymentDetailsRequest) request.paymentDetails();
 
         final var aChargePay = doPost(request.transactionId(), () -> webClientCharges.post()
                 .uri("/v1/charge/one-step")
@@ -130,7 +130,7 @@ public class EfiPaymentGateway implements PaymentGateway, ReactiveHttpClientUtil
                                 "credit_card",
                                 Map.of("customer", Map.of(
                                                 "name", aPaymentDetails.name(),
-                                                "cpf", aPaymentDetails.cpf(),
+                                                "cpf", aPaymentDetails.documentNumber(),
                                                 "email", aPaymentDetails.email(),
                                                 "phone_number", aPaymentDetails.phoneNumber()
                                         ),
