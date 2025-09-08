@@ -168,7 +168,7 @@ public class DefaultCreateCheckoutUseCase extends CreateCheckoutUseCase {
                     aTotalAmount,
                     ((CreateCheckoutCreditCardPaymentDetails) aInput.paymentDetails()).paymentToken(),
                     ((CreateCheckoutCreditCardPaymentDetails) aInput.paymentDetails()).installments(),
-                    ((CreateCheckoutCreditCardPaymentDetails) aInput.paymentDetails()).userId()
+                    aInput.userId()
             );
             default -> null;
         };
@@ -184,7 +184,7 @@ public class DefaultCreateCheckoutUseCase extends CreateCheckoutUseCase {
                     aTotalAmount,
                     "",
                     ((CreateCheckoutCreditCardPaymentDetails) aInput.paymentDetails()).installments(),
-                    ((CreateCheckoutCreditCardPaymentDetails) aInput.paymentDetails()).userId()
+                    aInput.userId()
             );
             default -> null;
         };

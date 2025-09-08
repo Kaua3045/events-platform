@@ -102,7 +102,6 @@ class CreateCheckoutUseCaseTest extends UseCaseTest {
         final var document = "448.370.900-36";
         final var ticket = newTicket("Regular Ticket", BigDecimal.valueOf(50), 1, TicketType.STANDARD);
         final var paymentDetails = new CreateCheckoutCreditCardPaymentDetails(
-                "1231231723",
                 "valid-token",
                 1
         );

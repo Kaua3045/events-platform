@@ -3,6 +3,7 @@ package com.kaua.events.platform.application.usecases.payments.create;
 import com.kaua.events.platform.application.UseCaseTest;
 import com.kaua.events.platform.application.exceptions.UseCaseInputCannotBeNullException;
 import com.kaua.events.platform.application.gateways.PaymentGateway;
+import com.kaua.events.platform.application.gateways.PhoneNumberGateway;
 import com.kaua.events.platform.application.repositories.PaymentRepository;
 import com.kaua.events.platform.application.repositories.UserRepository;
 import com.kaua.events.platform.domain.Fixture;
@@ -35,6 +36,9 @@ class CreatePaymentUseCaseTest extends UseCaseTest {
 
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private PhoneNumberGateway phoneNumberGateway;
 
     @InjectMocks
     private DefaultCreatePaymentUseCase useCase;
@@ -83,7 +87,6 @@ class CreatePaymentUseCaseTest extends UseCaseTest {
 
         Mockito.when(paymentRepository.save(Mockito.any()))
                 .thenAnswer(returnsFirstArg());
-
         Mockito.when(paymentGateway.process(Mockito.any(PaymentProcessRequest.class)))
                 .thenReturn(new PaymentProcessResponse(
                         null,
@@ -112,6 +115,8 @@ class CreatePaymentUseCaseTest extends UseCaseTest {
         final var aOrderId = ULID.random().toString();
         final var aInput = CreatePaymentInput.with(aDetails, aOrderId, "trace-abc");
 
+        Mockito.when(phoneNumberGateway.formatToProviderBr(Mockito.any()))
+                .thenReturn("11987654321");
         Mockito.when(userRepository.userOfId(Mockito.any()))
                 .thenReturn(Optional.of(aUser));
         Mockito.when(paymentRepository.save(Mockito.any()))
@@ -130,6 +135,7 @@ class CreatePaymentUseCaseTest extends UseCaseTest {
         Assertions.assertNotNull(aOutput);
         Assertions.assertNotNull(aOutput.paymentId());
 
+        Mockito.verify(phoneNumberGateway, Mockito.times(1)).formatToProviderBr(Mockito.any());
         Mockito.verify(userRepository, Mockito.times(1)).userOfId(Mockito.any());
         Mockito.verify(paymentRepository, Mockito.times(2)).save(Mockito.any(Payment.class));
         Mockito.verify(paymentGateway, Mockito.times(1)).process(Mockito.any(PaymentProcessRequest.class));

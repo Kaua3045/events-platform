@@ -4,6 +4,7 @@ import com.kaua.events.platform.application.exceptions.UseCaseInputCannotBeNullE
 import com.kaua.events.platform.application.gateways.PaymentGateway;
 import com.kaua.events.platform.application.gateways.PaymentGateway.PaymentProcessRequest;
 import com.kaua.events.platform.application.gateways.PaymentGateway.PaymentProcessStatus;
+import com.kaua.events.platform.application.gateways.PhoneNumberGateway;
 import com.kaua.events.platform.application.gateways.payment.PaymentCreditCardPaymentDetailsRequest;
 import com.kaua.events.platform.application.gateways.payment.PaymentDetailsRequest;
 import com.kaua.events.platform.application.gateways.payment.PaymentPixPaymentDetailsRequest;
@@ -25,17 +26,20 @@ public class DefaultCreatePaymentUseCase extends CreatePaymentUseCase {
     private final PaymentRepository paymentRepository;
     private final PaymentGateway paymentGateway;
     private final UserRepository userRepository;
+    private final PhoneNumberGateway phoneNumberGateway;
     private final TracerWrapper tracerWrapper;
 
     public DefaultCreatePaymentUseCase(
             final PaymentRepository paymentRepository,
             final PaymentGateway paymentGateway,
             final UserRepository userRepository,
+            final PhoneNumberGateway phoneNumberGateway,
             final TracerWrapper tracerWrapper
     ) {
         this.paymentRepository = Objects.requireNonNull(paymentRepository);
         this.paymentGateway = Objects.requireNonNull(paymentGateway);
         this.userRepository = Objects.requireNonNull(userRepository);
+        this.phoneNumberGateway = Objects.requireNonNull(phoneNumberGateway);
         this.tracerWrapper = Objects.requireNonNull(tracerWrapper);
     }
 
@@ -116,7 +120,7 @@ public class DefaultCreatePaymentUseCase extends CreatePaymentUseCase {
                                     user.getDocument().map(Document::value).orElse(null),
                                     user.getDocument().map(Document::type).orElse(null),
                                     user.getEmail().value(),
-                                    user.getPhoneNumber().orElse(null),
+                                    this.phoneNumberGateway.formatToProviderBr(user.getPhoneNumber().orElse(null)),
                                     creditCardDetails.paymentToken(),
                                     creditCardDetails.installments()
                             ))
