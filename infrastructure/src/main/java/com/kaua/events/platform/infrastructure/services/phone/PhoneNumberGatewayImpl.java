@@ -34,4 +34,18 @@ public class PhoneNumberGatewayImpl implements PhoneNumberGateway {
             )));
         }
     }
+
+    @Override
+    public String formatToProviderBr(final String phoneNumber) {
+        try {
+            final var aNumberProto = this.util.parse(phoneNumber, "BR");
+
+            return String.valueOf(aNumberProto.getNationalNumber());
+        } catch (NumberParseException e) {
+            throw DomainException.with(List.of(new Error(
+                    "phoneNumber",
+                    String.format("Phone number '%s' could not formatted to BR national number", phoneNumber)
+            )));
+        }
+    }
 }

@@ -31,8 +31,8 @@ class PhoneNumberGatewayImplTest extends UnitTest {
         );
 
         assertEquals(1, aException.getErrors().size());
-        assertEquals("phoneNumber", aException.getErrors().get(0).property());
-        assertTrue(aException.getErrors().get(0).message().contains("is not valid for region 'BR'"));
+        assertEquals("phoneNumber", aException.getErrors().getFirst().property());
+        assertTrue(aException.getErrors().getFirst().message().contains("is not valid for region 'BR'"));
     }
 
     @Test
@@ -45,10 +45,40 @@ class PhoneNumberGatewayImplTest extends UnitTest {
                 () -> this.gateway.normalizeToE164(aRaw, aRegion)
         );
 
-        System.out.println(aException.getErrors().getFirst());
+        assertEquals(1, aException.getErrors().size());
+        assertEquals("phoneNumber", aException.getErrors().getFirst().property());
+        assertTrue(aException.getErrors().getFirst().message().contains("could not be parsed"));
+    }
+
+    @Test
+    void givenValidE164Phone_whenFormatToProviderBr_thenReturnNationalNumber() {
+        final var aRaw = "+5511987654321";
+
+        final var aResult = this.gateway.formatToProviderBr(aRaw);
+
+        assertEquals("11987654321", aResult);
+    }
+
+    @Test
+    void givenValidRawPhone_whenFormatToProviderBr_thenReturnNationalNumber() {
+        final var aRaw = "(11) 98765-4321";
+
+        final var aResult = this.gateway.formatToProviderBr(aRaw);
+
+        assertEquals("11987654321", aResult);
+    }
+
+    @Test
+    void givenInvalidPhone_whenFormatToProviderBr_thenThrowDomainException() {
+        final var aRaw = "+abc";
+
+        final var aException = assertThrows(
+                DomainException.class,
+                () -> this.gateway.formatToProviderBr(aRaw)
+        );
 
         assertEquals(1, aException.getErrors().size());
-        assertEquals("phoneNumber", aException.getErrors().get(0).property());
-        assertTrue(aException.getErrors().get(0).message().contains("could not be parsed"));
+        assertEquals("phoneNumber", aException.getErrors().getFirst().property());
+        assertTrue(aException.getErrors().getFirst().message().contains("could not formatted to BR national number"));
     }
 }

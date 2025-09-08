@@ -113,6 +113,8 @@ public class EfiPaymentGateway implements PaymentGateway, ReactiveHttpClientUtil
     private PaymentProcessResponse processCreditCardPayment(final PaymentProcessRequest request, final String aToken) {
         final var aPaymentDetails = (PaymentCreditCardPaymentDetailsRequest) request.paymentDetails();
 
+        log.debug("PhoneNumber {}", aPaymentDetails.phoneNumber());
+
         final var aChargePay = doPost(request.transactionId(), () -> webClientCharges.post()
                 .uri("/v1/charge/one-step")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + aToken))
