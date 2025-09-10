@@ -18,5 +18,6 @@ CREATE TABLE payment_details (
     qr_code_image_url VARCHAR(255) NULL,
     expires_in int NOT NULL,
     payment_token VARCHAR(100) NULL,
-    installments int DEFAULT 0
+    installments int DEFAULT 0,
+    user_id VARCHAR(26) NULL
 )

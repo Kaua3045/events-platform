@@ -28,10 +28,6 @@ public class CreatePaymentDetailsDeserializer extends StdDeserializer<CreateChec
             return new CreateCheckoutPixPaymentDetails();
         } else if ("CREDIT_CARD".equalsIgnoreCase(method)) {
             return new CreateCheckoutCreditCardPaymentDetails(
-                    node.get("name").asText(),
-                    node.get("cpf").asText(),
-                    node.get("phone_number").asText(),
-                    node.get("email").asText(),
                     node.get("payment_token").asText(),
                     node.get("installments").asInt()
             );

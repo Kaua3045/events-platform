@@ -1,7 +1,9 @@
 package com.kaua.events.platform.infrastructure.configurations.usecases;
 
 import com.kaua.events.platform.application.gateways.PaymentGateway;
+import com.kaua.events.platform.application.gateways.PhoneNumberGateway;
 import com.kaua.events.platform.application.repositories.PaymentRepository;
+import com.kaua.events.platform.application.repositories.UserRepository;
 import com.kaua.events.platform.application.usecases.payments.create.CreatePaymentUseCase;
 import com.kaua.events.platform.application.usecases.payments.create.DefaultCreatePaymentUseCase;
 import com.kaua.events.platform.application.usecases.payments.process.charges.DefaultProcessPaymentChargeUseCase;
@@ -17,11 +19,15 @@ public class PaymentUseCaseConfig {
     public CreatePaymentUseCase createPaymentUseCase(
             final PaymentRepository paymentRepository,
             final PaymentGateway paymentGateway,
+            final UserRepository userRepository,
+            final PhoneNumberGateway phoneNumberGateway,
             final TracerWrapper tracerWrapper
     ) {
         return new DefaultCreatePaymentUseCase(
                 paymentRepository,
                 paymentGateway,
+                userRepository,
+                phoneNumberGateway,
                 tracerWrapper
         );
     }

@@ -3,7 +3,11 @@ package com.kaua.events.platform.application.usecases.payments.create;
 import com.kaua.events.platform.application.UseCaseTest;
 import com.kaua.events.platform.application.exceptions.UseCaseInputCannotBeNullException;
 import com.kaua.events.platform.application.gateways.PaymentGateway;
+import com.kaua.events.platform.application.gateways.PhoneNumberGateway;
 import com.kaua.events.platform.application.repositories.PaymentRepository;
+import com.kaua.events.platform.application.repositories.UserRepository;
+import com.kaua.events.platform.domain.Fixture;
+import com.kaua.events.platform.domain.exceptions.NotFoundException;
 import com.kaua.events.platform.domain.payments.CreditCardPaymentDetails;
 import com.kaua.events.platform.domain.payments.Payment;
 import com.kaua.events.platform.domain.payments.PixPaymentDetails;
@@ -16,6 +20,7 @@ import org.mockito.Mockito;
 
 import java.math.BigDecimal;
 import java.util.Objects;
+import java.util.Optional;
 
 import static com.kaua.events.platform.application.gateways.PaymentGateway.*;
 import static org.mockito.AdditionalAnswers.returnsFirstArg;
@@ -28,6 +33,12 @@ class CreatePaymentUseCaseTest extends UseCaseTest {
 
     @Mock
     private PaymentGateway paymentGateway;
+
+    @Mock
+    private UserRepository userRepository;
+
+    @Mock
+    private PhoneNumberGateway phoneNumberGateway;
 
     @InjectMocks
     private DefaultCreatePaymentUseCase useCase;
@@ -76,7 +87,6 @@ class CreatePaymentUseCaseTest extends UseCaseTest {
 
         Mockito.when(paymentRepository.save(Mockito.any()))
                 .thenAnswer(returnsFirstArg());
-
         Mockito.when(paymentGateway.process(Mockito.any(PaymentProcessRequest.class)))
                 .thenReturn(new PaymentProcessResponse(
                         null,
@@ -95,18 +105,20 @@ class CreatePaymentUseCaseTest extends UseCaseTest {
 
     @Test
     void givenAnCreditCardPaymentDetails_whenCallCreatePaymentUseCase_thenReturnOutput() {
+        final var aUser = Fixture.UserFixture.newUserWithDocumentAndPhone();
         final var aDetails = new CreditCardPaymentDetails(
                 BigDecimal.valueOf(100),
-                "John Doe",
-                "123.456.789-00",
-                "+55 (11) 91234-5678",
-                "john.doe@mail.com",
-                "120834182789",
-                1
+                "128793417",
+                1,
+                aUser.getId().value().toString()
         );
         final var aOrderId = ULID.random().toString();
         final var aInput = CreatePaymentInput.with(aDetails, aOrderId, "trace-abc");
 
+        Mockito.when(phoneNumberGateway.formatToProviderBr(Mockito.any()))
+                .thenReturn("11987654321");
+        Mockito.when(userRepository.userOfId(Mockito.any()))
+                .thenReturn(Optional.of(aUser));
         Mockito.when(paymentRepository.save(Mockito.any()))
                 .thenAnswer(returnsFirstArg())
                 .thenAnswer(returnsFirstArg());
@@ -123,8 +135,26 @@ class CreatePaymentUseCaseTest extends UseCaseTest {
         Assertions.assertNotNull(aOutput);
         Assertions.assertNotNull(aOutput.paymentId());
 
+        Mockito.verify(phoneNumberGateway, Mockito.times(1)).formatToProviderBr(Mockito.any());
+        Mockito.verify(userRepository, Mockito.times(1)).userOfId(Mockito.any());
         Mockito.verify(paymentRepository, Mockito.times(2)).save(Mockito.any(Payment.class));
         Mockito.verify(paymentGateway, Mockito.times(1)).process(Mockito.any(PaymentProcessRequest.class));
+    }
+
+    @Test
+    void givenACreditCardPaymentWithNonExistingUser_whenCallCreatePaymentUseCase_thenThrowNotFoundException() {
+        final var userId = "missing-456";
+        final var aDetails = new CreditCardPaymentDetails(BigDecimal.valueOf(200), "token-123", 1, userId);
+        final var aOrderId = ULID.random().toString();
+        final var aInput = CreatePaymentInput.with(aDetails, aOrderId, "trace-404");
+
+        Mockito.when(userRepository.userOfId(userId)).thenReturn(Optional.empty());
+
+        Assertions.assertThrows(NotFoundException.class, () -> this.useCase.execute(aInput));
+
+        Mockito.verify(userRepository, Mockito.times(1)).userOfId(userId);
+        Mockito.verify(paymentRepository, Mockito.never()).save(Mockito.any());
+        Mockito.verify(paymentGateway, Mockito.never()).process(Mockito.any());
     }
 
     @Test

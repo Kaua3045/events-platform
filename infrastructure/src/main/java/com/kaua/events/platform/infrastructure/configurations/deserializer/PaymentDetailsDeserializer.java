@@ -34,12 +34,9 @@ public class PaymentDetailsDeserializer extends StdDeserializer<PaymentDetails> 
         } else if ("CREDIT_CARD".equalsIgnoreCase(method)) {
             return new CreditCardPaymentDetails(
                     new BigDecimal(node.get("amount").asText()),
-                    node.get("name").asText(),
-                    node.get("cpf").asText(),
-                    node.get("phone_number").asText(),
-                    node.get("email").asText(),
                     node.get("payment_token").asText(),
-                    node.get("installments").asInt()
+                    node.get("installments").asInt(),
+                    node.get("user_id").asText()
             );
         }
         throw new IllegalArgumentException("Unknown payment method: " + method);

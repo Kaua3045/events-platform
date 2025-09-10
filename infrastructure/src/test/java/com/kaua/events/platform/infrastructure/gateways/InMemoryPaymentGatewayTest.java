@@ -1,9 +1,9 @@
 package com.kaua.events.platform.infrastructure.gateways;
 
 import com.kaua.events.platform.application.gateways.PaymentGateway;
+import com.kaua.events.platform.application.gateways.payment.PaymentCreditCardPaymentDetailsRequest;
+import com.kaua.events.platform.application.gateways.payment.PaymentPixPaymentDetailsRequest;
 import com.kaua.events.platform.domain.UnitTest;
-import com.kaua.events.platform.domain.payments.CreditCardPaymentDetails;
-import com.kaua.events.platform.domain.payments.PixPaymentDetails;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -51,7 +51,7 @@ class InMemoryPaymentGatewayTest extends UnitTest {
         final var request = new PaymentGateway.PaymentProcessRequest(
                 "tx123",
                 "order123",
-                new PixPaymentDetails(new BigDecimal("10"))
+                new PaymentPixPaymentDetailsRequest(new BigDecimal("10"))
         );
 
         final var response = gateway.process(request);
@@ -67,7 +67,7 @@ class InMemoryPaymentGatewayTest extends UnitTest {
         final var request = new PaymentGateway.PaymentProcessRequest(
                 "tx123",
                 "order123",
-                new PixPaymentDetails(new BigDecimal("0.5"))
+                new PaymentPixPaymentDetailsRequest(new BigDecimal("0.5"))
         );
 
         final var response = gateway.process(request);
@@ -81,7 +81,7 @@ class InMemoryPaymentGatewayTest extends UnitTest {
         final var request = new PaymentGateway.PaymentProcessRequest(
                 "tx123",
                 "order123",
-                new PixPaymentDetails(new BigDecimal("10"))
+                new PaymentPixPaymentDetailsRequest(new BigDecimal("10"))
         );
 
         final var aGateway = new InMemoryPaymentGateway(webClient, Runnable::run);
@@ -101,7 +101,7 @@ class InMemoryPaymentGatewayTest extends UnitTest {
         final var request = new PaymentGateway.PaymentProcessRequest(
                 "tx123",
                 "order123",
-                new PixPaymentDetails(new BigDecimal("10"))
+                new PaymentPixPaymentDetailsRequest(new BigDecimal("10"))
         );
 
         gateway.process(request);
@@ -116,7 +116,7 @@ class InMemoryPaymentGatewayTest extends UnitTest {
         var request = new PaymentGateway.PaymentProcessRequest(
                 "tx-min",
                 "order-min",
-                new PixPaymentDetails(new BigDecimal("1"))
+                new PaymentPixPaymentDetailsRequest(new BigDecimal("1"))
         );
 
         var response = gateway.process(request);
@@ -129,7 +129,7 @@ class InMemoryPaymentGatewayTest extends UnitTest {
         var request = new PaymentGateway.PaymentProcessRequest(
                 "tx-max",
                 "order-max",
-                new PixPaymentDetails(new BigDecimal("50"))
+                new PaymentPixPaymentDetailsRequest(new BigDecimal("50"))
         );
 
         var response = gateway.process(request);
@@ -142,7 +142,7 @@ class InMemoryPaymentGatewayTest extends UnitTest {
         var request = new PaymentGateway.PaymentProcessRequest(
                 "tx-above",
                 "order-above",
-                new PixPaymentDetails(new BigDecimal("51"))
+                new PaymentPixPaymentDetailsRequest(new BigDecimal("51"))
         );
 
         var response = gateway.process(request);
@@ -155,12 +155,13 @@ class InMemoryPaymentGatewayTest extends UnitTest {
         final var request = new PaymentGateway.PaymentProcessRequest(
                 "tx-nonpix",
                 "order-nonpix",
-                new CreditCardPaymentDetails(
+                new PaymentCreditCardPaymentDetailsRequest(
                         new BigDecimal("100"),
                         "Jane Doe",
                         "123.456.789-00",
-                        "+55 (11) 91234-5678",
+                        "cpf",
                         "jane.doe@mail.com",
+                        "+55 (11) 91234-5678",
                         "4111111111111111",
                         12
                 )
@@ -178,12 +179,13 @@ class InMemoryPaymentGatewayTest extends UnitTest {
         final var request = new PaymentGateway.PaymentProcessRequest(
                 "tx-nonpix-webhook",
                 "order-nonpix-webhook",
-                new CreditCardPaymentDetails(
+                new PaymentCreditCardPaymentDetailsRequest(
                         new BigDecimal("100"),
                         "Jane Doe",
                         "123.456.789-00",
-                        "+55 (11) 91234-5678",
+                        "cpf",
                         "jane.doe@mail.com",
+                        "+55 (11) 91234-5678",
                         "4111111111111111",
                         12
                 )
@@ -202,12 +204,13 @@ class InMemoryPaymentGatewayTest extends UnitTest {
         final var request = new PaymentGateway.PaymentProcessRequest(
                 "tx-nonpix-zero",
                 "order-nonpix-zero",
-                new CreditCardPaymentDetails(
+                new PaymentCreditCardPaymentDetailsRequest(
                         BigDecimal.ZERO,
                         "Jane Doe",
                         "123.456.789-00",
-                        "+55 (11) 91234-5678",
+                        "cpf",
                         "jane.doe@mail.com",
+                        "+55 (11) 91234-5678",
                         "4111111111111111",
                         12
                 )
@@ -224,12 +227,13 @@ class InMemoryPaymentGatewayTest extends UnitTest {
         final var request = new PaymentGateway.PaymentProcessRequest(
                 "tx-nonpix-clear",
                 "order-nonpix-clear",
-                new CreditCardPaymentDetails(
+                new PaymentCreditCardPaymentDetailsRequest(
                         new BigDecimal("50"),
                         "Jane Doe",
                         "123.456.789-00",
-                        "+55 (11) 91234-5678",
+                        "cpf",
                         "jane.doe@mail.com",
+                        "+55 (11) 91234-5678",
                         "4111111111111111",
                         12
                 )
@@ -247,7 +251,7 @@ class InMemoryPaymentGatewayTest extends UnitTest {
         final var request = new PaymentGateway.PaymentProcessRequest(
                 "tx-get",
                 "order-get",
-                new PixPaymentDetails(new BigDecimal("10"))
+                new PaymentPixPaymentDetailsRequest(new BigDecimal("10"))
         );
 
         gateway.process(request);
@@ -269,7 +273,7 @@ class InMemoryPaymentGatewayTest extends UnitTest {
         final var request = new PaymentGateway.PaymentProcessRequest(
                 "tx-interrupted",
                 "order-interrupted",
-                new PixPaymentDetails(new BigDecimal("100"))
+                new PaymentPixPaymentDetailsRequest(new BigDecimal("100"))
         );
 
         var gatewaySpy = spy(new InMemoryPaymentGateway(webClient, Runnable::run));
@@ -284,8 +288,7 @@ class InMemoryPaymentGatewayTest extends UnitTest {
         final var request = new PaymentGateway.PaymentProcessRequest(
                 "tx-interrupted",
                 "order-interrupted",
-                new CreditCardPaymentDetails(new BigDecimal("100"), "Jane Doe", "123.456.789-00", "+55 (11) 91234-5678",
-                        "jane.doe@mail.com", "4111111111111111", 12)
+                new PaymentCreditCardPaymentDetailsRequest(new BigDecimal("100"), "Jane Doe", "123.456.789-00", "cpf", "jane.doe@mail.com", "+55 (11) 91234-5678", "4111111111111111", 12)
         );
 
         var gatewaySpy = spy(new InMemoryPaymentGateway(webClient, Runnable::run));
@@ -302,8 +305,7 @@ class InMemoryPaymentGatewayTest extends UnitTest {
         var request = new PaymentGateway.PaymentProcessRequest(
                 "tx-webclient-error",
                 "order-webclient-error",
-                new CreditCardPaymentDetails(new BigDecimal("100"), "Jane Doe", "123.456.789-00", "+55 (11) 91234-5678",
-                        "jane.doe@mail.com", "4111111111111111", 12)
+                new PaymentCreditCardPaymentDetailsRequest(new BigDecimal("100"), "Jane Doe", "123.456.789-00", "cpf", "jane.doe@mail.com", "+55 (11) 91234-5678", "4111111111111111", 12)
         );
 
         final var aGateway = new InMemoryPaymentGateway(webClient, Runnable::run);
@@ -321,7 +323,7 @@ class InMemoryPaymentGatewayTest extends UnitTest {
         var request = new PaymentGateway.PaymentProcessRequest(
                 "tx-webclient-error",
                 "order-webclient-error",
-                new PixPaymentDetails(new BigDecimal("100"))
+                new PaymentPixPaymentDetailsRequest(new BigDecimal("100"))
         );
 
         final var aGateway = new InMemoryPaymentGateway(webClient, Runnable::run);

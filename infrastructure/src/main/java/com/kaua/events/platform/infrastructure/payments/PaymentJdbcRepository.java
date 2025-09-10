@@ -98,7 +98,8 @@ public class PaymentJdbcRepository implements PaymentRepository {
                 qr_code_image_url,
                 expires_in,
                 payment_token,
-                installments
+                installments,
+                user_id
                 )
                 VALUES (
                 :id,
@@ -107,7 +108,8 @@ public class PaymentJdbcRepository implements PaymentRepository {
                 :qrCodeImageUrl,
                 :expiresIn,
                 :paymentToken,
-                :installments
+                :installments,
+                :userId
                 )
                 """;
 
@@ -139,7 +141,8 @@ public class PaymentJdbcRepository implements PaymentRepository {
                 qr_code_image_url = :qrCodeImageUrl,
                 expires_in = :expiresIn,
                 payment_token = :paymentToken,
-                installments = :installments
+                installments = :installments,
+                user_id = :userId
                 WHERE id = :id AND version = :version
                 """;
 
@@ -179,9 +182,11 @@ public class PaymentJdbcRepository implements PaymentRepository {
 
             aParamsPaymentDetails.put("paymentToken", null);
             aParamsPaymentDetails.put("installments", 0);
+            aParamsPaymentDetails.put("userId", null);
         } else if (aPayment.getPaymentDetails().method().equals(PaymentMethod.CREDIT_CARD)) {
             aParamsPaymentDetails.put("paymentToken", ((CreditCardPaymentDetails) aPayment.getPaymentDetails()).paymentToken());
             aParamsPaymentDetails.put("installments", ((CreditCardPaymentDetails) aPayment.getPaymentDetails()).installments());
+            aParamsPaymentDetails.put("userId", ((CreditCardPaymentDetails) aPayment.getPaymentDetails()).userId());
 
             aParamsPaymentDetails.put("qrCodeImageUrl", null);
             aParamsPaymentDetails.put("qrCode", null);
@@ -215,12 +220,9 @@ public class PaymentJdbcRepository implements PaymentRepository {
             } else if (aMethod.isPresent() && aMethod.get().equals(PaymentMethod.CREDIT_CARD)) {
                 aPaymentDetails = new CreditCardPaymentDetails(
                         aAmount,
-                        "",
-                        "",
-                        "",
-                        "",
                         rs.getString("payment_token"),
-                        rs.getInt("installments")
+                        rs.getInt("installments"),
+                        rs.getString("user_id")
                 );
             }
 
