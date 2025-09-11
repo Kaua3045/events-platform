@@ -1,6 +1,7 @@
 package com.kaua.events.platform.domain.orders;
 
 import com.kaua.events.platform.domain.AggregateRoot;
+import com.kaua.events.platform.domain.orders.events.OrderStatusChangedEvent;
 import com.kaua.events.platform.domain.payments.PaymentID;
 import com.kaua.events.platform.domain.users.UserID;
 import com.kaua.events.platform.domain.utils.Generated;
@@ -113,7 +114,7 @@ public class Order extends AggregateRoot<OrderID> {
     }
 
     public Order markAsFailed() {
-        return new Order(
+        final var aOrder = new Order(
                 getId(),
                 getVersion(),
                 getUserId(),
@@ -125,6 +126,82 @@ public class Order extends AggregateRoot<OrderID> {
                 InstantUtils.now(),
                 InstantUtils.now()
         );
+        aOrder.registerEvent(new OrderStatusChangedEvent(
+                aOrder.getId().value().toString(),
+                aOrder.getVersion(),
+                aOrder.getStatus().name()
+        ));
+
+        return aOrder;
+    }
+
+    public Order markAsPaymentPending(PaymentID paymentId) {
+        final var aOrder = new Order(
+                getId(),
+                getVersion(),
+                getUserId(),
+                getItems(),
+                getTotalAmount(),
+                paymentId,
+                OrderStatus.PAYMENT_PENDING,
+                getCreatedAt(),
+                InstantUtils.now(),
+                null
+        );
+
+        aOrder.registerEvent(new OrderStatusChangedEvent(
+                aOrder.getId().value().toString(),
+                aOrder.getVersion(),
+                aOrder.getStatus().name()
+        ));
+
+        return aOrder;
+    }
+
+    public Order markAsPaymentApproved() {
+        final var aOrder = new Order(
+                getId(),
+                getVersion(),
+                getUserId(),
+                getItems(),
+                getTotalAmount(),
+                getPaymentId().orElse(null),
+                OrderStatus.PAYMENT_APPROVED,
+                getCreatedAt(),
+                InstantUtils.now(),
+                null
+        );
+
+        aOrder.registerEvent(new OrderStatusChangedEvent(
+                aOrder.getId().value().toString(),
+                aOrder.getVersion(),
+                aOrder.getStatus().name()
+        ));
+
+        return aOrder;
+    }
+
+    public Order markAsPaid() {
+        final var aOrder = new Order(
+                getId(),
+                getVersion(),
+                getUserId(),
+                getItems(),
+                getTotalAmount(),
+                getPaymentId().orElse(null),
+                OrderStatus.PAID,
+                getCreatedAt(),
+                InstantUtils.now(),
+                null
+        );
+
+        aOrder.registerEvent(new OrderStatusChangedEvent(
+                aOrder.getId().value().toString(),
+                aOrder.getVersion(),
+                aOrder.getStatus().name()
+        ));
+
+        return aOrder;
     }
 
     @Generated
