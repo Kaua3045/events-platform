@@ -15,6 +15,7 @@ import com.kaua.events.platform.application.wrapper.TracerWrapper;
 import com.kaua.events.platform.domain.exceptions.NotFoundException;
 import com.kaua.events.platform.domain.orders.OrderID;
 import com.kaua.events.platform.domain.payments.*;
+import com.kaua.events.platform.domain.payments.events.PaymentStatusChangedEvent;
 import com.kaua.events.platform.domain.person.Document;
 import com.kaua.events.platform.domain.users.User;
 import com.kaua.events.platform.domain.utils.ULID;
@@ -95,6 +96,13 @@ public class DefaultCreatePaymentUseCase extends CreatePaymentUseCase {
 
                     if (aPayment.getMethod().equals(PaymentMethod.CREDIT_CARD) && aOutput.status().equals(PaymentProcessStatus.WAITING)) {
                         final var aPendingPayment = aPayment.markAsPending(aPayment.getPaymentDetails());
+                        aPendingPayment.registerEvent(new PaymentStatusChangedEvent(
+                                aPendingPayment.getOrderId().value().toString(),
+                                aPendingPayment.getId().value().toString(),
+                                aPendingPayment.getVersion(),
+                                aPendingPayment.getStatus().name(),
+                                aPendingPayment.getTransactionId()
+                        ));
 
                         ctx.runInSpan(
                                 "payment.update",
