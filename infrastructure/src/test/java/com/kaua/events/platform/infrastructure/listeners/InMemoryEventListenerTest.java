@@ -1,5 +1,6 @@
 package com.kaua.events.platform.infrastructure.listeners;
 
+import com.kaua.events.platform.application.usecases.orders.update.status.UpdateOrderStatusUseCase;
 import com.kaua.events.platform.application.usecases.payments.create.CreatePaymentUseCase;
 import com.kaua.events.platform.domain.UnitTest;
 import com.kaua.events.platform.infrastructure.outbox.OutboxJdbcRepository.OutboxMessage;
@@ -20,9 +21,12 @@ class InMemoryEventListenerTest extends UnitTest {
     @Mock
     private CreatePaymentUseCase createPaymentUseCase;
 
+    @Mock
+    private UpdateOrderStatusUseCase updateOrderStatusUseCase;
+
     @BeforeEach
     void setUp() {
-        listener = new InMemoryEventListener(createPaymentUseCase);
+        listener = new InMemoryEventListener(createPaymentUseCase, updateOrderStatusUseCase);
     }
 
     @Test
@@ -120,6 +124,7 @@ class InMemoryEventListenerTest extends UnitTest {
         listener.handleEvents(message);
 
         verifyNoInteractions(createPaymentUseCase);
+        verify(updateOrderStatusUseCase, times(1)).execute(any());
     }
 
     @Test
