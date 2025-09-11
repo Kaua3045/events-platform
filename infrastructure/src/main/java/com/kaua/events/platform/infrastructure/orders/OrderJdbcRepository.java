@@ -13,6 +13,7 @@ import com.kaua.events.platform.domain.payments.PaymentID;
 import com.kaua.events.platform.domain.ticket.TicketID;
 import com.kaua.events.platform.domain.users.UserID;
 import com.kaua.events.platform.domain.utils.ULID;
+import com.kaua.events.platform.infrastructure.exceptions.ConflictException;
 import com.kaua.events.platform.infrastructure.jdbc.DatabaseClient;
 import com.kaua.events.platform.infrastructure.jdbc.JdbcUtils;
 import com.kaua.events.platform.infrastructure.jdbc.RowMap;
@@ -161,6 +162,12 @@ public class OrderJdbcRepository implements OrderRepository {
             batchInsertItems(order.getId().value().toString(), order.getItems());
             this.outboxRepository.save(order.getDomainEvents());
             log.info("Created new order: {}", order);
+        } else {
+            log.debug("Updating order: {}", order);
+            update(order);
+            batchUpdateItems(order);
+            this.outboxRepository.save(order.getDomainEvents());
+            log.info("Updated payment: {}", order);
         }
 
         order.incrementVersion();
@@ -194,6 +201,29 @@ public class OrderJdbcRepository implements OrderRepository {
                 """;
 
         executeUpdateOrder(aSql, aOrder);
+    }
+
+    private void update(final Order aOrder) {
+        final var aSql = """
+                UPDATE orders
+                SET
+                    version = (:version + 1),
+                    user_id = :user_id,
+                    total_amount = :total_amount,
+                    payment_id = :payment_id,
+                    status = :status,
+                    created_at = :createdAt,
+                    updated_at = :updatedAt,
+                    failed_at = :failed_at
+                WHERE id = :id AND version = :version
+                """;
+
+        if (executeUpdateOrder(aSql, aOrder) == 0) {
+            throw ConflictException.with(
+                    "Order with identifier %s and version %d does not match, order was updated by another transaction"
+                            .formatted(aOrder.getId().value().toString(), aOrder.getVersion())
+            );
+        }
     }
 
     private int executeUpdateOrder(final String aSql, final Order aOrder) {
@@ -246,6 +276,29 @@ public class OrderJdbcRepository implements OrderRepository {
         }).toList();
 
         log.debug("Creating {} items", items.size());
+
+        this.databaseClient.batchUpdate(sql, batchParams);
+    }
+
+    private void batchUpdateItems(final Order aOrder) {
+        final var sql = """
+                UPDATE order_items
+                   SET quantity = :quantity,
+                       unit_price = :unitPrice,
+                       total_price = :totalPrice
+                 WHERE id = :id
+                   AND order_id = :order_id
+                """;
+
+        final var batchParams = aOrder.getItems().stream()
+                .map(item -> Map.<String, Object>of(
+                        "id", item.getId().toString(),
+                        "order_id", aOrder.getId().value().toString(),
+                        "quantity", item.getQuantity(),
+                        "unitPrice", item.getUnitPrice(),
+                        "totalPrice", item.getTotalPrice()
+                ))
+                .toList();
 
         this.databaseClient.batchUpdate(sql, batchParams);
     }
