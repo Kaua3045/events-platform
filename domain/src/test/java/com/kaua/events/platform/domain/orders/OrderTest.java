@@ -395,4 +395,135 @@ class OrderTest extends UnitTest {
         Assertions.assertTrue(anUpdatedAt.isBefore(anOrderFailed.getUpdatedAt()));
         Assertions.assertTrue(anOrderFailed.getFailedAt().isPresent());
     }
+
+    @Test
+    void givenAValidOrder_whenCallMarkAsPendingPayment_thenReturnOrderPaymentPending() {
+        final var aEventId = new EventID(ULID.random());
+        final var aTicketId = new TicketID(ULID.random());
+        final var aUserId = new UserID(ULID.random());
+        final var aUnitPriceItem = BigDecimal.valueOf(10.55);
+        final var aQuantity = 10;
+
+        final var aPaymentId = new PaymentID(ULID.random());
+
+        final var aOrderItemOne = OrderItem.newItem(
+                aEventId,
+                aTicketId,
+                aQuantity,
+                aUnitPriceItem
+        );
+
+        final var aItems = List.of(aOrderItemOne, OrderItem.newItem(
+                aEventId,
+                new TicketID(ULID.random()),
+                5,
+                BigDecimal.valueOf(5.55)
+        ));
+
+        final var aOrder = Order.newOrder(
+                aUserId,
+                aItems
+        );
+
+        final var anUpdatedAt = aOrder.getUpdatedAt();
+
+        final var aOrderPaymentPending = aOrder.markAsPaymentPending(aPaymentId);
+
+        Assertions.assertNotNull(aOrderPaymentPending);
+        Assertions.assertEquals(aOrder.getId(), aOrderPaymentPending.getId());
+        Assertions.assertEquals(aOrder.getUserId(), aOrderPaymentPending.getUserId());
+        Assertions.assertEquals(aOrder.getItems(), aOrderPaymentPending.getItems());
+        Assertions.assertEquals(aOrder.getTotalAmount(), aOrderPaymentPending.getTotalAmount());
+        Assertions.assertEquals(aPaymentId.value(), aOrderPaymentPending.getPaymentId().get().value());
+        Assertions.assertEquals(OrderStatus.PAYMENT_PENDING, aOrderPaymentPending.getStatus());
+        Assertions.assertEquals(aOrder.getCreatedAt(), aOrderPaymentPending.getCreatedAt());
+        Assertions.assertTrue(anUpdatedAt.isBefore(aOrderPaymentPending.getUpdatedAt()));
+        Assertions.assertTrue(aOrderPaymentPending.getFailedAt().isEmpty());
+    }
+
+    @Test
+    void givenAValidOrder_whenCallMarkAsPaymentApproved_thenReturnOrderPaymentApproved() {
+        final var aEventId = new EventID(ULID.random());
+        final var aTicketId = new TicketID(ULID.random());
+        final var aUserId = new UserID(ULID.random());
+        final var aUnitPriceItem = BigDecimal.valueOf(10.55);
+        final var aQuantity = 10;
+
+        final var aOrderItemOne = OrderItem.newItem(
+                aEventId,
+                aTicketId,
+                aQuantity,
+                aUnitPriceItem
+        );
+
+        final var aItems = List.of(aOrderItemOne, OrderItem.newItem(
+                aEventId,
+                new TicketID(ULID.random()),
+                5,
+                BigDecimal.valueOf(5.55)
+        ));
+
+        final var aOrder = Order.newOrder(
+                aUserId,
+                aItems
+        );
+
+        final var anUpdatedAt = aOrder.getUpdatedAt();
+
+        final var aOrderPaymentApproved = aOrder.markAsPaymentApproved();
+
+        Assertions.assertNotNull(aOrderPaymentApproved);
+        Assertions.assertEquals(aOrder.getId(), aOrderPaymentApproved.getId());
+        Assertions.assertEquals(aOrder.getUserId(), aOrderPaymentApproved.getUserId());
+        Assertions.assertEquals(aOrder.getItems(), aOrderPaymentApproved.getItems());
+        Assertions.assertEquals(aOrder.getTotalAmount(), aOrderPaymentApproved.getTotalAmount());
+        Assertions.assertTrue(aOrderPaymentApproved.getPaymentId().isEmpty());
+        Assertions.assertEquals(OrderStatus.PAYMENT_APPROVED, aOrderPaymentApproved.getStatus());
+        Assertions.assertEquals(aOrder.getCreatedAt(), aOrderPaymentApproved.getCreatedAt());
+        Assertions.assertTrue(anUpdatedAt.isBefore(aOrderPaymentApproved.getUpdatedAt()));
+        Assertions.assertTrue(aOrderPaymentApproved.getFailedAt().isEmpty());
+    }
+
+    @Test
+    void givenAValidOrder_whenCallMarkAsPaid_thenReturnOrderPaid() {
+        final var aEventId = new EventID(ULID.random());
+        final var aTicketId = new TicketID(ULID.random());
+        final var aUserId = new UserID(ULID.random());
+        final var aUnitPriceItem = BigDecimal.valueOf(10.55);
+        final var aQuantity = 10;
+
+        final var aOrderItemOne = OrderItem.newItem(
+                aEventId,
+                aTicketId,
+                aQuantity,
+                aUnitPriceItem
+        );
+
+        final var aItems = List.of(aOrderItemOne, OrderItem.newItem(
+                aEventId,
+                new TicketID(ULID.random()),
+                5,
+                BigDecimal.valueOf(5.55)
+        ));
+
+        final var aOrder = Order.newOrder(
+                aUserId,
+                aItems
+        );
+
+        final var anUpdatedAt = aOrder.getUpdatedAt();
+
+        final var aOrderPaymentPaid = aOrder.markAsPaid();
+
+        Assertions.assertNotNull(aOrderPaymentPaid);
+        Assertions.assertEquals(aOrder.getId(), aOrderPaymentPaid.getId());
+        Assertions.assertEquals(aOrder.getUserId(), aOrderPaymentPaid.getUserId());
+        Assertions.assertEquals(aOrder.getItems(), aOrderPaymentPaid.getItems());
+        Assertions.assertEquals(aOrder.getTotalAmount(), aOrderPaymentPaid.getTotalAmount());
+        Assertions.assertTrue(aOrderPaymentPaid.getPaymentId().isEmpty());
+        Assertions.assertEquals(OrderStatus.PAID, aOrderPaymentPaid.getStatus());
+        Assertions.assertEquals(aOrder.getCreatedAt(), aOrderPaymentPaid.getCreatedAt());
+        Assertions.assertTrue(anUpdatedAt.isBefore(aOrderPaymentPaid.getUpdatedAt()));
+        Assertions.assertTrue(aOrderPaymentPaid.getFailedAt().isEmpty());
+    }
 }
