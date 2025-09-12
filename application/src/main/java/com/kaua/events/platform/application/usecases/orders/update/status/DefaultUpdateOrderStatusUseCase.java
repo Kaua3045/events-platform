@@ -32,7 +32,7 @@ public class DefaultUpdateOrderStatusUseCase extends UpdateOrderStatusUseCase {
                 .orElseGet(() -> aOrder.getPaymentId().orElse(null));
 
         final var aOrderUpdated = switch (input.status()) {
-            case "WAITING" -> aOrder.markAsPaymentPending(aPaymentId);
+            case "PENDING" -> aOrder.markAsPaymentPending(aPaymentId);
             case "APPROVED", "IDENTIFIED" -> aOrder.markAsPaymentApproved();
             case "PAID" -> aOrder.markAsPaid();
             case "FAILED" -> aOrder.markAsFailed();

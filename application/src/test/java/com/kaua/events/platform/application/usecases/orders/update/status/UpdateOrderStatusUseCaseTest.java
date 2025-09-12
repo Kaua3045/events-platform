@@ -75,7 +75,7 @@ class UpdateOrderStatusUseCaseTest extends UseCaseTest {
         final var aOrderId = aOrder.getId().value().toString();
         final var aPaymentId = ULID.random().toString();
 
-        final var aInput = UpdateOrderStatusInput.with(aOrderId, "WAITING", aPaymentId);
+        final var aInput = UpdateOrderStatusInput.with(aOrderId, "PENDING", aPaymentId);
 
         Mockito.when(orderRepository.orderOfId(any()))
                 .thenReturn(Optional.of(aOrder));
@@ -96,7 +96,7 @@ class UpdateOrderStatusUseCaseTest extends UseCaseTest {
         final var aOrder = Fixture.OrderFixture.newOrderWithPaymentId(aUserId, aPaymentId);
 
         final var aOrderId = aOrder.getId().value().toString();
-        final var aInput = UpdateOrderStatusInput.with(aOrderId, "WAITING", null);
+        final var aInput = UpdateOrderStatusInput.with(aOrderId, "PENDING", null);
 
         Mockito.when(orderRepository.orderOfId(any()))
                 .thenReturn(Optional.of(aOrder));
