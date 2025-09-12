@@ -44,6 +44,7 @@ public class InMemoryEventListener {
                     this.handlePaymentCreatedEvent(Json.readValue(aOutboxMessage.payload(), PaymentCreatedEvent.class));
             case "PaymentStatusChanged" ->
                     this.handlePaymentStatusChanged(Json.readValue(aOutboxMessage.payload(), PaymentStatusChangedEvent.class));
+            case "OrderStatusChanged" -> log.warn("OrderStatusChanged listener");
             default -> throw new IllegalArgumentException("Event type not recognized: " + aOutboxMessage.eventType());
         }
     }
