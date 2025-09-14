@@ -10,6 +10,7 @@ import com.kaua.events.platform.domain.organizations.OrganizationID;
 import com.kaua.events.platform.domain.organizations.OrganizationMember;
 import com.kaua.events.platform.domain.organizations.OrganizationMemberRole;
 import com.kaua.events.platform.domain.payments.Payment;
+import com.kaua.events.platform.domain.payments.PaymentID;
 import com.kaua.events.platform.domain.payments.PaymentMethod;
 import com.kaua.events.platform.domain.payments.PixPaymentDetails;
 import com.kaua.events.platform.domain.person.DocumentFactory;
@@ -61,11 +62,11 @@ public final class Fixture {
             final var aLastName = aFakerLastName.length() < 3 || aFakerLastName.length() > 99 ?
                     "TESTESSSSS" : aFakerLastName;
             return User.newUser(
-                    new Name(aFirstName, aLastName),
-                    new Email(faker.internet().safeEmailAddress()),
-                    Password.of("12345678Am*"),
-                    UserRole.USER
-            ).updateDocument(DocumentFactory.create("902.733.880-96", "cpf"))
+                            new Name(aFirstName, aLastName),
+                            new Email(faker.internet().safeEmailAddress()),
+                            Password.of("12345678Am*"),
+                            UserRole.USER
+                    ).updateDocument(DocumentFactory.create("902.733.880-96", "cpf"))
                     .updatePhoneNumber("+21912345678");
         }
     }
@@ -289,6 +290,27 @@ public final class Fixture {
             return Order.newOrder(
                     userID,
                     items
+            );
+        }
+
+        public static Order newOrderWithPaymentId(final UserID userID, final PaymentID paymentID) {
+            final var aItem = OrderFixture.newOrderItem(
+                    ULID.random(),
+                    ULID.random()
+            );
+            final var aNow = InstantUtils.now();
+
+            return Order.with(
+                    new OrderID(ULID.random()),
+                    0L,
+                    userID,
+                    List.of(aItem),
+                    aItem.getTotalPrice(),
+                    paymentID,
+                    OrderStatus.CREATED,
+                    aNow,
+                    aNow,
+                    null
             );
         }
 

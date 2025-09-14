@@ -6,6 +6,8 @@ import java.util.Optional;
 public enum OrderStatus {
 
     CREATED,
+    PAYMENT_PENDING,
+    PAYMENT_APPROVED,
     PAID,
     CANCELED,
     FAILED,

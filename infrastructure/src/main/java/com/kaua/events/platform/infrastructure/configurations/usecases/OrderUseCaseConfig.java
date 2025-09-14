@@ -8,6 +8,8 @@ import com.kaua.events.platform.application.usecases.orders.retrieve.get.Default
 import com.kaua.events.platform.application.usecases.orders.retrieve.get.GetOrderByIdUseCase;
 import com.kaua.events.platform.application.usecases.orders.retrieve.list.DefaultListOrdersByUserIdUseCase;
 import com.kaua.events.platform.application.usecases.orders.retrieve.list.ListOrdersByUserIdUseCase;
+import com.kaua.events.platform.application.usecases.orders.update.status.DefaultUpdateOrderStatusUseCase;
+import com.kaua.events.platform.application.usecases.orders.update.status.UpdateOrderStatusUseCase;
 import com.kaua.events.platform.application.usecases.payments.create.CreatePaymentUseCase;
 import com.kaua.events.platform.application.wrapper.TracerWrapper;
 import com.kaua.events.platform.application.wrapper.TransactionManager;
@@ -48,5 +50,12 @@ public class OrderUseCaseConfig {
             final OrderRepository orderRepository
     ) {
         return new DefaultGetOrderByIdUseCase(orderRepository);
+    }
+
+    @Bean
+    public UpdateOrderStatusUseCase updateOrderStatusUseCase(
+            final OrderRepository orderRepository
+    ) {
+        return new DefaultUpdateOrderStatusUseCase(orderRepository);
     }
 }
