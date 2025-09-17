@@ -6,7 +6,7 @@ plugins {
 group = 'com.kaua.events.platform.domain'
 
 dependencies {
-    implementation 'net.datafaker:datafaker:2.0.1'
+    implementation 'net.datafaker:datafaker:2.5.0'
 }
 
 configurations {
