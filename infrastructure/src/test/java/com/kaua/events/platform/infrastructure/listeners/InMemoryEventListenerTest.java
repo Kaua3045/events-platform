@@ -60,6 +60,40 @@ class InMemoryEventListenerTest extends UnitTest {
 
         listener.handleEvents(message);
 
+        verify(createPaymentUseCase, times(0)).execute(any());
+    }
+
+    @Test
+    void givenOrderCreatedEventWithCreditCard_whenHandleOrderEvent_thenProcessedSuccessfully() {
+        String payload = """
+                {
+                    "status": "CREATED",
+                    "total_amount": 100.0,
+                    "payment_details": {"method": "CREDIT_CARD", "amount": 100.0, "payment_token": "121412412", "installments": 1, "user_id": "18241792847"},
+                    "event_id": "evt-123",
+                    "event_type": "OrderCreated",
+                    "occurred_on": "2025-08-30T16:27:19.481562Z",
+                    "aggregate_id": "agg-123",
+                    "aggregate_version": 0,
+                    "source": "OrderService",
+                    "trace_id": "trace-123"
+                }
+                """;
+
+        OutboxMessage message = new OutboxMessage(
+                "evt-123",
+                "Order",
+                "agg-123",
+                0L,
+                "OrderCreated",
+                payload,
+                "2025-08-30T16:27:19.481562Z",
+                "PENDING",
+                null
+        );
+
+        listener.handleEvents(message);
+
         verify(createPaymentUseCase, times(1)).execute(any());
     }
 
