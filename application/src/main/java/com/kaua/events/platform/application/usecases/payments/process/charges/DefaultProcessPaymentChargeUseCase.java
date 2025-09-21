@@ -37,6 +37,13 @@ public class DefaultProcessPaymentChargeUseCase extends ProcessPaymentChargeUseC
                     .orElseThrow(NotFoundException.with(Payment.class, "orderId", input.notificationId()));
 
             final var aPaymentPaid = aPayment.markAsPaid();
+            aPaymentPaid.registerEvent(new PaymentStatusChangedEvent(
+                    aPaymentPaid.getOrderId().value().toString(),
+                    aPaymentPaid.getId().value().toString(),
+                    aPaymentPaid.getVersion(),
+                    aPaymentPaid.getStatus().name(),
+                    aPaymentPaid.getTransactionId()
+            ));
             this.paymentRepository.save(aPaymentPaid);
             return;
         }
