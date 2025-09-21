@@ -5,6 +5,7 @@ import com.kaua.events.platform.application.usecases.orders.update.status.Update
 import com.kaua.events.platform.application.usecases.payments.create.CreatePaymentInput;
 import com.kaua.events.platform.application.usecases.payments.create.CreatePaymentUseCase;
 import com.kaua.events.platform.domain.orders.events.OrderCreatedEvent;
+import com.kaua.events.platform.domain.payments.PaymentMethod;
 import com.kaua.events.platform.domain.payments.events.PaymentCreatedEvent;
 import com.kaua.events.platform.domain.payments.events.PaymentStatusChangedEvent;
 import com.kaua.events.platform.infrastructure.configurations.json.Json;
@@ -66,6 +67,10 @@ public class InMemoryEventListener {
 
     private void handleOrderCreatedEvent(final OrderCreatedEvent aEvent) {
         log.info("Order Event received: {}", aEvent);
+        if (aEvent.paymentDetails().method().equals(PaymentMethod.PIX)) {
+            log.warn("OrderCreatedEvent already processed in sync method {}", aEvent);
+            return;
+        }
         final var aPaymentProcess = this.createPaymentUseCase.execute(CreatePaymentInput.with(
                 aEvent.paymentDetails(),
                 aEvent.aggregateId(),

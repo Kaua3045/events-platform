@@ -7,8 +7,6 @@ import com.kaua.events.platform.application.usecases.orders.create.payment.Creat
 import java.util.List;
 
 public record CreateCheckoutRequest(
-        @JsonProperty("document_number") String documentNumber,
-        @JsonProperty("document_type") String documentType,
         @JsonProperty("items") List<CreateCheckoutItemsRequest> items,
         @JsonProperty("payment_details") CreateCheckoutPaymentDetailsInput paymentDetails
 ) {
@@ -16,8 +14,6 @@ public record CreateCheckoutRequest(
     public CreateCheckoutInput toInput(final String userId) {
         return new CreateCheckoutInput(
                 userId,
-                documentNumber(),
-                documentType(),
                 items().stream().map(CreateCheckoutItemsRequest::toInput).toList(),
                 paymentDetails()
         );

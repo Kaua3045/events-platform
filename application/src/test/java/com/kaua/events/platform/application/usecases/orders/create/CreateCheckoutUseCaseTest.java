@@ -71,9 +71,8 @@ class CreateCheckoutUseCaseTest extends UseCaseTest {
     void givenValidInputWithPixPayment_whenExecute_thenCreateOrderAndReturnQrCode() {
         final var userId = randomId();
         final var eventId = randomId();
-        final var document = "448.370.900-36";
         final var ticket = newTicket("VIP Ticket", BigDecimal.valueOf(100), 2, TicketType.PROMOTIONAL);
-        final var input = createCheckoutInput(document, eventId.toString(), userId.toString(), ticket, 2, new CreateCheckoutPixPaymentDetails());
+        final var input = createCheckoutInput(eventId.toString(), userId.toString(), ticket, 2, new CreateCheckoutPixPaymentDetails());
 
         mockTicketFound(ticket);
         mockOrderSave();
@@ -99,13 +98,12 @@ class CreateCheckoutUseCaseTest extends UseCaseTest {
     void givenValidInputWithCreditCardPayment_whenExecute_thenCreateOrderWithoutQrCode() {
         final var userId = randomId();
         final var eventId = randomId();
-        final var document = "448.370.900-36";
         final var ticket = newTicket("Regular Ticket", BigDecimal.valueOf(50), 1, TicketType.STANDARD);
         final var paymentDetails = new CreateCheckoutCreditCardPaymentDetails(
                 "valid-token",
                 1
         );
-        final var input = createCheckoutInput(document, eventId.toString(), userId.toString(), ticket, 1, paymentDetails);
+        final var input = createCheckoutInput(eventId.toString(), userId.toString(), ticket, 1, paymentDetails);
 
         mockTicketFound(ticket);
         mockOrderSave();
@@ -124,12 +122,9 @@ class CreateCheckoutUseCaseTest extends UseCaseTest {
         final var userId = randomId();
         final var eventId = randomId();
         final var fakeTicketId = randomId();
-        final var document = "448.370.900-36";
         final var paymentDetails = new CreateCheckoutPixPaymentDetails();
         final var input = CreateCheckoutInput.with(
                 userId.toString(),
-                document,
-                "cpf",
                 List.of(CreateCheckoutItemsInput.with(eventId.toString(), fakeTicketId.toString(), 1)),
                 paymentDetails
         );
@@ -147,8 +142,7 @@ class CreateCheckoutUseCaseTest extends UseCaseTest {
         final var userId = randomId();
         final var eventId = randomId();
         final var ticket = newTicket("Limited Ticket", BigDecimal.valueOf(20), 4, TicketType.VIP);
-        final var document = "448.370.900-36";
-        final var input = createCheckoutInput(document, eventId.toString(), userId.toString(), ticket, 5, new CreateCheckoutPixPaymentDetails());
+        final var input = createCheckoutInput(eventId.toString(), userId.toString(), ticket, 5, new CreateCheckoutPixPaymentDetails());
 
         mockTicketFound(ticket);
 
@@ -175,7 +169,7 @@ class CreateCheckoutUseCaseTest extends UseCaseTest {
         final var userId = randomId();
         final var eventId = randomId();
         final var ticket = newTicket("VIP standard", BigDecimal.valueOf(100), 2, TicketType.STANDARD);
-        final var input = createCheckoutInput("448.370.900-36", eventId.toString(), userId.toString(), ticket, 1, new CreateCheckoutPixPaymentDetails());
+        final var input = createCheckoutInput(eventId.toString(), userId.toString(), ticket, 1, new CreateCheckoutPixPaymentDetails());
 
         mockTicketFound(ticket);
 
@@ -192,7 +186,7 @@ class CreateCheckoutUseCaseTest extends UseCaseTest {
         final var userId = randomId();
         final var eventId = randomId();
         final var ticket = newTicket("VIP pista", BigDecimal.valueOf(100), 2, TicketType.STANDARD);
-        final var input = createCheckoutInput("448.370.900-36", eventId.toString(), userId.toString(), ticket, 1, new CreateCheckoutPixPaymentDetails());
+        final var input = createCheckoutInput(eventId.toString(), userId.toString(), ticket, 1, new CreateCheckoutPixPaymentDetails());
 
         mockTicketFound(ticket);
         mockOrderSave();
@@ -228,10 +222,10 @@ class CreateCheckoutUseCaseTest extends UseCaseTest {
         );
     }
 
-    private CreateCheckoutInput createCheckoutInput(String documentNumber, String eventId, String userId, Ticket ticket, int quantity, CreateCheckoutPaymentDetailsInput payment) {
+    private CreateCheckoutInput createCheckoutInput(String eventId, String userId, Ticket ticket, int quantity, CreateCheckoutPaymentDetailsInput payment) {
         final var items = List.of(CreateCheckoutItemsInput
                 .with(eventId, ticket.getId().value().toString(), quantity));
-        return CreateCheckoutInput.with(userId, documentNumber, "cpf", items, payment);
+        return CreateCheckoutInput.with(userId, items, payment);
     }
 
     private void mockTicketFound(Ticket ticket) {
