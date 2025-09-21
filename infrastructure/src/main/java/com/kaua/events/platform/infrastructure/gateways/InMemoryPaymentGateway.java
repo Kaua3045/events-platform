@@ -139,7 +139,7 @@ public class InMemoryPaymentGateway implements PaymentGateway {
                         "pix", List.of(
                                 Map.of(
                                         "endToEndId", UUID.randomUUID().toString(),
-                                        "txid", transactionId,
+                                        "txid", orderId,
                                         "customId", orderId,
                                         "valor", amount.toPlainString(),
                                         "horario", Instant.now().toString(),
