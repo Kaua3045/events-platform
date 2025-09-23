@@ -182,7 +182,7 @@ public class EfiPaymentGateway implements PaymentGateway, ReactiveHttpClientUtil
 
     private PaymentProcessResponse processPixPayment(final PaymentProcessRequest request, final String aToken) {
         final var aOutput = doUpdate(request.orderId(), () -> webClient.put()
-                .uri("/v2/cob/" + request.transactionId())
+                .uri("/v2/cob/" + request.orderId())
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + aToken)
                 .header("x-idempotency-key", request.orderId())
                 .bodyValue(Map.of(
@@ -190,7 +190,7 @@ public class EfiPaymentGateway implements PaymentGateway, ReactiveHttpClientUtil
                         "valor", Map.of("original", request.paymentDetails().amount().toPlainString()),
                         "chave", this.efiPixProperties.getPixKeys().getFirst(),
                         "infoAdicionais", List.of(
-                                Map.of("nome", "orderId", "valor", request.orderId())
+                                Map.of("nome", "transactionId", "valor", request.transactionId())
                         )
                 ))
                 .retrieve()

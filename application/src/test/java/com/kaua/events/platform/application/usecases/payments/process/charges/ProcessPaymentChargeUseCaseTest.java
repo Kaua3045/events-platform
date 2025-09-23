@@ -42,8 +42,24 @@ class ProcessPaymentChargeUseCaseTest extends UseCaseTest {
     }
 
     @Test
+    void givenPixNotification_whenExecute_thenMarkPaymentAsPaid() {
+        // Arrange
+        final var payment = Fixture.PaymentFixture.newPayment();
+        final var input = ProcessPaymentChargeInput.with("pix-order-123", "pix");
+
+        when(paymentRepository.paymentOfOrderId(input.notificationId()))
+                .thenReturn(Optional.of(payment));
+
+        when(paymentRepository.save(any(Payment.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Assertions.assertDoesNotThrow(() -> useCase.execute(input));
+
+        verify(paymentRepository, times(1)).save(argThat(p -> p.getStatus() == PaymentStatus.PAID));
+    }
+
+    @Test
     void givenEmptyNotifications_whenExecute_thenDoNothing() {
-        final var input = ProcessPaymentChargeInput.with("notif-id-1");
+        final var input = ProcessPaymentChargeInput.with("notif-id-1", "credit_card");
 
         final var expectedErrorMessage = "No payment notifications found for id: notif-id-1";
 
@@ -66,7 +82,7 @@ class ProcessPaymentChargeUseCaseTest extends UseCaseTest {
                 createNotificationData(payment, "approved", null)
         );
 
-        final var input = ProcessPaymentChargeInput.with("notif-id-1");
+        final var input = ProcessPaymentChargeInput.with("notif-id-1", "credit_card");
         when(paymentGateway.getNotifications(input.notificationId()))
                 .thenReturn(new PaymentGateway.PaymentNotification(200, notifications));
         when(paymentRepository.paymentOfOrderId(anyString())).thenReturn(Optional.of(payment));
@@ -85,7 +101,7 @@ class ProcessPaymentChargeUseCaseTest extends UseCaseTest {
                 createNotificationData(payment, "identified", null)
         );
 
-        final var input = ProcessPaymentChargeInput.with("notif-id-2");
+        final var input = ProcessPaymentChargeInput.with("notif-id-2", "credit_card");
         when(paymentGateway.getNotifications(input.notificationId()))
                 .thenReturn(new PaymentGateway.PaymentNotification(200, notifications));
         when(paymentRepository.paymentOfOrderId(anyString())).thenReturn(Optional.of(payment));
@@ -103,7 +119,7 @@ class ProcessPaymentChargeUseCaseTest extends UseCaseTest {
                 createNotificationData(payment, "approved", null)
         );
 
-        final var input = ProcessPaymentChargeInput.with("notif-id-3");
+        final var input = ProcessPaymentChargeInput.with("notif-id-3", "credit_card");
         when(paymentGateway.getNotifications(input.notificationId()))
                 .thenReturn(new PaymentGateway.PaymentNotification(200, notifications));
         when(paymentRepository.paymentOfOrderId(anyString())).thenReturn(Optional.of(payment));
@@ -120,7 +136,7 @@ class ProcessPaymentChargeUseCaseTest extends UseCaseTest {
                 createNotificationData(payment, "identified", null)
         );
 
-        final var input = ProcessPaymentChargeInput.with("notif-id-3");
+        final var input = ProcessPaymentChargeInput.with("notif-id-3", "credit_card");
         when(paymentGateway.getNotifications(input.notificationId()))
                 .thenReturn(new PaymentGateway.PaymentNotification(200, notifications));
         when(paymentRepository.paymentOfOrderId(anyString())).thenReturn(Optional.of(payment));
@@ -138,7 +154,7 @@ class ProcessPaymentChargeUseCaseTest extends UseCaseTest {
                 createNotificationData(payment, "paid", null)
         );
 
-        final var input = ProcessPaymentChargeInput.with("notif-id-4");
+        final var input = ProcessPaymentChargeInput.with("notif-id-4", "credit_card");
         when(paymentGateway.getNotifications(input.notificationId()))
                 .thenReturn(new PaymentGateway.PaymentNotification(200, notifications));
         when(paymentRepository.paymentOfOrderId(anyString())).thenReturn(Optional.of(payment));
@@ -154,7 +170,7 @@ class ProcessPaymentChargeUseCaseTest extends UseCaseTest {
                         1, "type", "non-existent-order", "paid", 1, "2024-01-01T00:00:00Z"
                 )
         );
-        final var input = ProcessPaymentChargeInput.with("notif-id-5");
+        final var input = ProcessPaymentChargeInput.with("notif-id-5", "credit_card");
 
         when(paymentGateway.getNotifications(input.notificationId()))
                 .thenReturn(new PaymentGateway.PaymentNotification(200, notifications));
@@ -173,7 +189,7 @@ class ProcessPaymentChargeUseCaseTest extends UseCaseTest {
                 createNotificationData(payment, "waiting", null)
         );
 
-        final var input = ProcessPaymentChargeInput.with("notif-id-unknown");
+        final var input = ProcessPaymentChargeInput.with("notif-id-unknown", "credit_card");
         when(paymentGateway.getNotifications(input.notificationId()))
                 .thenReturn(new PaymentGateway.PaymentNotification(200, notifications));
         when(paymentRepository.paymentOfOrderId(anyString())).thenReturn(Optional.of(payment));
@@ -193,7 +209,7 @@ class ProcessPaymentChargeUseCaseTest extends UseCaseTest {
                 createNotificationData(payment, "paid", null)
         );
 
-        final var input = ProcessPaymentChargeInput.with("notif-id-fallback");
+        final var input = ProcessPaymentChargeInput.with("notif-id-fallback", "credit_card");
         when(paymentGateway.getNotifications(input.notificationId()))
                 .thenReturn(new PaymentGateway.PaymentNotification(200, notifications));
         when(paymentRepository.paymentOfOrderId(anyString())).thenReturn(Optional.of(payment));

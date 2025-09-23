@@ -63,13 +63,12 @@ class EfiPaymentGatewayTest extends AbstractRestClientTest implements Observatio
 
     @Test
     void givenAValidPixRequest_whenProcess_thenShouldReturnPixResponse() {
-        final var transactionId = "tx123";
         final var orderId = "order123";
         final var amount = new BigDecimal("100.00");
         final var aToken = "token123";
         Mockito.doReturn(aToken).when(getClientCredentials).retrieve();
 
-        stubFor(put(urlPathEqualTo("/v2/cob/" + transactionId))
+        stubFor(put(urlPathEqualTo("/v2/cob/" + orderId))
                 .withHeader(HttpHeaders.AUTHORIZATION, equalTo("Bearer " + aToken))
                 .withHeader("x-idempotency-key", equalTo(orderId))
                 .withRequestBody(containing("\"original\":\"100.00\""))
@@ -84,7 +83,7 @@ class EfiPaymentGatewayTest extends AbstractRestClientTest implements Observatio
                                   "status":"ATIVA",
                                   "pixCopiaECola":"000201...123"
                                 }
-                                """.formatted(transactionId))));
+                                """.formatted(orderId))));
 
         stubFor(get(urlPathEqualTo("/v2/loc/321/qrcode"))
                 .withHeader(HttpHeaders.AUTHORIZATION, equalTo("Bearer " + aToken))
@@ -99,7 +98,7 @@ class EfiPaymentGatewayTest extends AbstractRestClientTest implements Observatio
                                 }
                                 """)));
 
-        final var request = new EfiPaymentGateway.PaymentProcessRequest(transactionId, orderId, new PaymentPixPaymentDetailsRequest(amount));
+        final var request = new EfiPaymentGateway.PaymentProcessRequest(orderId, orderId, new PaymentPixPaymentDetailsRequest(amount));
         final var response = this.gateway.process(request);
 
         Assertions.assertNotNull(response);
@@ -108,7 +107,7 @@ class EfiPaymentGatewayTest extends AbstractRestClientTest implements Observatio
         Assertions.assertEquals(3600, response.expiresIn());
         Assertions.assertEquals(EfiPaymentGateway.PaymentProcessStatus.ACTIVE, response.status());
 
-        verify(1, putRequestedFor(urlEqualTo("/v2/cob/" + transactionId))
+        verify(1, putRequestedFor(urlEqualTo("/v2/cob/" + orderId))
                 .withHeader(HttpHeaders.AUTHORIZATION, equalTo("Bearer " + aToken))
                 .withHeader("x-idempotency-key", equalTo(orderId)));
         verify(1, getRequestedFor(urlEqualTo("/v2/loc/321/qrcode"))
@@ -117,25 +116,24 @@ class EfiPaymentGatewayTest extends AbstractRestClientTest implements Observatio
 
     @Test
     void givenPixRequestButEfiReturns5xx_whenProcess_thenShouldThrowInternalErrorException() {
-        final var transactionId = "tx500";
         final var orderId = "order500";
         final var amount = new BigDecimal("100.00");
         final var aToken = "token5xx";
         Mockito.doReturn(aToken).when(getClientCredentials).retrieve();
 
-        stubFor(put(urlPathEqualTo("/v2/cob/" + transactionId))
+        stubFor(put(urlPathEqualTo("/v2/cob/" + orderId))
                 .willReturn(aResponse()
                         .withStatus(500)
                         .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                         .withBody("{\"message\":\"Internal Server Error\"}")));
 
-        final var request = new EfiPaymentGateway.PaymentProcessRequest(transactionId, orderId, new PaymentPixPaymentDetailsRequest(amount));
+        final var request = new EfiPaymentGateway.PaymentProcessRequest(orderId, orderId, new PaymentPixPaymentDetailsRequest(amount));
 
         final var exception = Assertions.assertThrows(InternalErrorException.class,
                 () -> this.gateway.process(request));
         Assertions.assertTrue(exception.getMessage().contains("Error observed"));
 
-        verify(2, putRequestedFor(urlEqualTo("/v2/cob/" + transactionId))); // retry
+        verify(2, putRequestedFor(urlEqualTo("/v2/cob/" + orderId))); // retry
     }
 
     @Test
@@ -154,13 +152,13 @@ class EfiPaymentGatewayTest extends AbstractRestClientTest implements Observatio
                 "mensagem", expectedErrorMessage
         );
 
-        stubFor(put(urlPathEqualTo("/v2/cob/" + transactionId))
+        stubFor(put(urlPathEqualTo("/v2/cob/" + orderId))
                 .willReturn(aResponse()
                         .withStatus(400)
                         .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                         .withBody(writeValueAsString(body))));
 
-        final var request = new EfiPaymentGateway.PaymentProcessRequest(transactionId, orderId, new PaymentPixPaymentDetailsRequest(amount));
+        final var request = new EfiPaymentGateway.PaymentProcessRequest(orderId, orderId, new PaymentPixPaymentDetailsRequest(amount));
 
         final var exception = Assertions.assertThrows(DomainException.class,
                 () -> this.gateway.process(request));
@@ -169,7 +167,7 @@ class EfiPaymentGatewayTest extends AbstractRestClientTest implements Observatio
         Assertions.assertEquals(expectedErrorMessage, exception.getErrors().getFirst().message());
         Assertions.assertEquals(expectedErrorProperty, exception.getErrors().getFirst().property());
 
-        verify(2, putRequestedFor(urlEqualTo("/v2/cob/" + transactionId))); // TODO erro de validacao nao dar retry
+        verify(2, putRequestedFor(urlEqualTo("/v2/cob/" + orderId))); // TODO erro de validacao nao dar retry
     }
 
     @Test
@@ -188,13 +186,13 @@ class EfiPaymentGatewayTest extends AbstractRestClientTest implements Observatio
                 "mensagem", expectedErrorMessage
         );
 
-        stubFor(put(urlPathEqualTo("/v2/cob/" + transactionId))
+        stubFor(put(urlPathEqualTo("/v2/cob/" + orderId))
                 .willReturn(aResponse()
                         .withStatus(409)
                         .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                         .withBody(writeValueAsString(body))));
 
-        final var request = new EfiPaymentGateway.PaymentProcessRequest(transactionId, orderId, new PaymentPixPaymentDetailsRequest(amount));
+        final var request = new EfiPaymentGateway.PaymentProcessRequest(orderId, orderId, new PaymentPixPaymentDetailsRequest(amount));
 
         final var exception = Assertions.assertThrows(ConflictException.class,
                 () -> this.gateway.process(request));
@@ -203,7 +201,7 @@ class EfiPaymentGatewayTest extends AbstractRestClientTest implements Observatio
         Assertions.assertEquals(expectedErrorMessage, exception.getErrors().getFirst().message());
         Assertions.assertEquals(expectedErrorProperty, exception.getErrors().getFirst().property());
 
-        verify(2, putRequestedFor(urlEqualTo("/v2/cob/" + transactionId))); // TODO erro de validacao nao dar retry
+        verify(2, putRequestedFor(urlEqualTo("/v2/cob/" + orderId))); // TODO erro de validacao nao dar retry
     }
 
     @Test
@@ -222,13 +220,13 @@ class EfiPaymentGatewayTest extends AbstractRestClientTest implements Observatio
                 "mensagem", expectedErrorMessage
         );
 
-        stubFor(put(urlPathEqualTo("/v2/cob/" + transactionId))
+        stubFor(put(urlPathEqualTo("/v2/cob/" + orderId))
                 .willReturn(aResponse()
                         .withStatus(429)
                         .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                         .withBody(writeValueAsString(body))));
 
-        final var request = new EfiPaymentGateway.PaymentProcessRequest(transactionId, orderId, new PaymentPixPaymentDetailsRequest(amount));
+        final var request = new EfiPaymentGateway.PaymentProcessRequest(orderId, orderId, new PaymentPixPaymentDetailsRequest(amount));
 
         final var exception = Assertions.assertThrows(TooManyRequestsException.class,
                 () -> this.gateway.process(request));
@@ -237,7 +235,7 @@ class EfiPaymentGatewayTest extends AbstractRestClientTest implements Observatio
         Assertions.assertEquals(expectedErrorMessage, exception.getErrors().getFirst().message());
         Assertions.assertEquals(expectedErrorProperty, exception.getErrors().getFirst().property());
 
-        verify(1, putRequestedFor(urlEqualTo("/v2/cob/" + transactionId))); // TODO erro de validacao nao dar retry
+        verify(1, putRequestedFor(urlEqualTo("/v2/cob/" + orderId))); // TODO erro de validacao nao dar retry
     }
 
     @Test
@@ -248,18 +246,18 @@ class EfiPaymentGatewayTest extends AbstractRestClientTest implements Observatio
         final var aToken = "tokenTimeout";
         Mockito.doReturn(aToken).when(getClientCredentials).retrieve();
 
-        stubFor(put(urlPathEqualTo("/v2/cob/" + transactionId))
+        stubFor(put(urlPathEqualTo("/v2/cob/" + orderId))
                 .willReturn(aResponse()
                         .withStatus(201)
                         .withFixedDelay(2000)));
 
-        final var request = new EfiPaymentGateway.PaymentProcessRequest(transactionId, orderId, new PaymentPixPaymentDetailsRequest(amount));
+        final var request = new EfiPaymentGateway.PaymentProcessRequest(orderId, orderId, new PaymentPixPaymentDetailsRequest(amount));
 
         final var exception = Assertions.assertThrows(InternalErrorException.class,
                 () -> this.gateway.process(request));
 
         Assertions.assertTrue(exception.getMessage().contains("Timeout"));
-        verify(2, putRequestedFor(urlEqualTo("/v2/cob/" + transactionId))); // retry
+        verify(2, putRequestedFor(urlEqualTo("/v2/cob/" + orderId))); // retry
     }
 
     @Test
@@ -302,7 +300,7 @@ class EfiPaymentGatewayTest extends AbstractRestClientTest implements Observatio
 
         final var expectedErrorMessage = "QrCode location does not found";
 
-        stubFor(put(urlPathEqualTo("/v2/cob/" + transactionId))
+        stubFor(put(urlPathEqualTo("/v2/cob/" + orderId))
                 .withHeader(HttpHeaders.AUTHORIZATION, equalTo("Bearer " + aToken))
                 .withHeader("x-idempotency-key", equalTo(orderId))
                 .withRequestBody(containing("\"original\":\"100.00\""))
@@ -317,7 +315,7 @@ class EfiPaymentGatewayTest extends AbstractRestClientTest implements Observatio
                                   "status":"ATIVA",
                                   "pixCopiaECola":"000201...123"
                                 }
-                                """.formatted(transactionId))));
+                                """.formatted(orderId))));
 
         stubFor(get(urlPathEqualTo("/v2/loc/321/qrcode"))
                 .withHeader(HttpHeaders.AUTHORIZATION, equalTo("Bearer " + aToken))
@@ -336,7 +334,7 @@ class EfiPaymentGatewayTest extends AbstractRestClientTest implements Observatio
 
         Assertions.assertEquals(expectedErrorMessage, exception.getMessage());
 
-        verify(2, putRequestedFor(urlEqualTo("/v2/cob/" + transactionId))
+        verify(2, putRequestedFor(urlEqualTo("/v2/cob/" + orderId))
                 .withHeader(HttpHeaders.AUTHORIZATION, equalTo("Bearer " + aToken))
                 .withHeader("x-idempotency-key", equalTo(orderId)));
         verify(2, getRequestedFor(urlEqualTo("/v2/loc/321/qrcode"))
@@ -353,14 +351,14 @@ class EfiPaymentGatewayTest extends AbstractRestClientTest implements Observatio
 
         final var request = new EfiPaymentGateway.PaymentProcessRequest(transactionId, orderId, new PaymentPixPaymentDetailsRequest(amount));
 
-        stubFor(put(urlPathEqualTo("/v2/cob/" + transactionId))
+        stubFor(put(urlPathEqualTo("/v2/cob/" + orderId))
                 .inScenario("RetryScenario")
                 .whenScenarioStateIs(STARTED)
                 .willSetStateTo("SecondTry")
                 .willReturn(aResponse()
                         .withStatus(500)));
 
-        stubFor(put(urlPathEqualTo("/v2/cob/" + transactionId))
+        stubFor(put(urlPathEqualTo("/v2/cob/" + orderId))
                 .inScenario("RetryScenario")
                 .whenScenarioStateIs("SecondTry")
                 .willReturn(aResponse()
@@ -374,7 +372,7 @@ class EfiPaymentGatewayTest extends AbstractRestClientTest implements Observatio
                                   "status":"ATIVA",
                                   "pixCopiaECola":"000201...retry"
                                 }
-                                """.formatted(transactionId))));
+                                """.formatted(orderId))));
 
         stubFor(get(urlPathEqualTo("/v2/loc/321/qrcode"))
                 .withHeader(HttpHeaders.AUTHORIZATION, equalTo("Bearer " + aToken))
@@ -397,7 +395,7 @@ class EfiPaymentGatewayTest extends AbstractRestClientTest implements Observatio
         Assertions.assertEquals(3600, response.expiresIn());
         Assertions.assertEquals(EfiPaymentGateway.PaymentProcessStatus.ACTIVE, response.status());
 
-        verify(2, putRequestedFor(urlEqualTo("/v2/cob/" + transactionId))
+        verify(2, putRequestedFor(urlEqualTo("/v2/cob/" + orderId))
                 .withHeader(HttpHeaders.AUTHORIZATION, equalTo("Bearer " + aToken))
                 .withHeader("x-idempotency-key", equalTo(orderId)));
         verify(1, getRequestedFor(urlEqualTo("/v2/loc/321/qrcode"))

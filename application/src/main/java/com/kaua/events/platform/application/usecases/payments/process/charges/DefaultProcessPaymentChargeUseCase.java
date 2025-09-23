@@ -32,6 +32,22 @@ public class DefaultProcessPaymentChargeUseCase extends ProcessPaymentChargeUseC
     public void execute(final ProcessPaymentChargeInput input) {
         if (input == null) throw new UseCaseInputCannotBeNullException(ProcessPaymentChargeUseCase.class);
 
+        if (input.method().equalsIgnoreCase("pix")) {
+            final var aPayment = this.paymentRepository.paymentOfOrderId(input.notificationId())
+                    .orElseThrow(NotFoundException.with(Payment.class, "orderId", input.notificationId()));
+
+            final var aPaymentPaid = aPayment.markAsPaid();
+            aPaymentPaid.registerEvent(new PaymentStatusChangedEvent(
+                    aPaymentPaid.getOrderId().value().toString(),
+                    aPaymentPaid.getId().value().toString(),
+                    aPaymentPaid.getVersion(),
+                    aPaymentPaid.getStatus().name(),
+                    aPaymentPaid.getTransactionId()
+            ));
+            this.paymentRepository.save(aPaymentPaid);
+            return;
+        }
+
         final var aPaymentNotifications = this.paymentGateway.getNotifications(input.notificationId());
 
         if (aPaymentNotifications.data().isEmpty()) {
@@ -48,8 +64,6 @@ public class DefaultProcessPaymentChargeUseCase extends ProcessPaymentChargeUseC
         final var notification = targetNotification.get();
         final var aPayment = this.paymentRepository.paymentOfOrderId(notification.customId())
                 .orElseThrow(NotFoundException.with(Payment.class, "orderId", notification.customId()));
-
-        System.out.println(notification);
 
         switch (notification.currentStatus().toLowerCase()) {
             case "paid" -> {
