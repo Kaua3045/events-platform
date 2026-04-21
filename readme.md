@@ -1,102 +1,142 @@
-# Plataform de Eventos
+# 🎟️ Event Ticketing Platform with Payment Consistency
 
-## Ferramentas utilizadas
-![Java](https://img.shields.io/badge/java-%23ED8B00.svg?style=for-the-badge&logo=java&logoColor=white)
-![Spring](https://img.shields.io/badge/spring-%236DB33F.svg?style=for-the-badge&logo=spring&logoColor=white)
-![Gradle](https://img.shields.io/badge/Gradle-02303A.svg?style=for-the-badge&logo=Gradle&logoColor=white)
-![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white)
-![GitHub Actions](https://img.shields.io/badge/github%20actions-%232671E5.svg?style=for-the-badge&logo=githubactions&logoColor=white)
+Sistema de venda de ingressos com foco em **consistência de pagamentos**, 
+**processamento assíncrono** e **tratamento de concorrência**, 
+simulando cenários reais de produção.
 
-## Sobre
+## 🚀 Visão Geral
+Esta aplicação foi projetada para lidar com problemas reais encontrados em plataformas de eventos, como:
+- Processamento de pagamentos via gateway externo
+- Recebimento de webhooks duplicados
+- Garantia de consistência entre pagamento e atualização de status do pedido
 
-Uma plataforma muito parecida com a Sympla. Criar e gerenciar eventos e tickets.
+O sistema utiliza boas práticas de arquitetura para garantir **robustez**, **escalabilidade** e **observabilidade**.
 
-- Porquê decidiu fazer esse projeto?
-    - Decidi fazer esse projeto para aprender mais sobre clean architecture, DDD e SOLID. Além de aprender mais sobre o Spring e o Java. Deploys com k8s, docker e argoCD.
+## 🧠 Problemas Reais Resolvidos
+### 🔁 Idempotência
+Evita processamento duplicado de requisições críticas (ex: pagamento), garantindo que múltiplas chamadas com o mesmo contexto não causem efeitos colaterais.
 
-- Quais foram os desafios de implementá-lo?
-    - Foi um desafio muito grande implementar toda a parte de CD, com k8s, docker e argoCD, além disso o projeto é muito complexo, são muitas regras de negócio e validações, o que torna o projeto muito interessante.
+### 📦 Outbox Pattern
+Garante consistência entre banco de dados e eventos assíncronos, evitando perda de eventos em falhas de comunicação.
 
-- O que eu aprendi com ele?
-    - Aprendi como implementar CD com k8s, docker e argoCD. Além disso aprendi muito sobre tipos de deploy, como configurar um projeto, toda a parte de segurança e boas práticas.
+### 💳 Integração com Gateway de Pagamento
+- Integração com EFI Bank (PIX em produção, cartão em sandbox)
+- Tratamento de falhas externas
+- Processamento de webhooks
 
-## Tabela de conteúdos
+### ⚔️ Concorrência
+Preparado para cenários de alta concorrência, como múltiplas tentativas de compra do mesmo ingresso.
+- Controle de estado de pedidos
+- Estratégias para evitar inconsistências
 
-- [Arquitetura](#arquitetura)
-- [Requsitos para rodar o projeto](#requisitos)
-- [Instruções para executar o projeto](#instruções-para-executar-o-projeto)
-- [Contribua com o projeto](#contribuindo-com-o-projeto)
-- [Changelog](#changelog)
-- [Observabilidade](/doc/observability.md)
-- [Idempotência](/doc/idempotency-key.md)
+### 🔍 Observabilidade
+- Logs estruturados
+- Uso de `traceId` para rastreamento de requisições
+- Facilidade para debugging de falhas em produção
 
-## Arquitetura
+### 🏗️ Arquitetura
+A aplicação segue os princípios de **Clean Architecture + DDD (Domain-Driven Design)**:
 
-![Circulo da clean architecture](doc/imagens/clean-arch-circle)
+domain/ -> regras de negócio puras, entidades, value objects
 
-**Camadas da aplicação**
+application/ -> casos de uso e orquestração
 
-*Domain, é a camada onde se encontra as regras de negócio, validações e as interfaces gateways (abstração dos métodos do banco dedados, são usadas para remover o acomplamento com o banco de dados)*
+infrastructure/ -> integração com banco, APIs externas, controllers
 
-*Application, é a camada que contem todos os casos de uso (criar um usuário, pegar um usuário pelo id, atualizar um usuário, deletar um usuário, esse é famoso CRUD) e contem a integração com o gateway do banco de dados*
+#### Principais conceitos aplicados:
+- Aggregates
+- Value Objects
+- Use Cases
+- Gateways (abstração de infraestrutura)
+- Separação clara de responsabilidades
 
-*Infrastructure, é a camada responsável por conectar tudo, o usuário com a application e domain layer, contem a conexão com o banco de dados, entidades do banco e as rotas*
+## 🔄 Fluxo de Pagamento
+1. Usuário cria um pedido
+2. Sistema inicia o pagamento (PIX ou cartão)
+3. Gateway externo processa o pagamento
+4. Webhook é recebido pelo sistema
+5. Sistema valida idempotência da requisição
+6. Pedido é atualizado (PENDING -> APPROVED/FAILED)
+7. Tickets são liberados conforme status
 
-## Requisitos para rodar o projeto
+## ⚙️ Tecnologias Utilizadas
+- Java 21
+- Spring Boot
+- Gradle
+- Docker / Docker Compose
+- GitHub Actions
+- PostgreSQL
+- EFI Bank (PIX / Cartão)
+- NGROK (para testes de webhook)
 
-1. Docker e docker-compose
-2. Java e JDK 21
+## 🐳 Execução do Projeto
+### Pré-requisitos
+- Java 21
+- Docker + Docker Compose
 
-## Instruções para executar o projeto
-
-### 1. Rodando localmente (modo dev)
-
-1. Baixe o projeto e instale as dependências:
-```bash
-git clone https://github.com/Kaua3045/events-platform.git
-cd events-platform
-./gradlew build
-```
-
-2. Configure o ambiente:
-```bash
-   cp .env.example .env
-```
-
-3. Inicie a aplicação:
-```bash
+### 🔧 Rodando localmente
+```shell
+git clone https://github.com/Kaua3045/events-platform.git 
+cd events-platform 
+./gradlew build 
+cp .env.local .env 
 ./gradlew bootRun
 ```
-- URL base: http://localhost:8081/
-- Modo sandbox sem EFI (pagamentos em memória): no arquivo de configuração payments, habilite:
-```yaml
-in-memory:
-  pix:
-    enabled: true
-    base-url: http://localhost:8081/api
-```
 
-### Rodando com Docker + EFI (sandbox)
-1. Configure o .env como no passo anterior.
-2. Coloque o certificado de homologação EFI em: `infrastructure/src/main/resources/certificates/homolog`
-3. Rode os containers:
-```bash
-  docker-compose -f docker/sandbox/observability/docker-compose.yml up -d
-  docker-compose -f docker-compose-dev.yml up -d
-```
-- URL base: http://localhost:8081/api/
-- Dica: NGROK pode ser usado para expor o sandbox local e permitir que a EFI se comunique com sua aplicação sem deploy.
+API disponível em:
 
-## Contribuindo com o projeto
+`http://localhost:8081/api`
 
-Para contribuir com o projeto, veja mais informações em [CONTRIBUTING](doc/CONTRIBUTING.md)
-
-## Changelog
-
-Para ver as últimas alterações do projeto, acesse [AQUI](doc/changelog.md)
-
-## Configurações para dev
-After cloning project add commit-msg hook in your git path
+### 🐳 Rodando com Docker + Sandbox de Pagamento
 ```shell
-    git config core.hooksPath .githooks
+docker-compose -f docker/sandbox/observability/docker-compose.yml up -d 
+docker-compose -f docker-compose-dev.yml up -d
 ```
+
+> 💡 Dica: utiliza NGROK para expor sua aplicação local e permitir comunicação com o gateway de pagamento.
+
+## 📊 Observabilidade
+A aplicação possui suporte para:
+
+- Logs estruturados
+- Rastreamento por traceId
+- Debug facilitado de falhas em pagamentos
+
+Mais detalhes em: [Observabilidade](/doc/observability.md)
+
+## 🔐 Idempotência
+O sistema implementa proteção contra requisições duplicadas utilizando estratégias de idempotência.
+Mais detalhes em: [Idempotência](/doc/idempotency-key.md)
+
+## 🧪 Cenários Simulados
+O sistema foi pensado para simular cenários reais como:
+- Webhooks duplicados do gateway
+- Falhas de comunicação externa
+- Processamento assíncrono com consistência garantida
+
+## 📌 Diferenciais Técnicos
+- Integração real com gateway de pagamento
+- Uso de padrões como Outbox e Idempotência
+- Arquitetura baseada em DDD
+- Preparado para cenários de produção
+- Foco em problemas reais de backend
+
+## 📈 Possíveis Evoluções
+- Separação do serviço de autenticação (Auth Server dedicado)
+- Escala horizontal com mensageria (Kafka/RabbitMQ)
+- Cache distribuído
+- Rate limiting e proteção contra abuso
+- Monitoramento com ferramentas externas melhorado (Prometheus/Grafana)
+- Testes de webhook duplicados e falhas de comunicação
+- Implementação de testes de carga para validar comportamento sob alta concorrência
+
+## 🤝 Contribuição
+Para contribuir, veja: [CONTRIBUTING](/doc/CONTRIBUTING.md)
+
+## 📄 Changelog
+Para ver as últimas alterações do projeto, acesse: [Changelog](/doc/changelog.md)
+
+## 👨‍💻 Autor
+Desenvolvido por Kauã Pereira
+
+Backend Developer focado em sistemas distribuídos e alta consistência
